@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { RouterLink } from 'vue-router'
 import { useAuthStore } from '../controllers/useAuthStore'
 
 const authStore = useAuthStore()
@@ -29,19 +30,32 @@ const user = computed(() => authStore.user.value)
     <div v-else style="margin-top: 1.5rem">
       <p>
         Connecté en tant que <strong>{{ user.displayName }}</strong>
+        <span style="color: #555">(rôle : {{ user.role }})</span>
       </p>
-      <button
-        @click="authStore.signOut()"
-        style="
-          margin-top: 0.75rem;
-          padding: 0.8rem 1rem;
-          border-radius: 8px;
-          border: 1px solid #ccc;
-          cursor: pointer;
-        "
-      >
-        Se déconnecter
-      </button>
+
+      <p v-if="user.role === 'admin'" style="margin-top: 0.5rem">
+        Vous avez les droits administrateur.
+      </p>
+      <p v-else-if="user.role === 'mj'" style="margin-top: 0.5rem">Vous êtes maître du jeu.</p>
+      <p v-else style="margin-top: 0.5rem">Vous êtes joueur.</p>
+
+      <div style="margin-top: 1rem; display: flex; flex-direction: column; gap: 0.75rem">
+        <RouterLink to="/campaigns" style="color: #1a73e8; text-decoration: none">
+          Accéder aux campagnes
+        </RouterLink>
+        <button
+          @click="authStore.signOut()"
+          style="
+            margin-top: 0.75rem;
+            padding: 0.8rem 1rem;
+            border-radius: 8px;
+            border: 1px solid #ccc;
+            cursor: pointer;
+          "
+        >
+          Se déconnecter
+        </button>
+      </div>
     </div>
   </main>
 </template>
