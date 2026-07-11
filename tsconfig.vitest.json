@@ -1,0 +1,17 @@
+{
+  "extends": "./tsconfig.app.json",
+
+  // Include test files and Vue files so Vitest can type-check the component setup.
+  "include": ["env.d.ts", "src/**/*.ts", "src/**/*.vue", "src/**/__tests__/*"],
+  "exclude": [],
+
+  "compilerOptions": {
+    // Vitest needs DOM and Vite/Vue type declarations.
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "types": ["vite/client", "node", "jsdom"],
+
+    // `vue-tsc --build` produces a .tsbuildinfo file for incremental type-checking.
+    // Specified here to keep it out of the root directory.
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.vitest.tsbuildinfo"
+  }
+}
