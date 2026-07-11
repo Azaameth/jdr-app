@@ -9,24 +9,26 @@ const user = ref<User | null>(null)
 const loading = ref(false)
 const error = ref<string | null>(null)
 
-onAuthStateChanged(auth, (firebaseUser) => {
-  if (firebaseUser) {
-    const profile: User = {
-      uid: firebaseUser.uid,
-      displayName: firebaseUser.displayName ?? 'Utilisateur',
-      email: firebaseUser.email ?? '',
-      photoURL: firebaseUser.photoURL ?? '',
-      role: 'joueur',
-    }
+if (auth) {
+  onAuthStateChanged(auth, (firebaseUser) => {
+    if (firebaseUser) {
+      const profile: User = {
+        uid: firebaseUser.uid,
+        displayName: firebaseUser.displayName ?? 'Utilisateur',
+        email: firebaseUser.email ?? '',
+        photoURL: firebaseUser.photoURL ?? '',
+        role: 'joueur',
+      }
 
-    user.value = profile
-    void createOrUpdateUserProfile(profile).catch(() => {
-      error.value = 'Impossible de synchroniser le profil utilisateur.'
-    })
-  } else {
-    user.value = null
-  }
-})
+      user.value = profile
+      void createOrUpdateUserProfile(profile).catch(() => {
+        error.value = 'Impossible de synchroniser le profil utilisateur.'
+      })
+    } else {
+      user.value = null
+    }
+  })
+}
 
 export function useAuthStore() {
   return {
@@ -36,6 +38,12 @@ export function useAuthStore() {
     async signInWithGoogle() {
       loading.value = true
       error.value = null
+
+      if (!auth || !googleProvider) {
+        error.value = 'L’authentification Firebase n’est pas configurée sur cette instance.'
+        loading.value = false
+        return
+      }
 
       try {
         const result = await signInWithPopup(auth, googleProvider)
@@ -60,6 +68,12 @@ export function useAuthStore() {
     async signOut() {
       loading.value = true
       error.value = null
+
+      if (!auth) {
+        error.value = 'L’authentification Firebase n’est pas configurée sur cette instance.'
+        loading.value = false
+        return
+      }
 
       try {
         await firebaseSignOut(auth)

@@ -2,6 +2,13 @@ import { addDoc, collection } from 'firebase/firestore'
 import { db } from './config'
 
 export async function testFirebaseConnection(timeoutMs = 8000) {
+  if (!db) {
+    return {
+      success: false,
+      error: 'Firebase Firestore n’est pas configuré sur cette instance.',
+    }
+  }
+
   const timeoutPromise = new Promise<never>((_, reject) => {
     setTimeout(() => {
       reject(new Error(`Timeout après ${timeoutMs} ms`))

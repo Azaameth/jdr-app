@@ -6,6 +6,10 @@ import type { User } from '../types/User'
 const USERS_COLLECTION = 'users'
 
 export async function createOrUpdateUserProfile(user: User) {
+  if (!db) {
+    return user
+  }
+
   const userRef = doc(db, USERS_COLLECTION, user.uid)
   const snapshot = await getDoc(userRef)
 
