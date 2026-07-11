@@ -1,7 +1,7 @@
 import { computed, ref } from 'vue'
 import { signInWithPopup, signOut as firebaseSignOut, onAuthStateChanged } from 'firebase/auth'
 
-import { auth, googleProvider, isFirebaseConfigured } from '../firebase/config'
+import { auth, googleProvider } from '../firebase/config'
 import type { User } from '../models/types/User'
 import { createOrUpdateUserProfile } from '../models/repositories/UserRepository'
 
@@ -39,16 +39,8 @@ export function useAuthStore() {
       loading.value = true
       error.value = null
 
-      if (!isFirebaseConfigured || !auth || !googleProvider) {
-        const demoUser: User = {
-          uid: 'demo-user',
-          displayName: 'Utilisateur démo',
-          email: 'demo@example.com',
-          photoURL: '',
-          role: 'joueur',
-        }
-
-        user.value = demoUser
+      if (!auth || !googleProvider) {
+        error.value = 'L’authentification Firebase n’est pas configurée sur cette instance.'
         loading.value = false
         return
       }
@@ -77,8 +69,8 @@ export function useAuthStore() {
       loading.value = true
       error.value = null
 
-      if (!isFirebaseConfigured || !auth) {
-        user.value = null
+      if (!auth) {
+        error.value = 'L’authentification Firebase n’est pas configurée sur cette instance.'
         loading.value = false
         return
       }
