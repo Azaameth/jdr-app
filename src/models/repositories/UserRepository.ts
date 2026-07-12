@@ -1,9 +1,19 @@
 import { doc, getDoc, setDoc } from 'firebase/firestore'
 
 import { db } from '../../firebase/config'
-import type { User, UserProfile } from '../types/User'
+import type { User, UserProfile, UserRole } from '../types/User'
 
 const USERS_COLLECTION = 'users'
+
+function mapUser(uid: string, raw: Record<string, unknown>): User {
+  return {
+    uid,
+    displayName: String(raw.displayName ?? ''),
+    email: String(raw.email ?? ''),
+    photoURL: String(raw.photoURL ?? ''),
+    role: (raw.role as UserRole) ?? 'joueur',
+  }
+}
 
 export async function getUserProfile(uid: string): Promise<User | null> {
   if (!db) {
@@ -17,7 +27,7 @@ export async function getUserProfile(uid: string): Promise<User | null> {
     return null
   }
 
-  return snapshot.data() as User
+  return mapUser(snapshot.id, snapshot.data())
 }
 
 export async function createOrUpdateUserProfile(user: User): Promise<UserProfile> {
