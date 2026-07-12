@@ -17,6 +17,19 @@ function openCampaign(id: string) {
   router.push(`/campaigns/${id}`)
 }
 
+function addCampaign() {
+  campaignStore.addCampaign({
+    id: String(Date.now()),
+    title: 'Nouvelle campagne',
+    lore: '',
+    summary: 'À compléter',
+    globalNote: '',
+    gmId: '',
+    status: 'recrutement',
+    createdAt: new Date() as unknown as typeof campaigns.value[number]['createdAt'],
+  })
+}
+
 function enrollMj(campaignId: string) {
   if (user.value?.role === 'mj' || user.value?.role === 'admin') {
     campaignStore.enrollMj(campaignId, user.value.uid)
@@ -43,26 +56,7 @@ function withdrawMj(campaignId: string) {
         <span class="status">{{ campaign.status }}</span>
 
         <button
-          v-if="userRole === 'admin'"
-          class="action-btn"
-          @click.stop="
-            campaignStore.addCampaign({
-              id: String(Date.now()),
-              title: 'Nouvelle campagne',
-              lore: '',
-              summary: 'À compléter',
-              globalNote: '',
-              gmId: '',
-              status: 'recrutement',
-              createdAt: new Date() as unknown as typeof campaign.createdAt,
-            })
-          "
-        >
-          Ajouter une campagne
-        </button>
-
-        <button
-          v-else-if="campaign.gmId && campaign.gmId === user?.uid"
+          v-if="campaign.gmId && campaign.gmId === user?.uid"
           class="action-btn warning"
           @click.stop="withdrawMj(campaign.id)"
         >
@@ -76,6 +70,15 @@ function withdrawMj(campaignId: string) {
         >
           S’inscrire comme MJ
         </button>
+      </article>
+      <article v-if="canManageCampaigns" class="campaign-card add-card" @click="addCampaign()">
+        <div class="add-content">
+          <span class="plus">+</span>
+          <div>
+            <h2>Nouvelle campagne</h2>
+            <p>Créer une campagne</p>
+          </div>
+        </div>
       </article>
     </div>
   </main>
@@ -118,6 +121,30 @@ function withdrawMj(campaignId: string) {
 .action-btn.warning {
   border-color: rgba(192, 57, 43, 0.4);
   color: #ffb0b0;
+}
+
+.add-card {
+  border-style: dashed;
+  background: rgba(212, 168, 67, 0.06);
+  justify-content: center;
+}
+
+.add-content {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.plus {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: rgba(212, 168, 67, 0.2);
+  color: #f0c96a;
+  font-size: 1.6rem;
+  font-weight: 700;
 }
 
 .status {
