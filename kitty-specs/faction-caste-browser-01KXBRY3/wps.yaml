@@ -11,12 +11,14 @@ work_packages:
       - "src/router/index.ts"
       - "scripts/data/factions.json"
       - "scripts/uploadStaticDataAdmin.mjs"
+      - "e2e/castes.spec.ts"
     create_intent:
       - "src/models/types/Faction.ts"
       - "src/models/repositories/FactionRepository.ts"
       - "src/views/FactionBrowserView.vue"
       - "src/views/__tests__/FactionBrowserView.spec.ts"
       - "scripts/data/factions.json"
+      - "e2e/castes.spec.ts"
     requirement_refs:
       - FR-001
       - FR-002
@@ -36,4 +38,5 @@ work_packages:
       - T004
       - T005
       - T006
+      - T007
     prompt_file: "tasks/WP01-faction-caste-browser.md"
