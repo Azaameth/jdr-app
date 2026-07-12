@@ -1,0 +1,101 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function myRole() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && myRole() == 'admin';
+    }
+
+    function isMjOrAdmin() {
+      return isSignedIn() && (myRole() == 'mj' || myRole() == 'admin');
+    }
+
+    // Profile + role. Any signed-in member can read (small trusted group,
+    // no directory-harvesting concern). A user may only write their own
+    // doc, and may not change their own `role` — only an existing admin
+    // can promote/demote. This is the fix for the actual hole: previously
+    // any signed-in user could set their own role to 'admin'.
+    match /users/{uid} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && request.auth.uid == uid
+                    && request.resource.data.role == 'joueur';
+      allow update: if (isSignedIn() && request.auth.uid == uid
+                        && request.resource.data.role == resource.data.role)
+                    || isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // Any signed-in member can read the campaign list; only mj/admin can
+    // create, edit, assign/clear a GM, or delete — matches the app's
+    // canManageCampaigns gate, now actually enforced server-side.
+    match /campaigns/{campaignId} {
+      allow read: if isSignedIn();
+      allow create, update, delete: if isMjOrAdmin();
+    }
+
+    // Static reference lore. Seeded only via the Admin SDK
+    // (scripts/uploadStaticDataAdmin.mjs), which bypasses these rules
+    // entirely — clients get read-only access, no legitimate write path.
+    match /races/{raceId} {
+      allow read: if isSignedIn();
+      allow write: if false;
+    }
+    match /classes/{classId} {
+      allow read: if isSignedIn();
+      allow write: if false;
+    }
+    match /factions/{factionId} {
+      allow read: if isSignedIn();
+      allow write: if false;
+    }
+
+    // Character sheets. Readable by any signed-in member (team roster shows
+    // everyone). Writable by the owner or mj/admin — checked against the
+    // *existing* doc on update/delete so a non-owner can't spoof ownership
+    // by writing a new ownerUid in the same request that grants themselves
+    // access. No in-app create/update path exists yet (characters are
+    // currently seeded via admin scripts), but the rule holds regardless
+    // of what UI exists today.
+    //
+    // Known gap: lore.notesPrivate is stored on this same document, so it
+    // is readable by any signed-in member, not just the owner/mj — Firestore
+    // rules can't restrict a single field within a document. Making that
+    // field actually private would need it moved to a separate
+    // owner/mj-only document (e.g. a subcollection), which is a data-model
+    // change beyond this pass.
+    match /characters/{characterId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn()
+        && (request.resource.data.ownerUid == request.auth.uid || isMjOrAdmin());
+      allow update, delete: if isSignedIn()
+        && (resource.data.ownerUid == request.auth.uid || isMjOrAdmin());
+    }
+
+    // Session state (hp/mana/inventory) + personalNote. Same ownership
+    // model and the same personalNote privacy gap as characters above.
+    match /memberships/{membershipId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn()
+        && (request.resource.data.uid == request.auth.uid || isMjOrAdmin());
+      allow update, delete: if isSignedIn()
+        && (resource.data.uid == request.auth.uid || isMjOrAdmin());
+    }
+
+    // Deny by default: anything not explicitly matched above (including
+    // stray collections like the unused `healthcheck` probe in
+    // src/firebase/testConnection.ts) is neither readable nor writable by
+    // clients.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
