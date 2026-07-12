@@ -2,47 +2,47 @@
   "mission_slug": "faction-caste-browser-01KXBRY3",
   "mission_number": "",
   "mission_type": "software-dev",
-  "overall_verdict": "pending",
+  "overall_verdict": "pass",
   "criteria": [
     {
       "criterion_id": "FR-001",
-      "description": "Verify FR-001 is satisfied",
+      "description": "Tabbed faction navigation: clicking a tab replaces the displayed fiche and marks that tab active.",
       "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
-      "notes": "TODO: replace with a real acceptance criterion"
+      "evidence": "src/views/__tests__/FactionBrowserView.spec.ts – 'switches displayed faction content when a tab is clicked' (also covers FR-004: asserts the first faction is shown before any click)",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-07-12T19:41:17Z",
+      "notes": "npm run test:unit: 4/4 passed, Node 22, re-run fresh during review"
     },
     {
       "criterion_id": "FR-002",
-      "description": "Verify FR-002 is satisfied",
+      "description": "Faction detail display: title, subtitle, status badge, description, and a 2–4 cell key-facts grid all render for the active faction.",
       "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
-      "notes": "TODO: replace with a real acceptance criterion"
+      "evidence": "src/views/__tests__/FactionBrowserView.spec.ts – 'renders subtitle, badge, description and a facts grid sized to the faction' (added during review – prior fixtures used facts: [] and left this FR untested)",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-07-12T19:41:17Z",
+      "notes": "Covers both the 4-fact and 2-fact cases called out in spec.md User Story 2 / Reviewer Guidance"
     },
     {
       "criterion_id": "FR-003",
-      "description": "Verify FR-003 is satisfied",
-      "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
-      "notes": "TODO: replace with a real acceptance criterion"
+      "description": "Sidebar entry point: a \"Castes\" link in CampaignShell's sidebar navigates to the faction browser for the current campaign.",
+      "proof_type": "code_review",
+      "evidence": "CampaignShell.vue:86 RouterLink to=`/campaigns/${props.campaignId}/castes` matches router/index.ts:44 path '/campaigns/:id/castes' exactly",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-07-12T19:41:17Z",
+      "notes": "No automated test drives the sidebar click itself (would need an authenticated e2e session – see T007's note on the missing auth fixture). Verified by direct route-string comparison instead of click-through."
     },
     {
       "criterion_id": "FR-004",
-      "description": "Verify FR-004 is satisfied",
+      "description": "Default tab on load: the browser opens on the first faction.",
       "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
-      "notes": "TODO: replace with a real acceptance criterion"
+      "evidence": "src/views/__tests__/FactionBrowserView.spec.ts – first assertion in 'switches displayed faction content...' checks the first faction's title before any tab interaction",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-07-12T19:41:17Z",
+      "notes": null
     }
   ],
   "negative_invariants": []
