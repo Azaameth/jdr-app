@@ -11,6 +11,7 @@
         "WP01"
       ],
       "write_scope": [
+        "e2e/castes.spec.ts",
         "scripts/data/factions.json",
         "scripts/uploadStaticDataAdmin.mjs",
         "src/components/layout/CampaignShell.vue",
@@ -25,13 +26,14 @@
         "app-shell",
         "artifact-rendering",
         "legacy-cleanup",
+        "tests",
         "tracker-integration"
       ],
       "depends_on_lanes": [],
       "parallel_group": 0
     }
   ],
-  "computed_at": "2026-07-12T18:28:28.890437+00:00",
+  "computed_at": "2026-07-12T18:40:17.993717+00:00",
   "computed_from": "dependency_graph+ownership",
   "planning_artifact_wps": []
 }

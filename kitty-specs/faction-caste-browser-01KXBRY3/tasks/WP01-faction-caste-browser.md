@@ -23,6 +23,7 @@ subtasks:
 - T004
 - T005
 - T006
+- T007
 agent: claude
 history: []
 agent_profile: frontend-freddy
@@ -33,6 +34,7 @@ create_intent:
 - src/views/FactionBrowserView.vue
 - src/views/__tests__/FactionBrowserView.spec.ts
 - scripts/data/factions.json
+- e2e/castes.spec.ts
 execution_mode: code_change
 model: ''
 owned_files:
@@ -44,6 +46,7 @@ owned_files:
 - src/router/index.ts
 - scripts/data/factions.json
 - scripts/uploadStaticDataAdmin.mjs
+- e2e/castes.spec.ts
 role: implementer
 tags: []
 ---
@@ -176,6 +179,20 @@ Read before starting:
 **Files**: `src/views/__tests__/FactionBrowserView.spec.ts` (new, ~40 lines)
 **Validation**: `npm run test:unit` passes, including this new test.
 
+### Subtask T007: E2e test for the castes route's auth guard
+
+**Purpose**: Charter Quality Gates require e2e coverage for any change touching routing or a full view (this WP adds both). Cover what's actually achievable given current test infrastructure.
+
+**Context — read before writing this test**: every `/campaigns/*` route (including the new castes route) has `meta: { requiresAuth: true }`, and `e2e/vue.spec.ts` is the *only* existing e2e test — it only covers the unauthenticated root/login page. There is no test-auth fixture (no way to reach an authenticated session) anywhere in this e2e suite yet. Building one is a real, separate undertaking (a test Firebase project + programmatic sign-in, or an auth-state mock) — out of scope for this WP. Don't invent one here.
+
+**Steps**:
+1. Create `e2e/castes.spec.ts` following `e2e/vue.spec.ts`'s style (`import { test, expect } from '@playwright/test'`, no custom fixtures).
+2. Test: `page.goto('/campaigns/some-campaign-id/castes')` while unauthenticated (default Playwright state — no session), then assert the router's `requiresAuth` guard redirected to the login view — e.g. `await expect(page).toHaveURL(/\/$|\/jdr-app\/$/)` and/or `await expect(page.locator('h1')).toHaveText('La Tour des Sorciers')`, matching what `e2e/vue.spec.ts` already asserts for the root.
+3. This intentionally does **not** verify faction content renders — that needs an authenticated session, which no test in this suite can do yet. Say so in a one-line code comment so the next person doesn't assume more coverage exists than actually does.
+
+**Files**: `e2e/castes.spec.ts` (new, ~15 lines)
+**Validation**: `CI=1 npx playwright test --project=chromium e2e/castes.spec.ts` passes (needs a prior `npm run build`, same as verifying `e2e/vue.spec.ts` — see this repo's `/run` skill or `playwright.config.ts`'s `webServer` block for the headless-environment setup).
+
 ## Definition of Done
 
 - [ ] `Faction`/`FactionFact` types exist and match the data shape used by the repository, seed data, and view
@@ -185,6 +202,7 @@ Read before starting:
 - [ ] `FactionBrowserView.vue` renders tabs, defaults to the first faction, switches on click, handles 2–4 fact cells without breaking layout
 - [ ] Route + sidebar link both work end-to-end
 - [ ] New unit test passes; `npm run type-check`, `npm run lint`, `npm run test:unit` all pass
+- [ ] New e2e test (`e2e/castes.spec.ts`) passes, covering the route's auth guard
 - [ ] Manually verified in a browser (dev server + real or seeded Firestore data)
 
 ## Risks
