@@ -31,7 +31,7 @@ onMounted(async () => {
 
     // Guard : un joueur ne peut voir que son propre personnage
     const user = authStore.user.value
-    if (user?.role === 'joueur' && char?.ownerUid !== user.uid) {
+    if (authStore.isPlayer.value && char?.ownerUid !== user?.uid) {
       forbidden.value = true
       return
     }
@@ -115,7 +115,7 @@ onMounted(async () => {
       </section>
 
       <!-- Session -->
-      <section class="card" v-if="membership">
+      <section class="card" v-if="membership?.session">
         <h2>État de session</h2>
         <div class="grid-2">
           <span><b>PV :</b> {{ membership.session.hp }} / {{ membership.session.maxHp }}</span>
