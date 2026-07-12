@@ -16,9 +16,6 @@ tracker_refs: []
 planning_base_branch: dev
 merge_target_branch: dev
 branch_strategy: Planning artifacts for this mission were generated on dev. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into dev unless the human explicitly redirects the landing branch.
-base_branch: kitty/mission-faction-caste-browser-01KXBRY3
-base_commit: bd2c9e9dfb41d1434c449e1565b37812661ad91e
-created_at: '2026-07-12T18:42:08.664270+00:00'
 subtasks:
 - T001
 - T002
@@ -27,8 +24,7 @@ subtasks:
 - T005
 - T006
 - T007
-agent: claude
-shell_pid: '18091'
+agent: "claude"
 history: []
 agent_profile: frontend-freddy
 authoritative_surface: src/
@@ -53,6 +49,7 @@ owned_files:
 - e2e/castes.spec.ts
 role: implementer
 tags: []
+shell_pid: "18091"
 ---
 
 # Work Package Prompt: WP01 – Faction/caste browser end-to-end
@@ -222,3 +219,7 @@ Read before starting:
 - Check the 2-fact vs 4-fact factions both render cleanly — this is the one layout edge case called out in spec.md.
 
 Implementation command: `spec-kitty agent action implement WP01 --agent claude`
+
+## Activity Log
+
+- 2026-07-12T18:42:09Z – claude – shell_pid=18091 – Assigned agent via action command
