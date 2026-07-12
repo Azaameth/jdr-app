@@ -26,9 +26,10 @@ async function main() {
   const base = path.resolve(process.cwd(), 'scripts', 'data')
   const races = JSON.parse(fs.readFileSync(path.join(base, 'races.json'), 'utf8'))
   const classes = JSON.parse(fs.readFileSync(path.join(base, 'classes.json'), 'utf8'))
+  const factions = JSON.parse(fs.readFileSync(path.join(base, 'factions.json'), 'utf8'))
 
   console.log(
-    `Uploading ${races.length} races and ${classes.length} classes to project ${sa.project_id}`,
+    `Uploading ${races.length} races, ${classes.length} classes and ${factions.length} factions to project ${sa.project_id}`,
   )
 
   for (const r of races) {
@@ -57,6 +58,16 @@ async function main() {
       .doc(id)
       .set({ ...c, img: imgPath, campaignTags: ['alesia'] })
     console.log('classes ->', id)
+  }
+
+  for (const f of factions) {
+    const id = (f.title || '')
+      .toString()
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[^a-z0-9]+/g, '_')
+    await db.collection('factions').doc(id).set(f)
+    console.log('factions ->', id)
   }
 
   console.log('Upload complete')

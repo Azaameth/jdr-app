@@ -41,6 +41,12 @@ const router = createRouter({
       meta: { requiresAuth: true },
     },
     {
+      path: '/campaigns/:id/castes',
+      name: 'castes',
+      component: () => import('../views/FactionBrowserView.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
       path: '/campaigns/:id/players',
       redirect: (to) => `/campaigns/${to.params.id}/team`,
     },

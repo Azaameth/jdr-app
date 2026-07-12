@@ -83,6 +83,9 @@ async function logout() {
           <RouterLink :to="`/campaigns/${props.campaignId}/classes`" class="sidebar-link"
             >Classes</RouterLink
           >
+          <RouterLink :to="`/campaigns/${props.campaignId}/castes`" class="sidebar-link"
+            >Castes</RouterLink
+          >
         </div>
       </div>
 
