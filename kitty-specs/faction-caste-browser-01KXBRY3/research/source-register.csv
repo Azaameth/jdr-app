@@ -1,0 +1,7 @@
+source_id,type,location,accessed_date
+E01,internal-code,legacy-reference/index.html,2026-07-12
+E02,internal-code,src/views/RaceCarouselView.vue,2026-07-12
+E03,internal-code,src/models/repositories/CampaignRepository.ts,2026-07-12
+E04,internal-code,scripts/uploadStaticDataAdmin.mjs,2026-07-12
+E05,internal-code,src/components/layout/CampaignShell.vue,2026-07-12
+E06,internal-doc,.kittify/charter/charter.md,2026-07-12
