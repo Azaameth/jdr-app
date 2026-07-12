@@ -21,7 +21,7 @@ export async function getMembership(uid: string, campaignId: string): Promise<Me
   )
   const snapshot = await getDocs(q)
   if (snapshot.empty) return null
-  return snapshot.docs[0].data() as Membership
+  return (snapshot.docs[0]?.data() ?? null) as Membership | null
 }
 
 export async function getMembershipByCharacterId(
@@ -36,5 +36,5 @@ export async function getMembershipByCharacterId(
   )
   const snapshot = await getDocs(q)
   if (snapshot.empty) return null
-  return snapshot.docs[0].data() as Membership
+  return (snapshot.docs[0]?.data() ?? null) as Membership | null
 }

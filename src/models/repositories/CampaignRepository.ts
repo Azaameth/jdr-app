@@ -129,7 +129,9 @@ export async function findCampaignBySlug(slug: string): Promise<Campaign | null>
   const q = query(collection(db, CAMPAIGNS_COLLECTION), where('slug', '==', slug))
   const snapshot = await getDocs(q)
   if (snapshot.empty) return null
-  return mapCampaign(snapshot.docs[0].id, snapshot.docs[0].data() as Record<string, unknown>)
+  const first = snapshot.docs[0]
+  if (!first) return null
+  return mapCampaign(first.id, first.data() as Record<string, unknown>)
 }
 
 export interface UpdateCampaignInput {
