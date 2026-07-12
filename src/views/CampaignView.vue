@@ -4,7 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 import CampaignShell from '../components/layout/CampaignShell.vue'
 import { useAuthStore } from '../controllers/useAuthStore'
 import { useCampaignStore } from '../controllers/useCampaignStore'
-import type { CampaignStatus } from '../models/types/Campaign'
+import { CAMPAIGN_STATUS_LABELS, type CampaignStatus } from '../models/types/Campaign'
 
 const route = useRoute()
 const router = useRouter()
@@ -12,8 +12,7 @@ const campaignStore = useCampaignStore()
 const authStore = useAuthStore()
 
 const campaignId = computed(() => route.params.id as string)
-const user = computed(() => authStore.user.value)
-const canEdit = computed(() => user.value?.role === 'mj' || user.value?.role === 'admin')
+const canEdit = computed(() => authStore.isMj.value || authStore.isAdmin.value)
 
 const campaign = computed(() =>
   campaignStore.campaigns.value.find((item) => item.id === campaignId.value),
@@ -62,11 +61,6 @@ async function confirmDelete() {
   router.push({ name: 'campaign-list' })
 }
 
-const STATUS_LABELS: Record<CampaignStatus, string> = {
-  recrutement: 'Recrutement',
-  active: 'Active',
-  terminee: 'Terminée',
-}
 </script>
 
 <template>
@@ -78,7 +72,7 @@ const STATUS_LABELS: Record<CampaignStatus, string> = {
       <template v-else-if="!editing">
         <div class="header-row">
           <h1>{{ campaign.title }}</h1>
-          <span class="status-badge">{{ STATUS_LABELS[campaign.status] }}</span>
+          <span class="status-badge">{{ CAMPAIGN_STATUS_LABELS[campaign.status] }}</span>
           <div class="actions" v-if="canEdit">
             <button class="btn" @click="startEdit">Modifier</button>
             <button class="btn danger" @click="confirmDelete">Supprimer</button>

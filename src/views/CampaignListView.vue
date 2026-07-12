@@ -3,14 +3,14 @@ import { computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../controllers/useAuthStore'
 import { useCampaignStore } from '../controllers/useCampaignStore'
+import { CAMPAIGN_STATUS_LABELS } from '../models/types/Campaign'
 
 const router = useRouter()
 const authStore = useAuthStore()
 const campaignStore = useCampaignStore()
 
 const user = computed(() => authStore.user.value)
-const userRole = computed(() => user.value?.role ?? null)
-const canManageCampaigns = computed(() => userRole.value === 'mj' || userRole.value === 'admin')
+const canManageCampaigns = computed(() => authStore.isMj.value || authStore.isAdmin.value)
 const campaigns = computed(() => campaignStore.campaigns.value)
 const loading = computed(() => campaignStore.loading.value)
 const error = computed(() => campaignStore.error.value)
@@ -35,7 +35,7 @@ async function addCampaign() {
 }
 
 async function enrollMj(campaignId: string) {
-  if (user.value?.role === 'mj' || user.value?.role === 'admin') {
+  if (canManageCampaigns.value && user.value) {
     await campaignStore.enrollMj(campaignId, user.value.uid)
   }
 }
@@ -64,7 +64,7 @@ async function removeCampaign(campaignId: string, title: string) {
       >
         <h2>{{ campaign.title }}</h2>
         <p>{{ campaign.summary }}</p>
-        <span class="status">{{ campaign.status }}</span>
+        <span class="status">{{ CAMPAIGN_STATUS_LABELS[campaign.status] }}</span>
 
         <button
           v-if="campaign.gmId && campaign.gmId === user?.uid"
