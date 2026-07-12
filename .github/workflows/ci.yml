@@ -1,0 +1,25 @@
+name: CI
+on:
+  pull_request:
+  push:
+    branches: [dev, main]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - run: npm ci
+      # No VITE_FIREBASE_* secrets here on purpose: the app's repositories all
+      # fall back to a no-op when Firebase isn't configured (see CLAUDE.md),
+      # and today's e2e suite only exercises the unauthenticated redirect path
+      # — so build/test don't need real credentials, and CI never touches the
+      # production Firestore project (there is no separate dev/staging one).
+      - run: npm run type-check
+      - run: npx oxlint .
+      - run: npx eslint .
+      - run: npm run test:unit -- --run
+      - run: npx playwright install --with-deps chromium
+      - run: npm run build
+      - run: npx playwright test --project=chromium
