@@ -4,8 +4,11 @@ import {
   assignCampaignMj,
   clearCampaignMj,
   createCampaign,
+  deleteCampaign,
   listCampaigns,
+  updateCampaign,
   type NewCampaignInput,
+  type UpdateCampaignInput,
 } from '../models/repositories/CampaignRepository'
 
 const campaigns = ref<Campaign[]>([])
@@ -88,6 +91,26 @@ export function useCampaignStore() {
         )
       } catch (err) {
         error.value = err instanceof Error ? err.message : 'Impossible de retirer le MJ.'
+      }
+    },
+    async editCampaign(campaignId: string, input: UpdateCampaignInput) {
+      error.value = null
+      try {
+        await updateCampaign(campaignId, input)
+        campaigns.value = campaigns.value.map((campaign) =>
+          campaign.id === campaignId ? { ...campaign, ...input } : campaign,
+        )
+      } catch (err) {
+        error.value = err instanceof Error ? err.message : 'Erreur lors de la mise à jour.'
+      }
+    },
+    async removeCampaign(campaignId: string) {
+      error.value = null
+      try {
+        await deleteCampaign(campaignId)
+        campaigns.value = campaigns.value.filter((campaign) => campaign.id !== campaignId)
+      } catch (err) {
+        error.value = err instanceof Error ? err.message : 'Erreur lors de la suppression.'
       }
     },
   }

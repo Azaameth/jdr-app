@@ -1,6 +1,7 @@
 import {
   Timestamp,
   collection,
+  deleteDoc,
   doc,
   getDoc,
   getDocs,
@@ -8,6 +9,7 @@ import {
   query,
   setDoc,
   updateDoc,
+  where,
 } from 'firebase/firestore'
 
 import { db } from '../../firebase/config'
@@ -16,6 +18,7 @@ import type { Campaign, CampaignStatus } from '../types/Campaign'
 const CAMPAIGNS_COLLECTION = 'campaigns'
 
 export interface NewCampaignInput {
+  slug?: string
   title: string
   lore?: string
   summary?: string
@@ -42,6 +45,7 @@ function normalizeCreatedAt(value: unknown): Timestamp {
 function mapCampaign(id: string, raw: Record<string, unknown>): Campaign {
   return {
     id,
+    slug: String(raw.slug ?? ''),
     title: String(raw.title ?? 'Campagne sans titre'),
     lore: String(raw.lore ?? ''),
     summary: String(raw.summary ?? ''),
@@ -80,6 +84,7 @@ export async function getCampaignById(id: string): Promise<Campaign | null> {
 
 export async function createCampaign(input: NewCampaignInput): Promise<Campaign> {
   const payload = {
+    slug: input.slug ?? '',
     title: input.title,
     lore: input.lore ?? '',
     summary: input.summary ?? '',
@@ -117,4 +122,35 @@ export async function clearCampaignMj(campaignId: string): Promise<void> {
 
   const campaignRef = doc(db, CAMPAIGNS_COLLECTION, campaignId)
   await updateDoc(campaignRef, { gmId: '' })
+}
+
+export async function findCampaignBySlug(slug: string): Promise<Campaign | null> {
+  if (!db) return null
+  const q = query(collection(db, CAMPAIGNS_COLLECTION), where('slug', '==', slug))
+  const snapshot = await getDocs(q)
+  if (snapshot.empty) return null
+  return mapCampaign(snapshot.docs[0].id, snapshot.docs[0].data() as Record<string, unknown>)
+}
+
+export interface UpdateCampaignInput {
+  title?: string
+  lore?: string
+  summary?: string
+  globalNote?: string
+  status?: CampaignStatus
+}
+
+export async function updateCampaign(
+  campaignId: string,
+  input: UpdateCampaignInput,
+): Promise<void> {
+  if (!db) return
+  const campaignRef = doc(db, CAMPAIGNS_COLLECTION, campaignId)
+  await updateDoc(campaignRef, { ...input })
+}
+
+export async function deleteCampaign(campaignId: string): Promise<void> {
+  if (!db) return
+  const campaignRef = doc(db, CAMPAIGNS_COLLECTION, campaignId)
+  await deleteDoc(campaignRef)
 }

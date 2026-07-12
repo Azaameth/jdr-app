@@ -43,6 +43,11 @@ async function enrollMj(campaignId: string) {
 async function withdrawMj(campaignId: string) {
   await campaignStore.withdrawMj(campaignId)
 }
+
+async function removeCampaign(campaignId: string, title: string) {
+  if (!confirm(`Supprimer la campagne "${title}" ?`)) return
+  await campaignStore.removeCampaign(campaignId)
+}
 </script>
 
 <template>
@@ -75,6 +80,13 @@ async function withdrawMj(campaignId: string) {
           @click.stop="enrollMj(campaign.id)"
         >
           S’inscrire comme MJ
+        </button>
+        <button
+          v-if="canManageCampaigns"
+          class="action-btn danger"
+          @click.stop="removeCampaign(campaign.id, campaign.title)"
+        >
+          Supprimer
         </button>
       </article>
       <article v-if="canManageCampaigns" class="campaign-card add-card" @click="addCampaign()">
@@ -127,6 +139,12 @@ async function withdrawMj(campaignId: string) {
 .action-btn.warning {
   border-color: rgba(192, 57, 43, 0.4);
   color: #ffb0b0;
+}
+
+.action-btn.danger {
+  border-color: rgba(192, 57, 43, 0.5);
+  color: #ffb0b0;
+  background: rgba(192, 57, 43, 0.08);
 }
 
 .add-card {

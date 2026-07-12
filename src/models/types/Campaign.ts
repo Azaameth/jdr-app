@@ -4,8 +4,9 @@ export type CampaignStatus = 'recrutement' | 'active' | 'terminee'
 
 export interface Campaign {
   id: string
+  slug: string
   title: string
-  lore: string        // markdown
+  lore: string // markdown
   summary: string
   globalNote: string
   gmId: string

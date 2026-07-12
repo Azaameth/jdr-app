@@ -1,27 +1,32 @@
 <script setup lang="ts">
-import { computed, onMounted } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
 import { useAuthStore } from '../../controllers/useAuthStore'
 import { useCampaignStore } from '../../controllers/useCampaignStore'
+import { usePlayerStore } from '../../controllers/usePlayerStore'
 
 const props = defineProps<{
   campaignId: string
-  teamId?: string
   playerId?: string
 }>()
 
 const router = useRouter()
 const authStore = useAuthStore()
 const campaignStore = useCampaignStore()
+const playerStore = usePlayerStore()
 
 const user = computed(() => authStore.user.value)
 const campaign = computed(() =>
   campaignStore.campaigns.value.find((item) => item.id === props.campaignId),
 )
-const playerId = computed(() => props.playerId ?? user.value?.uid ?? '')
+
+const characterId = ref<string | null>(null)
 
 onMounted(async () => {
   await campaignStore.fetchCampaigns()
+  if (user.value?.uid) {
+    characterId.value = await playerStore.resolveCharacterId(user.value.uid, props.campaignId)
+  }
 })
 
 async function logout() {
@@ -40,19 +45,27 @@ async function logout() {
           <strong>{{ user?.role ?? 'Rôle inconnu' }}</strong>
         </div>
         <RouterLink
-          :to="`/campaigns/${props.campaignId}/players/${playerId}/notes`"
+          v-if="characterId"
+          :to="`/campaigns/${props.campaignId}/players/${characterId}/notes`"
           class="group-link"
         >
           Notes perso
         </RouterLink>
-        <RouterLink :to="`/campaigns/${props.campaignId}/players`" class="group-link">
+        <RouterLink
+          v-if="characterId"
+          :to="`/campaigns/${props.campaignId}/players/${characterId}`"
+          class="group-link"
+        >
           Personnage
         </RouterLink>
+        <span v-else class="group-link disabled">Personnage (non assigné)</span>
       </div>
 
       <div class="sidebar-group">
         <div class="group-heading">Équipe</div>
-        <a class="group-link">Situation globale</a>
+        <RouterLink :to="`/campaigns/${props.campaignId}/team`" class="group-link"
+          >Situation globale</RouterLink
+        >
         <a class="group-link">Meilleur jet</a>
       </div>
 
@@ -70,7 +83,8 @@ async function logout() {
             >PNJ & Factions</RouterLink
           >
           <RouterLink
-            :to="`/campaigns/${props.campaignId}/players/${playerId}`"
+            v-if="characterId"
+            :to="`/campaigns/${props.campaignId}/players/${characterId}`"
             class="sidebar-link"
             >Livret</RouterLink
           >
@@ -208,6 +222,12 @@ async function logout() {
   color: #f2e6cc;
   text-decoration: none;
   transition: background 0.2s ease;
+}
+
+.group-link.disabled {
+  opacity: 0.4;
+  cursor: default;
+  pointer-events: none;
 }
 
 .sidebar-link:hover,

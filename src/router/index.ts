@@ -42,9 +42,7 @@ const router = createRouter({
     },
     {
       path: '/campaigns/:id/players',
-      name: 'player-list',
-      component: () => import('../views/PlayerListView.vue'),
-      meta: { requiresAuth: true },
+      redirect: (to) => `/campaigns/${to.params.id}/team`,
     },
     {
       path: '/campaigns/:id/players/:uid/notes',
@@ -53,13 +51,7 @@ const router = createRouter({
       meta: { requiresAuth: true },
     },
     {
-      path: '/campaigns/:id/team/:teamId',
-      name: 'team-detail',
-      component: () => import('../views/TeamView.vue'),
-      meta: { requiresAuth: true },
-    },
-    {
-      path: '/campaigns/:id/players/:uid',
+      path: '/campaigns/:id/players/:characterId',
       name: 'player',
       component: () => import('../views/PlayerView.vue'),
       meta: { requiresAuth: true },
@@ -77,6 +69,9 @@ router.beforeEach((to) => {
   if (to.meta.requiresAuth && !authStore.isAuthenticated.value) {
     return { name: 'login' }
   }
+
+  // Un joueur ne peut accéder qu'à sa propre fiche personnage
+  // La vérification fine se fait dans PlayerView (nécessite un lookup async)
 
   return true
 })

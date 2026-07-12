@@ -9,6 +9,7 @@
     "preview": "vite preview",
     "data:characters": "node scripts/generateCharacterData.mjs",
     "seed:defaultchars:admin": "node scripts/uploadDefaultCharsAdmin.mjs",
+    "seed:all": "node scripts/seedAll.mjs",
     "test:unit": "vitest",
     "test:e2e": "playwright test",
     "build-only": "vite build",
