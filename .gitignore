@@ -83,6 +83,7 @@ scripts/keys/*.json
 kitty-ops/ops-index.jsonl
 .worktrees/
 .spec-kitty/
+.run/
 
 # Timestamped snapshot from `spec-kitty charter lint` — regenerates on every run
 .kittify/lint-report.json
