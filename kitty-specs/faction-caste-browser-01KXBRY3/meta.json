@@ -10,5 +10,7 @@
   "purpose_tldr": "faction caste browser",
   "slug": "faction-caste-browser-01KXBRY3",
   "target_branch": "dev",
-  "topology": "single_branch"
+  "topology": "single_branch",
+  "vcs": "git",
+  "vcs_locked_at": "2026-07-12T18:42:08.596246+00:00"
 }
