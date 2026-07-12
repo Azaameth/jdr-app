@@ -26,7 +26,8 @@ async function syncUserProfile(firebaseUser: FirebaseUser) {
   try {
     return await createOrUpdateUserProfile(profile)
   } catch (err) {
-    error.value = 'Impossible de synchroniser le profil utilisateur.'
+    error.value =
+      err instanceof Error ? err.message : 'Impossible de synchroniser le profil utilisateur.'
     return profile
   }
 }

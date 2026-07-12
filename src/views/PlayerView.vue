@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRoute } from 'vue-router'
 import { useAuthStore } from '../controllers/useAuthStore'
 import { getCharacterById } from '../models/repositories/CharacterRepository'
 import { getMembershipByCharacterId } from '../models/repositories/MembershipRepository'
@@ -8,7 +8,6 @@ import type { CharacterProfile } from '../models/types/Character'
 import type { Membership } from '../models/types/Membership'
 
 const route = useRoute()
-const router = useRouter()
 const authStore = useAuthStore()
 const campaignId = computed(() => route.params.id as string)
 const characterId = computed(() => route.params.characterId as string)

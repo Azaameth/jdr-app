@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('firebase/auth', () => ({
-  signInWithPopup: vi.fn(),
-  signOut: vi.fn(),
-  onAuthStateChanged: vi.fn(),
+  signInWithPopup: vi.fn<() => void>(),
+  signOut: vi.fn<() => void>(),
+  onAuthStateChanged: vi.fn<() => void>(),
 }))
 
 vi.mock('../../firebase/config', () => ({
@@ -13,7 +13,7 @@ vi.mock('../../firebase/config', () => ({
 }))
 
 vi.mock('../models/repositories/UserRepository', () => ({
-  createOrUpdateUserProfile: vi.fn(async (user) => user),
+  createOrUpdateUserProfile: vi.fn<(user: unknown) => Promise<unknown>>(async (user) => user),
 }))
 
 import { useAuthStore } from '../useAuthStore'
@@ -23,12 +23,14 @@ describe('useAuthStore', () => {
     vi.clearAllMocks()
   })
 
-  it('falls back to a demo user when Firebase auth is unavailable', async () => {
+  it('surfaces a French error when Firebase auth is unavailable', async () => {
     const authStore = useAuthStore()
 
     await authStore.signInWithGoogle()
 
-    expect(authStore.user.value?.displayName).toBe('Utilisateur démo')
-    expect(authStore.error.value).toBeNull()
+    expect(authStore.user.value).toBeNull()
+    expect(authStore.error.value).toBe(
+      'L’authentification Firebase n’est pas configurée sur cette instance.',
+    )
   })
 })

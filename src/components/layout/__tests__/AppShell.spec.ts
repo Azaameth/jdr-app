@@ -17,8 +17,8 @@ vi.mock('../../controllers/useAuthStore', () => ({
   useAuthStore: () => ({
     user: { value: null },
     loading: { value: false },
-    signInWithGoogle: vi.fn(),
-    signOut: vi.fn(),
+    signInWithGoogle: vi.fn<() => void>(),
+    signOut: vi.fn<() => void>(),
   }),
 }))
 
