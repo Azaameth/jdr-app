@@ -14,4 +14,4 @@ app.mount('#app')
 
 // Révèle le contenu une fois monté
 const el = document.getElementById('app')
-if (el) el.style.visibility = ''
+if (el) el.style.visibility = 'visible'
