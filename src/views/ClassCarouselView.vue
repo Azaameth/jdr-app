@@ -1,24 +1,13 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
-import { collection, getDocs, query, where } from 'firebase/firestore'
 import CampaignShell from '../components/layout/CampaignShell.vue'
-import { db } from '../firebase/config'
-
-interface ClassCard {
-  id: string
-  n: string
-  sub: string
-  img: string
-  pv: string
-  mana: string
-  arm: string
-  caps: string[]
-}
+import { listClassesByCampaign } from '../models/repositories/ClassRepository'
+import type { Class } from '../models/types/Class'
 
 const route = useRoute()
 const campaignId = computed(() => String(route.params.id ?? ''))
-const cards = ref<ClassCard[]>([])
+const cards = ref<Class[]>([])
 const loading = ref(true)
 const error = ref('')
 const currentIndex = ref(0)
@@ -51,22 +40,8 @@ function nextPage() {
 }
 
 async function loadClasses() {
-  if (!db) {
-    error.value = 'Firestore non configuré.'
-    loading.value = false
-    return
-  }
-
   try {
-    const classesQuery = query(
-      collection(db, 'classes'),
-      where('campaignTags', 'array-contains', campaignId.value),
-    )
-    const snapshot = await getDocs(classesQuery)
-    cards.value = snapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...(doc.data() as Omit<ClassCard, 'id'>),
-    }))
+    cards.value = await listClassesByCampaign(campaignId.value)
   } catch (err) {
     error.value = err instanceof Error ? err.message : 'Erreur lors du chargement des classes.'
   } finally {

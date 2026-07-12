@@ -1,22 +1,13 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
-import { collection, getDocs, query, where } from 'firebase/firestore'
 import CampaignShell from '../components/layout/CampaignShell.vue'
-import { db } from '../firebase/config'
-
-interface RaceCard {
-  id: string
-  n: string
-  sub: string
-  img: string
-  bon: string[]
-  mal: string[]
-}
+import { listRacesByCampaign } from '../models/repositories/RaceRepository'
+import type { Race } from '../models/types/Race'
 
 const route = useRoute()
 const campaignId = computed(() => String(route.params.id ?? ''))
-const cards = ref<RaceCard[]>([])
+const cards = ref<Race[]>([])
 const loading = ref(true)
 const error = ref('')
 const currentIndex = ref(0)
@@ -65,22 +56,8 @@ function handleImageError(event: Event) {
 }
 
 async function loadRaces() {
-  if (!db) {
-    error.value = 'Firestore non configuré.'
-    loading.value = false
-    return
-  }
-
   try {
-    const racesQuery = query(
-      collection(db, 'races'),
-      where('campaignTags', 'array-contains', campaignId.value),
-    )
-    const snapshot = await getDocs(racesQuery)
-    cards.value = snapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...(doc.data() as Omit<RaceCard, 'id'>),
-    }))
+    cards.value = await listRacesByCampaign(campaignId.value)
   } catch (err) {
     error.value = err instanceof Error ? err.message : 'Erreur lors du chargement des races.'
   } finally {
