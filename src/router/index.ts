@@ -7,8 +7,8 @@ const router = createRouter({
   routes: [
     {
       path: '/',
-      name: 'home',
-      component: () => import('../views/HomeView.vue'),
+      name: 'login',
+      component: () => import('../views/LoginView.vue'),
     },
     {
       path: '/campaigns',
@@ -29,6 +29,12 @@ const router = createRouter({
       meta: { requiresAuth: true },
     },
     {
+      path: '/campaigns/:id/team/:teamId',
+      name: 'team-detail',
+      component: () => import('../views/TeamView.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
       path: '/campaigns/:id/players/:uid',
       name: 'player',
       component: () => import('../views/PlayerView.vue'),
@@ -40,7 +46,7 @@ const router = createRouter({
 router.beforeEach((to) => {
   const authStore = useAuthStore()
   if (to.meta.requiresAuth && !authStore.user.value) {
-    return { name: 'home' }
+    return { name: 'login' }
   }
   return true
 })
