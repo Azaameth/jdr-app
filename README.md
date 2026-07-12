@@ -24,10 +24,18 @@ to port, and [CLAUDE.md](CLAUDE.md) for the conventions this codebase follows.
    `scripts/` (`npm run seed:*`). Ask the project owner for a key and place
    it at `scripts/keys/serviceAccountKey.json` (gitignored).
 
+## Running things in the background
+
+`./scripts/dev.sh {start|stop|restart|status}` and `./scripts/dashboard.sh
+{start|stop|restart|status}` run the dev server / spec-kitty dashboard as
+tracked background processes instead of tying up a terminal — useful over
+SSH. Both clean up fully on `stop` (no orphaned processes left holding a
+port); `DEV_PORT=`/`DASHBOARD_PORT=` override the defaults (5173 / 4173).
+
 ## Commands
 
 ```sh
-npm run dev          # dev server (vite)
+npm run dev          # dev server (vite) — or ./scripts/dev.sh start to background it
 npm run build         # type-check + production build
 npm run preview       # serve the production build locally
 
