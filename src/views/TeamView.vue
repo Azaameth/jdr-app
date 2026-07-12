@@ -14,6 +14,7 @@ const campaignStore = useCampaignStore()
 
 interface PlayerRow {
   uid: string
+  characterId: string
   name: string
   raceId: string
   classId: string
@@ -51,15 +52,16 @@ async function loadPlayers() {
       const membership = membershipByUid.get(character.ownerUid)
       return {
         uid: character.ownerUid,
+        characterId: character.id,
         name: character.name,
         raceId: character.raceId,
         classId: character.classId,
         level: character.level,
-        hp: membership?.session.hp ?? 0,
-        maxHp: membership?.session.maxHp ?? 0,
-        mana: membership?.session.mana ?? 0,
-        maxMana: membership?.session.maxMana ?? 0,
-        posture: membership?.session.posture ?? '—',
+        hp: membership?.session?.hp ?? 0,
+        maxHp: membership?.session?.maxHp ?? 0,
+        mana: membership?.session?.mana ?? 0,
+        maxMana: membership?.session?.maxMana ?? 0,
+        posture: membership?.session?.posture ?? '—',
       }
     })
   } catch (err) {
@@ -70,8 +72,8 @@ async function loadPlayers() {
   }
 }
 
-function openPlayer(uid: string) {
-  router.push(`/campaigns/${campaignId.value}/players/${uid}`)
+function openPlayer(characterId: string) {
+  router.push(`/campaigns/${campaignId.value}/players/${characterId}`)
 }
 </script>
 
@@ -95,7 +97,12 @@ function openPlayer(uid: string) {
           </tr>
         </thead>
         <tbody>
-          <tr v-for="p in playerRows" :key="p.uid" class="player-row" @click="openPlayer(p.uid)">
+          <tr
+            v-for="p in playerRows"
+            :key="p.characterId"
+            class="player-row"
+            @click="openPlayer(p.characterId)"
+          >
             <td class="name">{{ p.name }}</td>
             <td>{{ p.raceId }}</td>
             <td>{{ p.classId }}</td>
