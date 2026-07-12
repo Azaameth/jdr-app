@@ -7,7 +7,6 @@ import { usePlayerStore } from '../../controllers/usePlayerStore'
 
 const props = defineProps<{
   campaignId: string
-  playerId?: string
 }>()
 
 const router = useRouter()
@@ -66,7 +65,6 @@ async function logout() {
         <RouterLink :to="`/campaigns/${props.campaignId}/team`" class="group-link"
           >Situation globale</RouterLink
         >
-        <a class="group-link">Meilleur jet</a>
       </div>
 
       <div class="sidebar-group campaign-group">
@@ -78,15 +76,6 @@ async function logout() {
         <div class="sidebar-links">
           <RouterLink :to="`/campaigns/${props.campaignId}`" class="sidebar-link"
             >Univers</RouterLink
-          >
-          <RouterLink :to="`/campaigns/${props.campaignId}/team`" class="sidebar-link"
-            >PNJ & Factions</RouterLink
-          >
-          <RouterLink
-            v-if="characterId"
-            :to="`/campaigns/${props.campaignId}/players/${characterId}`"
-            class="sidebar-link"
-            >Livret</RouterLink
           >
           <RouterLink :to="`/campaigns/${props.campaignId}/races`" class="sidebar-link"
             >Races</RouterLink
