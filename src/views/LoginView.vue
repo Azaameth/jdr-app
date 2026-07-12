@@ -1,9 +1,17 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, watchEffect } from 'vue'
+import { useRouter } from 'vue-router'
 import { useAuthStore } from '../controllers/useAuthStore'
 
+const router = useRouter()
 const authStore = useAuthStore()
 const user = computed(() => authStore.user.value)
+
+watchEffect(() => {
+  if (user.value) {
+    router.replace({ name: 'campaign-list' })
+  }
+})
 </script>
 
 <template>

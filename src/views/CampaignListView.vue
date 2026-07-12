@@ -26,7 +26,7 @@ function addCampaign() {
     globalNote: '',
     gmId: '',
     status: 'recrutement',
-    createdAt: new Date() as unknown as typeof campaigns.value[number]['createdAt'],
+    createdAt: new Date() as unknown as (typeof campaigns.value)[number]['createdAt'],
   })
 }
 

@@ -29,6 +29,18 @@ const router = createRouter({
       meta: { requiresAuth: true },
     },
     {
+      path: '/campaigns/:id/players',
+      name: 'player-list',
+      component: () => import('../views/PlayerListView.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/campaigns/:id/players/:uid/notes',
+      name: 'player-notes',
+      component: () => import('../views/PlayerNotesView.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
       path: '/campaigns/:id/team/:teamId',
       name: 'team-detail',
       component: () => import('../views/TeamView.vue'),
@@ -45,9 +57,15 @@ const router = createRouter({
 
 router.beforeEach((to) => {
   const authStore = useAuthStore()
-  if (to.meta.requiresAuth && !authStore.user.value) {
+
+  if (to.name === 'login' && authStore.isAuthenticated.value) {
+    return { name: 'campaign-list' }
+  }
+
+  if (to.meta.requiresAuth && !authStore.isAuthenticated.value) {
     return { name: 'login' }
   }
+
   return true
 })
 

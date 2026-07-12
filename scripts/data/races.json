@@ -1,0 +1,86 @@
+[
+  {
+    "n": "Swamninyx",
+    "sub": "Homme-chat",
+    "img": "races/swamninyx.png",
+    "bon": ["Agilite +20%", "Discretion +10%"],
+    "mal": ["Social −10% autres races", "Force & CAC −10%"]
+  },
+  {
+    "n": "Leonide",
+    "sub": "Homme-lion",
+    "img": "races/leonide.png",
+    "bon": ["Force & CAC +20%", "Intimidation +10%"],
+    "mal": ["Agilite −10%", "Espaces confines −10%"]
+  },
+  {
+    "n": "Humain",
+    "sub": "",
+    "img": "races/humain.png",
+    "bon": ["Apprentissage +10%", "Volonte +10%"],
+    "mal": ["Aucun bonus racial >+10%", "Magie ancienne −10%"]
+  },
+  {
+    "n": "Nain",
+    "sub": "",
+    "img": "races/nain.png",
+    "bon": ["Artisanat metal/pierre +20%", "Perception souterraine +10%"],
+    "mal": ["Deplacement rapide −10%", "Social hors nains −10%"]
+  },
+  {
+    "n": "Elfe",
+    "sub": "",
+    "img": "races/elfe.png",
+    "bon": ["Perception +20%", "Savoir historique/magique +10%"],
+    "mal": ["Resistance physique −10%", "Social grossiers −20%"]
+  },
+  {
+    "n": "Ent",
+    "sub": "Arbre vivant",
+    "img": "races/ent.png",
+    "bon": ["Resistance physique +30%", "Immunite poisons naturels"],
+    "mal": ["Vitesse/esquive −30%", "Precision/discretion −20%"]
+  },
+  {
+    "n": "Draconien",
+    "sub": "Homme-lezard",
+    "img": "races/draconien.png",
+    "bon": ["Sang-froid mental +20%", "Survie milieux hostiles +20%"],
+    "mal": ["Jets froid −20%", "Magie rituelle −30%"]
+  },
+  {
+    "n": "Hin",
+    "sub": "Semi-homme",
+    "img": "races/hin.png",
+    "bon": ["Discretion +20%", "Chance Hin +20%"],
+    "mal": ["Force & armes −30%", "CAC vs grandes creatures −30%"]
+  },
+  {
+    "n": "Kitsune",
+    "sub": "Homme-renard",
+    "img": "races/kitsune.png",
+    "bon": ["Ruse/tromperie +20%", "Rapidite/esquive +10%"],
+    "mal": ["Force −20%", "Social (confiance) −25%"]
+  },
+  {
+    "n": "Bauvide",
+    "sub": "Minotaure",
+    "img": "races/bauvide.png",
+    "bon": ["Force & CAC +30%", "Intimidation +20%"],
+    "mal": ["Esquive/discretion −30%", "Sang-froid vs provocation −30%"]
+  },
+  {
+    "n": "Ursien",
+    "sub": "Homme-ours",
+    "img": "races/ursien.png",
+    "bon": ["Endurance/recuperation +30%", "Survie naturelle +20%"],
+    "mal": ["Vitesse/esquive −20%", "Precision/discretion −20%"]
+  },
+  {
+    "n": "Skaven",
+    "sub": "Homme-rat",
+    "img": "races/skaven.png",
+    "bon": ["Rapidite/fuite +30%", "Survie urbaine +20%"],
+    "mal": ["Sang-froid −20%", "Social (confiance) −40%"]
+  }
+]

@@ -11,8 +11,6 @@ const user = computed(() => authStore.user.value)
 const navItems = [
   { name: 'Accueil', to: '/', icon: 'home', requiresAuth: false },
   { name: 'Campagnes', to: '/campaigns', icon: 'books', requiresAuth: true },
-  { name: 'Équipe', to: '/campaigns/1/team', icon: 'users', requiresAuth: true },
-  { name: 'Joueur', to: '/campaigns/1/players/1', icon: 'user', requiresAuth: true },
 ]
 
 function isActive(path: string) {

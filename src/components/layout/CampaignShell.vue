@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { RouterLink, useRoute, useRouter } from 'vue-router'
+import { RouterLink, useRouter } from 'vue-router'
 import { useAuthStore } from '../../controllers/useAuthStore'
+import { useCampaignStore } from '../../controllers/useCampaignStore'
 
 const props = defineProps<{
   campaignId: string
@@ -9,79 +10,83 @@ const props = defineProps<{
   playerId?: string
 }>()
 
-const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
+const campaignStore = useCampaignStore()
 
 const user = computed(() => authStore.user.value)
+const campaign = computed(() =>
+  campaignStore.campaigns.value.find((item) => item.id === props.campaignId),
+)
+const playerId = computed(() => props.playerId ?? '1')
 
-const hierarchy = computed(() => {
-  const items = [{ label: 'Campagne', to: `/campaigns/${props.campaignId}` }]
-
-  if (props.teamId) {
-    items.push({ label: 'Équipe', to: `/campaigns/${props.campaignId}/team/${props.teamId}` })
-  }
-
-  if (props.playerId) {
-    items.push({ label: 'Joueur', to: `/campaigns/${props.campaignId}/players/${props.playerId}` })
-  }
-
-  return items
-})
-
-function goUp() {
-  if (props.playerId) {
-    router.push(`/campaigns/${props.campaignId}/team/${props.teamId ?? ''}`)
-    return
-  }
-
-  if (props.teamId) {
-    router.push(`/campaigns/${props.campaignId}`)
-  }
-}
-
-function goToSibling(target: string) {
-  if (props.playerId) {
-    router.push(`/campaigns/${props.campaignId}/players/${target}`)
-  }
+async function logout() {
+  await authStore.signOut()
+  router.push({ name: 'login' })
 }
 </script>
 
 <template>
   <div class="campaign-shell">
     <aside class="sidebar">
-      <div class="section-block">
-        <h3>Hiérarchie</h3>
-        <div class="crumbs">
-          <RouterLink v-for="item in hierarchy" :key="item.to" :to="item.to" class="crumb-item">
-            {{ item.label }}
-          </RouterLink>
+      <div class="sidebar-group">
+        <div class="group-heading">Joueur</div>
+        <div class="group-card">
+          <span>{{ user?.displayName ?? 'Invité' }}</span>
+          <strong>{{ user?.role ?? 'Rôle inconnu' }}</strong>
         </div>
-        <div class="actions">
-          <button v-if="props.playerId || props.teamId" class="action-btn" @click="goUp">
-            Remonter
-          </button>
-          <button v-if="props.playerId" class="action-btn" @click="goToSibling('2')">
-            Joueur suivant
-          </button>
+        <RouterLink
+          :to="`/campaigns/${props.campaignId}/players/${playerId}/notes`"
+          class="group-link"
+        >
+          Notes perso
+        </RouterLink>
+        <RouterLink :to="`/campaigns/${props.campaignId}/players`" class="group-link">
+          Personnage
+        </RouterLink>
+      </div>
+
+      <div class="sidebar-group">
+        <div class="group-heading">Équipe</div>
+        <a class="group-link">Situation globale</a>
+        <a class="group-link">Meilleur jet</a>
+      </div>
+
+      <div class="sidebar-group campaign-group">
+        <div class="group-heading">Campagne</div>
+        <div class="group-card campaign-card">
+          <strong>{{ campaign?.title ?? 'Campagne inconnue' }}</strong>
+          <p>{{ campaign?.summary ?? 'Résumé et contexte de la campagne.' }}</p>
+        </div>
+        <div class="sidebar-links">
+          <RouterLink :to="`/campaigns/${props.campaignId}`" class="sidebar-link"
+            >Univers</RouterLink
+          >
+          <RouterLink :to="`/campaigns/${props.campaignId}/team`" class="sidebar-link"
+            >PNJ & Factions</RouterLink
+          >
+          <RouterLink
+            :to="`/campaigns/${props.campaignId}/players/${playerId}`"
+            class="sidebar-link"
+            >Livret</RouterLink
+          >
         </div>
       </div>
 
-      <div class="section-block">
-        <h3>Navigation</h3>
-        <RouterLink :to="`/campaigns/${props.campaignId}`" class="nav-link"
-          >Vue campagne</RouterLink
-        >
-        <RouterLink :to="`/campaigns/${props.campaignId}/team`" class="nav-link">Équipe</RouterLink>
-        <RouterLink :to="`/campaigns/${props.campaignId}/players/1`" class="nav-link"
-          >Joueur</RouterLink
-        >
+      <div class="sidebar-group tools-group">
+        <div class="group-heading">Outils</div>
+        <div class="tool-row">
+          <span>Lanceur de dés</span>
+          <span>Dés d’Aventure</span>
+        </div>
       </div>
 
-      <div class="user-card">
-        <p class="user-name">{{ user?.displayName ?? 'Invité' }}</p>
-        <p class="user-role">{{ user?.role ?? 'visiteur' }}</p>
-        <button class="logout-btn" @click="authStore.signOut()">Se déconnecter</button>
+      <div class="account-box">
+        <div>
+          <p>{{ user?.displayName ?? 'Invité' }}</p>
+          <span>{{ user?.role ?? 'Rôle inconnu' }}</span>
+        </div>
+        <button class="logout-btn" @click="logout()">Déconnexion</button>
       </div>
     </aside>
 
@@ -100,71 +105,156 @@ function goToSibling(target: string) {
 }
 
 .sidebar {
-  width: 280px;
-  padding: 1rem;
+  position: sticky;
+  top: 0;
+  align-self: flex-start;
+  width: 320px;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  padding: 1.25rem;
   background: linear-gradient(180deg, #16120c 0%, #120e08 100%);
-  border-right: 1px solid rgba(212, 168, 67, 0.2);
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
+  border-right: 1px solid rgba(212, 168, 67, 0.22);
+  box-shadow: 2px 0 24px rgba(0, 0, 0, 0.35);
+  overflow: hidden;
 }
 
-.section-block {
-  border: 1px solid rgba(212, 168, 67, 0.18);
-  border-radius: 10px;
-  padding: 0.9rem;
-  background: rgba(212, 168, 67, 0.06);
+.sidebar-group {
+  display: grid;
+  gap: 0.9rem;
 }
 
-.crumbs {
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-  margin-top: 0.5rem;
+.group-heading {
+  font-size: 0.85rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #a07820;
 }
 
-.crumb-item,
-.nav-link {
+.persona-card,
+.group-card,
+.account-box {
+  display: grid;
+  gap: 0.75rem;
+  padding: 1rem;
+  border-radius: 22px;
+  background: rgba(20, 16, 10, 0.82);
+  border: 1px solid rgba(212, 168, 67, 0.16);
+}
+
+.persona-card {
+  grid-template-columns: auto 1fr;
+  align-items: center;
+}
+
+.avatar {
+  width: 52px;
+  height: 52px;
+  display: grid;
+  place-items: center;
+  border-radius: 18px;
+  background: rgba(212, 168, 67, 0.16);
   color: #f0c96a;
+  font-weight: 700;
+}
+
+.persona-name {
+  margin: 0;
+  font-size: 1rem;
+  color: #f2e6cc;
+  font-weight: 700;
+}
+
+.persona-desc,
+.group-card p,
+.account-box span {
+  margin: 0;
+  font-size: 0.95rem;
+  color: #cfc09a;
+  line-height: 1.4;
+}
+
+.group-card {
+  gap: 0.35rem;
+}
+
+.group-card strong {
+  color: #f2e6cc;
+}
+
+.sidebar-links,
+.tool-row {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.sidebar-link,
+.group-link {
+  display: block;
+  padding: 0.85rem 1rem;
+  border-radius: 16px;
+  background: rgba(212, 168, 67, 0.08);
+  color: #f2e6cc;
   text-decoration: none;
+  transition: background 0.2s ease;
 }
 
-.actions {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  margin-top: 0.75rem;
+.sidebar-link:hover,
+.group-link:hover {
+  background: rgba(212, 168, 67, 0.16);
 }
 
-.action-btn,
+.campaign-card {
+  padding: 1rem;
+}
+
+.tool-row {
+  grid-template-columns: 1fr 1fr;
+}
+
+.tool-row span,
+.group-link,
+.sidebar-link {
+  font-size: 0.95rem;
+}
+
+.account-box {
+  margin-top: auto;
+}
+
+.account-box p {
+  margin: 0;
+  color: #f2e6cc;
+  font-weight: 700;
+}
+
+.account-box span {
+  display: block;
+  color: #a09070;
+}
+
 .logout-btn {
+  width: 100%;
   border: 1px solid rgba(212, 168, 67, 0.2);
   background: rgba(212, 168, 67, 0.1);
   color: #f2e6cc;
-  border-radius: 6px;
-  padding: 0.55rem 0.7rem;
+  border-radius: 14px;
+  padding: 0.9rem 1rem;
   cursor: pointer;
+  transition:
+    transform 0.2s ease,
+    background 0.2s ease;
 }
 
-.user-card {
-  margin-top: auto;
-  border-top: 1px solid rgba(212, 168, 67, 0.16);
-  padding-top: 1rem;
-}
-
-.user-name {
-  font-weight: 700;
-  color: #f0c96a;
-}
-
-.user-role {
-  color: #a09070;
-  margin-bottom: 0.6rem;
+.logout-btn:hover {
+  transform: translateY(-1px);
+  background: rgba(212, 168, 67, 0.18);
 }
 
 .content {
   flex: 1;
-  padding: 1.5rem;
+  padding: 1.75rem;
 }
 
 @media (max-width: 900px) {
@@ -173,9 +263,17 @@ function goToSibling(target: string) {
   }
 
   .sidebar {
+    position: relative;
     width: 100%;
+    min-height: auto;
+    max-height: none;
     border-right: 0;
     border-bottom: 1px solid rgba(212, 168, 67, 0.2);
+    box-shadow: none;
+  }
+
+  .tool-row {
+    grid-template-columns: 1fr;
   }
 }
 </style>
