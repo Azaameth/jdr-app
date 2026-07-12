@@ -42,7 +42,14 @@ if (hasRequiredConfig) {
   app = initializeApp(config)
   authInstance = getAuth(app)
   dbInstance = getFirestore(app)
-  analyticsInstance = getAnalytics(app)
+  try {
+    // getAnalytics() can throw in environments without the browser
+    // capabilities it needs (no IndexedDB, insecure context, some
+    // test/webview contexts) — that must not take Auth/Firestore down too.
+    analyticsInstance = getAnalytics(app)
+  } catch {
+    analyticsInstance = undefined
+  }
   googleProviderInstance = new GoogleAuthProvider()
 }
 
