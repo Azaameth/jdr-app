@@ -1,0 +1,39 @@
+work_packages:
+  - id: WP01
+    title: "Faction/caste browser end-to-end"
+    dependencies: []
+    owned_files:
+      - "src/models/types/Faction.ts"
+      - "src/models/repositories/FactionRepository.ts"
+      - "src/views/FactionBrowserView.vue"
+      - "src/views/__tests__/FactionBrowserView.spec.ts"
+      - "src/components/layout/CampaignShell.vue"
+      - "src/router/index.ts"
+      - "scripts/data/factions.json"
+      - "scripts/uploadStaticDataAdmin.mjs"
+    create_intent:
+      - "src/models/types/Faction.ts"
+      - "src/models/repositories/FactionRepository.ts"
+      - "src/views/FactionBrowserView.vue"
+      - "src/views/__tests__/FactionBrowserView.spec.ts"
+      - "scripts/data/factions.json"
+    requirement_refs:
+      - FR-001
+      - FR-002
+      - FR-003
+      - FR-004
+      - NFR-001
+      - NFR-002
+      - C-001
+      - C-002
+      - C-003
+    plan_concern_refs: []
+    cross_cutting: true
+    subtasks:
+      - T001
+      - T002
+      - T003
+      - T004
+      - T005
+      - T006
+    prompt_file: "tasks/WP01-faction-caste-browser.md"
