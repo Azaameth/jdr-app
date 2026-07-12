@@ -1,0 +1,558 @@
+[
+  {
+    "id": "azarius",
+    "campaignId": "2",
+    "ownerUid": "azarius",
+    "name": "Azarius Desbois",
+    "raceId": "kitsune",
+    "classId": "cogneur",
+    "gender": "Homme",
+    "elements": [
+      "🔥 Feu"
+    ],
+    "level": 1,
+    "attributes": {
+      "primary": {
+        "force": 85,
+        "social": 45,
+        "mental": 40
+      },
+      "secondary": {
+        "puissance": 6,
+        "finesse": 3,
+        "aura": 3,
+        "relation": 2,
+        "instinct": 2,
+        "savoir": 2
+      }
+    },
+    "skills": [
+      {
+        "id": "skill-1-persuasion",
+        "name": "Persuasion",
+        "rank": 2,
+        "domain": "social",
+        "source": "base"
+      },
+      {
+        "id": "skill-2-survie",
+        "name": "Survie",
+        "rank": 2,
+        "domain": "general",
+        "source": "base"
+      },
+      {
+        "id": "skill-3-erudit",
+        "name": "Érudit",
+        "rank": 2,
+        "domain": "mental",
+        "source": "base"
+      }
+    ],
+    "gifts": [
+      {
+        "id": "gift-1-turbo-fist-2-mana-1d10-2",
+        "name": "Turbo Fist — 2 mana / 1D10+2",
+        "description": "Turbo Fist — 2 mana / 1D10+2",
+        "source": "class",
+        "manaCost": 2
+      },
+      {
+        "id": "gift-2-armagedon-sans-baton-5-mana-1d12-4",
+        "name": "Armagédon sans Bâton — 5 mana / 1D12+4",
+        "description": "Armagédon sans Bâton — 5 mana / 1D12+4",
+        "source": "class",
+        "manaCost": 5
+      },
+      {
+        "id": "gift-3-fire-shield-3-mana-1d6-1",
+        "name": "Fire Shield — 3 mana / 1D6+1",
+        "description": "Fire Shield — 3 mana / 1D6+1",
+        "source": "class",
+        "manaCost": 3
+      },
+      {
+        "id": "gift-4-say-my-name-8-mana-1d6-1d8-1",
+        "name": "Say My Name — 8 mana / 1D6+1D8+1",
+        "description": "Say My Name — 8 mana / 1D6+1D8+1",
+        "source": "class",
+        "manaCost": 8
+      },
+      {
+        "id": "gift-5-maitrise-des-armes-relance-1-combat",
+        "name": "Maîtrise des Armes : relance 1×/combat",
+        "description": "Maîtrise des Armes : relance 1×/combat",
+        "source": "class"
+      },
+      {
+        "id": "gift-6-baroud-d-honneur-30-pv-2-degats",
+        "name": "Baroud d'Honneur : <30% PV → +2 dégâts",
+        "description": "Baroud d'Honneur : <30% PV → +2 dégâts",
+        "source": "class"
+      }
+    ],
+    "languages": [
+      "Commun",
+      "Kitsune",
+      "Démoniaque"
+    ],
+    "lore": {
+      "backstory": "Né dans une tribu vivant au pied d'un volcan, Azarius Desbois fut initié très jeune à la magie du feu, considérée comme une force sacrée et vivante. Il apprit à en canaliser la chaleur, la colère et la beauté sous la guidance des anciens.\nMais un incendie magique incontrôlé ravagea sa forêt natale, réduisant sa tribu en cendres. Depuis ce jour, Azarius a juré de retrouver celui qui a déclenché le brasier et de protéger l'équilibre entre la flamme et la nature.\nPorté par ce serment et avide de réponses, il a rejoint les Téméraires, convaincu que la Prophétie du Lac lui révélera la vérité derrière le feu qui l'habite.",
+      "notesPrivate": "Init: A"
+    },
+    "createdAt": "2026-07-12T14:49:01.719Z",
+    "updatedAt": "2026-07-12T14:49:01.719Z"
+  },
+  {
+    "id": "dy",
+    "campaignId": "2",
+    "ownerUid": "dy",
+    "name": "Dy Son",
+    "raceId": "elfe",
+    "classId": "arcaniste",
+    "gender": "Femme",
+    "elements": [
+      "💨 Air"
+    ],
+    "level": 1,
+    "attributes": {
+      "primary": {
+        "force": 35,
+        "social": 45,
+        "mental": 90
+      },
+      "secondary": {
+        "puissance": 2,
+        "finesse": 2,
+        "aura": 4,
+        "relation": 1,
+        "instinct": 3,
+        "savoir": 6
+      }
+    },
+    "skills": [
+      {
+        "id": "skill-1-beaute-naturelle",
+        "name": "Beauté naturelle",
+        "rank": 1,
+        "domain": "general",
+        "source": "base"
+      },
+      {
+        "id": "skill-2-savoir-interdit",
+        "name": "Savoir interdit",
+        "rank": 1,
+        "domain": "mental",
+        "source": "base"
+      },
+      {
+        "id": "skill-3-rat-de-bibliotheque",
+        "name": "Rat de bibliothèque",
+        "rank": 1,
+        "domain": "general",
+        "source": "base"
+      },
+      {
+        "id": "skill-4-expert-en-sorts",
+        "name": "Expert en sorts",
+        "rank": 3,
+        "domain": "general",
+        "source": "base"
+      }
+    ],
+    "gifts": [
+      {
+        "id": "gift-1-deplacement-d-air-2-mana",
+        "name": "Déplacement d'Air — 2 mana",
+        "description": "Déplacement d'Air — 2 mana",
+        "source": "class",
+        "manaCost": 2
+      },
+      {
+        "id": "gift-2-mur-d-air-6-mana",
+        "name": "Mur d'Air — 6 mana",
+        "description": "Mur d'Air — 6 mana",
+        "source": "class",
+        "manaCost": 6
+      },
+      {
+        "id": "gift-3-lame-d-air-3-mana-d8-2",
+        "name": "Lame d'Air — 3 mana / D8+2",
+        "description": "Lame d'Air — 3 mana / D8+2",
+        "source": "class",
+        "manaCost": 3
+      },
+      {
+        "id": "gift-4-largage-aerien-2-1-5m-mana",
+        "name": "Largage Aérien — 2+(1/5m) mana",
+        "description": "Largage Aérien — 2+(1/5m) mana",
+        "source": "class"
+      },
+      {
+        "id": "gift-5-invocations-demoniques",
+        "name": "Invocations démoniques",
+        "description": "Invocations démoniques",
+        "source": "class"
+      },
+      {
+        "id": "gift-6-la-boule-magique-tout-le-mana",
+        "name": "La Boule Magique — tout le mana",
+        "description": "La Boule Magique — tout le mana",
+        "source": "class"
+      },
+      {
+        "id": "gift-7-maitrise-des-arcanes",
+        "name": "Maîtrise des Arcanes",
+        "description": "Maîtrise des Arcanes",
+        "source": "class"
+      },
+      {
+        "id": "gift-8-connaissance-interdite",
+        "name": "Connaissance Interdite",
+        "description": "Connaissance Interdite",
+        "source": "class"
+      }
+    ],
+    "languages": [
+      "Commun",
+      "Elfique",
+      "Démoniaque"
+    ],
+    "lore": {
+      "backstory": "Née au cœur des forêts anciennes d'Akassya, Dy passa son enfance perchée parmi les branches, entourée des siens et bercée par le chant des vents et le bruissement des feuilles. Sa curiosité pour la magie naquit tôt, mais ce fut la rencontre fortuite avec un élémentaire du vent qui éveilla en elle un don exceptionnel : la capacité de comprendre et de manipuler les courants d'air comme un langage secret.\nÉduquée dans une école humaine d'arcanistes, Dy apprit à combiner la discipline humaine et l'instinct elfique, devenant une érudite des arcanes élémentaires. Sa soif de savoir et son désir de liberté l'ont menée à rejoindre les Téméraires, dans l'espoir de percer les secrets de la Prophétie du Lac et de lever la barrière de l'Île du Cœur.\nCependant, malgré son ouverture sur le monde, Dy nourrit un préjugé marqué contre les Kitsuné, qu'elle considère avec méfiance et suspicion, résultat d'expériences passées et de convictions culturelles profondément ancrées.\nPour Dy, chaque souffle de vent, chaque tourbillon et chaque tempête sont autant de leçons à écouter et à maîtriser, un écho des mystères qu'elle cherche à dévoiler à travers sa quête.",
+      "notesPrivate": "Init: D"
+    },
+    "createdAt": "2026-07-12T14:49:01.720Z",
+    "updatedAt": "2026-07-12T14:49:01.720Z"
+  },
+  {
+    "id": "firm",
+    "campaignId": "2",
+    "ownerUid": "firm",
+    "name": "Firm Bintaggle",
+    "raceId": "swamninyx",
+    "classId": "gardien",
+    "gender": "Homme",
+    "elements": [
+      "🌿 Nature"
+    ],
+    "level": 1,
+    "attributes": {
+      "primary": {
+        "force": 65,
+        "social": 50,
+        "mental": 55
+      },
+      "secondary": {
+        "puissance": 4,
+        "finesse": 3,
+        "aura": 2,
+        "relation": 3,
+        "instinct": 3,
+        "savoir": 3
+      }
+    },
+    "skills": [
+      {
+        "id": "skill-1-bagarre",
+        "name": "Bagarre",
+        "rank": 2,
+        "domain": "force",
+        "source": "base"
+      },
+      {
+        "id": "skill-2-survie",
+        "name": "Survie",
+        "rank": 1,
+        "domain": "general",
+        "source": "base"
+      },
+      {
+        "id": "skill-3-druide",
+        "name": "Druide",
+        "rank": 3,
+        "domain": "general",
+        "source": "base"
+      },
+      {
+        "id": "skill-4-herboriste",
+        "name": "Herboriste",
+        "rank": 1,
+        "domain": "general",
+        "source": "base"
+      }
+    ],
+    "gifts": [
+      {
+        "id": "gift-1-transmutation-1-2-mana",
+        "name": "Transmutation — 1-2 mana",
+        "description": "Transmutation — 1-2 mana",
+        "source": "class",
+        "manaCost": 2
+      },
+      {
+        "id": "gift-2-gonflette-2-mana-palier",
+        "name": "Gonflette — 2 mana/palier",
+        "description": "Gonflette — 2 mana/palier",
+        "source": "class",
+        "manaCost": 2
+      },
+      {
+        "id": "gift-3-tarte-aux-prunes",
+        "name": "Tarte aux prunes",
+        "description": "Tarte aux prunes",
+        "source": "class"
+      },
+      {
+        "id": "gift-4-extension-du-territoire",
+        "name": "Extension du territoire",
+        "description": "Extension du territoire",
+        "source": "class"
+      },
+      {
+        "id": "gift-5-chatiment-sacre",
+        "name": "Châtiment Sacré",
+        "description": "Châtiment Sacré",
+        "source": "class"
+      },
+      {
+        "id": "gift-6-provoc-sauvage",
+        "name": "Provoc' Sauvage",
+        "description": "Provoc' Sauvage",
+        "source": "class"
+      }
+    ],
+    "languages": [
+      "Commun",
+      "Swamninyx",
+      "Léonide"
+    ],
+    "lore": {
+      "backstory": "Né dans le royaume saint de Zarûn, Firm fut vendu par ses parents à l'âge de 5 ans à des esclavagistes pour une poignée d'or.\nPendant son transport vers les terres du commandant Suba, où il devait passer le restant de ses jours, il réussit à s'échapper lors d'une attaque par des pillards.\nSeul dans un territoire inconnu pendant des jours, il fut trouvé par un druide vagabond nommé Stonks, qui prit Firm sous son aile et décida de lui inculquer la voie du druide.\nFirm avait une grande affinité avec la magie de la nature, mais était très mauvais pour lancer des sorts. Par dépit, après de longues années de formation, Stonks décida de l'envoyer dans la forêt magique de Doulogne, en dehors d'Alésia, afin qu'il suive la voie de la transformation druidesque, où il passa 10 ans à contrôler la transformation de sa bête intérieure.\nUne fois sa formation achevée, il se mit en route pour rentrer à son pays natal, en quête d'ouvrir une école de formation de gardien-druides.",
+      "notesPrivate": "Init: F"
+    },
+    "createdAt": "2026-07-12T14:49:01.721Z",
+    "updatedAt": "2026-07-12T14:49:01.721Z"
+  },
+  {
+    "id": "mwassa",
+    "campaignId": "2",
+    "ownerUid": "mwassa",
+    "name": "Mwassa Mekhsitt",
+    "raceId": "kitsune",
+    "classId": "oracle",
+    "gender": "Femme",
+    "elements": [
+      "💧 Eaux"
+    ],
+    "level": 1,
+    "attributes": {
+      "primary": {
+        "force": 35,
+        "social": 65,
+        "mental": 70
+      },
+      "secondary": {
+        "puissance": 1,
+        "finesse": 3,
+        "aura": 3,
+        "relation": 4,
+        "instinct": 4,
+        "savoir": 3
+      }
+    },
+    "skills": [
+      {
+        "id": "skill-1-chance",
+        "name": "Chance",
+        "rank": 1,
+        "domain": "general",
+        "source": "base"
+      },
+      {
+        "id": "skill-2-experte-en-sorts",
+        "name": "Experte en sorts",
+        "rank": 2,
+        "domain": "general",
+        "source": "base"
+      },
+      {
+        "id": "skill-3-charmeuse",
+        "name": "Charmeuse",
+        "rank": 2,
+        "domain": "social",
+        "source": "base"
+      },
+      {
+        "id": "skill-4-alchimie",
+        "name": "Alchimie",
+        "rank": 1,
+        "domain": "general",
+        "source": "base"
+      }
+    ],
+    "gifts": [
+      {
+        "id": "gift-1-benediction-du-goupil-3-mana",
+        "name": "Bénédiction du goupil — 3 mana",
+        "description": "Bénédiction du goupil — 3 mana",
+        "source": "class",
+        "manaCost": 3
+      },
+      {
+        "id": "gift-2-aux-armes-1-d4-12-mana",
+        "name": "Aux armes ! — 1+D4-12 mana",
+        "description": "Aux armes ! — 1+D4-12 mana",
+        "source": "class",
+        "manaCost": 12
+      },
+      {
+        "id": "gift-3-marionette-6-mana",
+        "name": "Marionette — 6 mana",
+        "description": "Marionette — 6 mana",
+        "source": "class",
+        "manaCost": 6
+      },
+      {
+        "id": "gift-4-rosee-de-la-vitalite",
+        "name": "Rosée de la vitalité",
+        "description": "Rosée de la vitalité",
+        "source": "class"
+      },
+      {
+        "id": "gift-5-soin-divin",
+        "name": "Soin Divin",
+        "description": "Soin Divin",
+        "source": "class"
+      },
+      {
+        "id": "gift-6-pacte-des-12",
+        "name": "Pacte des 12",
+        "description": "Pacte des 12",
+        "source": "class"
+      }
+    ],
+    "languages": [
+      "Commun",
+      "Kitsune",
+      "Nain"
+    ],
+    "lore": {
+      "backstory": "Née dans les bas-quartiers d'Auregia, Mwassa grandit dans un bordel où elle apprit très tôt l'art de plaire et d'écouter. Lorsque sa jeunesse fanée perdit de sa valeur, elle fut renvoyée sans un mot. Pour survivre, elle transforma sa voix en arme et son tambourin en bouclier, charmant les tavernes et les passants d'Auregia jusqu'à Ozélis.\nSous ses airs charmeurs, elle garde un passé plus sombre : ancienne novice de Zarûn, enlevée enfant pour être vendue à la maison close. Elle conserve de cette vie une relique, qu'elle porte encore — entre honte et mémoire.\nConnue d'un ancien client devenu compagnon, elle a trouvé dans le groupe des Téméraires une nouvelle raison de chanter.\nCar pour Mwassa, la Prophétie est devenue tel un phare dans la nuit.",
+      "notesPrivate": "Init: M"
+    },
+    "createdAt": "2026-07-12T14:49:01.721Z",
+    "updatedAt": "2026-07-12T14:49:01.721Z"
+  },
+  {
+    "id": "nindey",
+    "campaignId": "2",
+    "ownerUid": "nindey",
+    "name": "Nindey Traqué",
+    "raceId": "nain",
+    "classId": "cogneur",
+    "gender": "Homme",
+    "elements": [
+      "⚡ Foudre"
+    ],
+    "level": 1,
+    "attributes": {
+      "primary": {
+        "force": 80,
+        "social": 20,
+        "mental": 50
+      },
+      "secondary": {
+        "puissance": 5,
+        "finesse": 3,
+        "aura": 2,
+        "relation": 2,
+        "instinct": 4,
+        "savoir": 1
+      }
+    },
+    "skills": [
+      {
+        "id": "skill-1-artisan",
+        "name": "Artisan",
+        "rank": 1.5,
+        "domain": "general",
+        "source": "base"
+      },
+      {
+        "id": "skill-2-maniement-d-arme",
+        "name": "Maniement d'arme",
+        "rank": 1,
+        "domain": "force",
+        "source": "base"
+      },
+      {
+        "id": "skill-3-expert-runique",
+        "name": "Expert Runique",
+        "rank": 2.5,
+        "domain": "general",
+        "source": "base"
+      },
+      {
+        "id": "skill-4-forgeron",
+        "name": "Forgeron",
+        "rank": 1,
+        "domain": "general",
+        "source": "base"
+      }
+    ],
+    "gifts": [
+      {
+        "id": "gift-1-armes-foudroyante-3-mana",
+        "name": "Armes Foudroyante — 3 mana",
+        "description": "Armes Foudroyante — 3 mana",
+        "source": "class",
+        "manaCost": 3
+      },
+      {
+        "id": "gift-2-marteau-de-thor-2-mana",
+        "name": "Marteau de Thor — 2 mana",
+        "description": "Marteau de Thor — 2 mana",
+        "source": "class",
+        "manaCost": 2
+      },
+      {
+        "id": "gift-3-blitzer-4-mana-d6-1",
+        "name": "Blitzer — 4 mana / D6+1",
+        "description": "Blitzer — 4 mana / D6+1",
+        "source": "class",
+        "manaCost": 4
+      },
+      {
+        "id": "gift-4-lance-de-foudre-6-mana",
+        "name": "Lance de Foudre — 6 mana",
+        "description": "Lance de Foudre — 6 mana",
+        "source": "class",
+        "manaCost": 6
+      },
+      {
+        "id": "gift-5-maitrise-des-armes",
+        "name": "Maîtrise des Armes",
+        "description": "Maîtrise des Armes",
+        "source": "class"
+      },
+      {
+        "id": "gift-6-baroud-d-honneur",
+        "name": "Baroud d'Honneur",
+        "description": "Baroud d'Honneur",
+        "source": "class"
+      }
+    ],
+    "languages": [
+      "Commun",
+      "Nain",
+      "Draconique"
+    ],
+    "lore": {
+      "backstory": "Nindey naquit au cœur des mines profondes du royaume du Mont RockDur, là où les marteaux résonnent jour et nuit et où l'odeur de la bière est presque aussi omniprésente que celle du métal chaud. Comme tout bon nain, il grandit entre pierres, trésors, jurons crépitants et pintes bien remplies. Mais son destin prit une tournure aussi improbable qu'un elfe qui apprécierait une bonne bière : il se lia d'amitié avec un jeune dragon nommé Skarlath, être farouche, étincelant comme une tempête et légèrement pyromane doublé d'un certain attrait pour l'alcool.\nUn jour, alors que Nindey s'aventurait dans la forêt au-delà de la mine, il tomba dans une embuscade de créatures hostiles. Juste avant de finir réduit en compote nainesque, Skarlath fondit du ciel, balayant les ennemis dans une explosion d'éclairs et de flammes. Gravement blessé, Nindey fut emporté par le dragon qui le soigna à coups d'houblon et d'orge.\nC'est durant ces années passées avec Skarlath que Nindey développa une fascination profonde pour les runes draconiques. Le dragon lui enseigna les secrets des runes liées à la foudre, lui permettant d'enchanter ses haches. Lorsque la foudre les parcourt, il se sent littéralement invincible… et parfois oublie complètement d'élaborer un plan.\nDe retour au Mont RockDur, Nindey devint un forgeron reconnu pour ses enchantements électriques et une sorte de légende locale. Expert dans le maniement de ses deux haches, il fonce toujours tête la première dans le combat, guidé par l'adrénaline, la foudre… et parfois l'alcool.\nTimide au naturel, il devient étonnamment sociable après quelques pintes et raconte volontiers ses aventures, son dégoût pour les elfes (sans raison particulière — c'est juste qu'il est nain) et sa bière préférée, brassée selon une recette secrète qu'il ne révélerait pour rien au monde.\nAujourd'hui, Nindey parcourt le monde à la recherche de nouveaux matériaux, de runes oubliées, de combats glorieux… et de tavernes. Et si une tempête éclate dans le ciel, il sourit : peut-être que Skarlath veille encore, quelque part.",
+      "notesPrivate": "Init: N"
+    },
+    "createdAt": "2026-07-12T14:49:01.721Z",
+    "updatedAt": "2026-07-12T14:49:01.721Z"
+  }
+]

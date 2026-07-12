@@ -1,11 +1,15 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import CampaignShell from '../components/layout/CampaignShell.vue'
 import { useCampaignStore } from '../controllers/useCampaignStore'
 
 const route = useRoute()
 const campaignStore = useCampaignStore()
+
+onMounted(async () => {
+  await campaignStore.fetchCampaigns()
+})
 
 const campaignId = computed(() => route.params.id as string)
 const campaign = computed(() =>

@@ -29,6 +29,18 @@ const router = createRouter({
       meta: { requiresAuth: true },
     },
     {
+      path: '/campaigns/:id/races',
+      name: 'race-carousel',
+      component: () => import('../views/RaceCarouselView.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/campaigns/:id/classes',
+      name: 'class-carousel',
+      component: () => import('../views/ClassCarouselView.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
       path: '/campaigns/:id/players',
       name: 'player-list',
       component: () => import('../views/PlayerListView.vue'),

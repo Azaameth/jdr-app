@@ -5,7 +5,7 @@ import CampaignShell from '../components/layout/CampaignShell.vue'
 
 const route = useRoute()
 const campaignId = computed(() => route.params.id as string)
-const teamId = computed(() => (route.params.teamId as string | undefined) ?? '1')
+const teamId = computed(() => (route.params.teamId as string | undefined) ?? '')
 </script>
 
 <template>

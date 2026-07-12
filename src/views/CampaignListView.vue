@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../controllers/useAuthStore'
 import { useCampaignStore } from '../controllers/useCampaignStore'
@@ -12,38 +12,44 @@ const user = computed(() => authStore.user.value)
 const userRole = computed(() => user.value?.role ?? null)
 const canManageCampaigns = computed(() => userRole.value === 'mj' || userRole.value === 'admin')
 const campaigns = computed(() => campaignStore.campaigns.value)
+const loading = computed(() => campaignStore.loading.value)
+const error = computed(() => campaignStore.error.value)
+
+onMounted(async () => {
+  await campaignStore.fetchCampaigns()
+})
 
 function openCampaign(id: string) {
   router.push(`/campaigns/${id}`)
 }
 
-function addCampaign() {
-  campaignStore.addCampaign({
-    id: String(Date.now()),
+async function addCampaign() {
+  await campaignStore.addCampaign({
     title: 'Nouvelle campagne',
     lore: '',
     summary: 'À compléter',
     globalNote: '',
     gmId: '',
     status: 'recrutement',
-    createdAt: new Date() as unknown as (typeof campaigns.value)[number]['createdAt'],
   })
 }
 
-function enrollMj(campaignId: string) {
+async function enrollMj(campaignId: string) {
   if (user.value?.role === 'mj' || user.value?.role === 'admin') {
-    campaignStore.enrollMj(campaignId, user.value.uid)
+    await campaignStore.enrollMj(campaignId, user.value.uid)
   }
 }
 
-function withdrawMj(campaignId: string) {
-  campaignStore.withdrawMj(campaignId)
+async function withdrawMj(campaignId: string) {
+  await campaignStore.withdrawMj(campaignId)
 }
 </script>
 
 <template>
   <main class="campaign-list">
     <h1>Mes campagnes</h1>
+    <p v-if="loading">Chargement des campagnes...</p>
+    <p v-if="error" class="error">{{ error }}</p>
     <div class="row">
       <article
         v-for="campaign in campaigns"
@@ -154,5 +160,9 @@ function withdrawMj(campaignId: string) {
   border-radius: 999px;
   background: rgba(212, 168, 67, 0.12);
   color: #f0c96a;
+}
+
+.error {
+  color: #ffb0b0;
 }
 </style>

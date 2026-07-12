@@ -1,28 +1,47 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useCampaignStore } from '../controllers/useCampaignStore'
+import { listCharactersByCampaign } from '../models/repositories/CharacterRepository'
 
 const route = useRoute()
 const router = useRouter()
 const campaignId = computed(() => String(route.params.id ?? ''))
 const campaignStore = useCampaignStore()
+const players = computed(() => playerRows.value)
+const loadingPlayers = computed(() => loadingPlayersState.value)
+const playersError = computed(() => playersErrorState.value)
+
+const playerRows = ref<Array<{ uid: string; name: string }>>([])
+const loadingPlayersState = ref(false)
+const playersErrorState = ref('')
+
+onMounted(async () => {
+  await campaignStore.fetchCampaigns()
+  await loadPlayers()
+})
+
 const campaign = computed(() =>
   campaignStore.campaigns.value.find((c) => c.id === campaignId.value),
 )
 
-import defaultChars from '../data/defaultChars.json'
+async function loadPlayers() {
+  loadingPlayersState.value = true
+  playersErrorState.value = ''
 
-const players = computed(() => {
-  // If this is the Alésia campaign (id '2'), use the provided default characters
-  if (campaignId.value === '2') {
-    return Object.keys(defaultChars).map((k) => ({ uid: k, name: defaultChars[k].name }))
+  try {
+    const characters = await listCharactersByCampaign(campaignId.value)
+    playerRows.value = characters.map((character) => ({
+      uid: character.ownerUid,
+      name: character.name,
+    }))
+  } catch (err) {
+    playersErrorState.value =
+      err instanceof Error ? err.message : 'Erreur lors du chargement des participants.'
+  } finally {
+    loadingPlayersState.value = false
   }
-  return [
-    { uid: '1', name: 'Alice' },
-    { uid: '2', name: 'Bob' },
-  ]
-})
+}
 
 function openPlayer(uid: string) {
   router.push(`/campaigns/${campaignId.value}/players/${uid}`)
@@ -32,6 +51,9 @@ function openPlayer(uid: string) {
 <template>
   <main>
     <h1>Participants — {{ campaign?.title ?? 'Campagne' }}</h1>
+    <p v-if="loadingPlayers">Chargement des participants...</p>
+    <p v-else-if="playersError" class="error">{{ playersError }}</p>
+    <p v-else-if="players.length === 0">Aucun participant pour cette campagne.</p>
     <ul>
       <li v-for="p in players" :key="p.uid">
         <a @click.prevent="openPlayer(p.uid)" href="#">{{ p.name }}</a>
@@ -57,5 +79,9 @@ a {
   color: #f0c96a;
   text-decoration: none;
   cursor: pointer;
+}
+
+.error {
+  color: #ffb0b0;
 }
 </style>

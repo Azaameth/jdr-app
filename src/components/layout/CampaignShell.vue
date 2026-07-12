@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onMounted } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
 import { useAuthStore } from '../../controllers/useAuthStore'
 import { useCampaignStore } from '../../controllers/useCampaignStore'
@@ -18,7 +18,11 @@ const user = computed(() => authStore.user.value)
 const campaign = computed(() =>
   campaignStore.campaigns.value.find((item) => item.id === props.campaignId),
 )
-const playerId = computed(() => props.playerId ?? '1')
+const playerId = computed(() => props.playerId ?? user.value?.uid ?? '')
+
+onMounted(async () => {
+  await campaignStore.fetchCampaigns()
+})
 
 async function logout() {
   await authStore.signOut()
@@ -69,6 +73,12 @@ async function logout() {
             :to="`/campaigns/${props.campaignId}/players/${playerId}`"
             class="sidebar-link"
             >Livret</RouterLink
+          >
+          <RouterLink :to="`/campaigns/${props.campaignId}/races`" class="sidebar-link"
+            >Races</RouterLink
+          >
+          <RouterLink :to="`/campaigns/${props.campaignId}/classes`" class="sidebar-link"
+            >Classes</RouterLink
           >
         </div>
       </div>
