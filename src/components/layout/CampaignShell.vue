@@ -64,6 +64,9 @@ async function logout() {
       <aside class="sidebar">
         <div class="sidebar-group">
           <div class="group-heading">Joueur</div>
+          <RouterLink :to="`/campaigns/${props.campaignId}/players`" class="group-link"
+            >Personnages</RouterLink
+          >
           <RouterLink
             v-if="characterId"
             :to="`/campaigns/${props.campaignId}/players/${characterId}/notes`"
@@ -71,14 +74,7 @@ async function logout() {
           >
             Notes perso
           </RouterLink>
-          <RouterLink
-            v-if="characterId"
-            :to="`/campaigns/${props.campaignId}/players/${characterId}`"
-            class="group-link"
-          >
-            Personnage
-          </RouterLink>
-          <span v-else class="group-link disabled">Personnage (non assigné)</span>
+          <span v-else class="group-link disabled">Notes perso (non assigné)</span>
         </div>
 
         <div class="sidebar-group">

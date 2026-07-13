@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useAuthStore } from '../controllers/useAuthStore'
 import { getCharacterById } from '../models/repositories/CharacterRepository'
@@ -7,10 +7,21 @@ import { getMembershipByCharacterId } from '../models/repositories/MembershipRep
 import type { CharacterProfile } from '../models/types/Character'
 import type { Membership } from '../models/types/Membership'
 
+const props = withDefaults(
+  defineProps<{
+    campaignId?: string
+    characterId?: string
+  }>(),
+  {
+    campaignId: undefined,
+    characterId: undefined,
+  },
+)
+
 const route = useRoute()
 const authStore = useAuthStore()
-const campaignId = computed(() => route.params.id as string)
-const characterId = computed(() => route.params.characterId as string)
+const campaignId = computed(() => props.campaignId ?? (route.params.id as string))
+const characterId = computed(() => props.characterId ?? (route.params.characterId as string))
 
 const character = ref<CharacterProfile | null>(null)
 const membership = ref<Membership | null>(null)
@@ -18,9 +29,20 @@ const loading = ref(false)
 const error = ref('')
 const forbidden = ref(false)
 
-onMounted(async () => {
+async function loadCharacter() {
+  if (!campaignId.value || !characterId.value) {
+    character.value = null
+    membership.value = null
+    error.value = ''
+    forbidden.value = false
+    loading.value = false
+    return
+  }
+
   loading.value = true
   error.value = ''
+  forbidden.value = false
+
   try {
     const [char, mem] = await Promise.all([
       getCharacterById(characterId.value),
@@ -40,11 +62,15 @@ onMounted(async () => {
   } finally {
     loading.value = false
   }
+}
+
+watch([campaignId, characterId, () => authStore.user.value?.uid], loadCharacter, {
+  immediate: true,
 })
 </script>
 
 <template>
-  <main>
+  <div class="player-view">
     <p v-if="loading">Chargement...</p>
     <p v-else-if="forbidden" class="error">Accès refusé.</p>
     <p v-else-if="error" class="error">{{ error }}</p>
@@ -138,11 +164,11 @@ onMounted(async () => {
     </template>
 
     <p v-else>Personnage introuvable.</p>
-  </main>
+  </div>
 </template>
 
 <style scoped>
-main {
+.player-view {
   padding: 1.25rem;
   color: #f2e6cc;
   display: flex;
