@@ -3,6 +3,21 @@ import path from 'path'
 import { initializeApp, cert } from 'firebase-admin/app'
 import { getFirestore } from 'firebase-admin/firestore'
 
+const DEFAULT_CAMPAIGN_ID = '8mEHIVueGKuwUr9DuBH3'
+
+async function clearCollection(db, collectionName) {
+  const docs = await db.collection(collectionName).listDocuments()
+  if (docs.length === 0) {
+    return
+  }
+
+  const batch = db.batch()
+  for (const ref of docs) {
+    batch.delete(ref)
+  }
+  await batch.commit()
+}
+
 function loadServiceAccount() {
   const defaultPath = path.resolve(process.cwd(), 'scripts', 'keys', 'serviceAccountKey.json')
   const p = process.env.SERVICE_ACCOUNT || process.argv[2] || defaultPath
@@ -22,6 +37,7 @@ async function main() {
   const sa = loadServiceAccount()
   initializeApp({ credential: cert(sa) })
   const db = getFirestore()
+  const campaignId = process.env.STATIC_DATA_CAMPAIGN_ID || DEFAULT_CAMPAIGN_ID
 
   const base = path.resolve(process.cwd(), 'scripts', 'data')
   const races = JSON.parse(fs.readFileSync(path.join(base, 'races.json'), 'utf8'))
@@ -31,6 +47,10 @@ async function main() {
   console.log(
     `Uploading ${races.length} races, ${classes.length} classes and ${factions.length} factions to project ${sa.project_id}`,
   )
+
+  console.log('Clearing existing races/classes...')
+  await clearCollection(db, 'races')
+  await clearCollection(db, 'classes')
 
   for (const r of races) {
     const id = (r.n || '')
@@ -42,7 +62,7 @@ async function main() {
     await db
       .collection('races')
       .doc(id)
-      .set({ ...r, img: imgPath, campaignTags: ['alesia'] })
+      .set({ ...r, img: imgPath, campaignId })
     console.log('races ->', id)
   }
 
@@ -56,7 +76,7 @@ async function main() {
     await db
       .collection('classes')
       .doc(id)
-      .set({ ...c, img: imgPath, campaignTags: ['alesia'] })
+      .set({ ...c, img: imgPath, campaignId })
     console.log('classes ->', id)
   }
 

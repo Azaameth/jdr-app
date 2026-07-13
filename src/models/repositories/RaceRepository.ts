@@ -7,10 +7,7 @@ const RACES_COLLECTION = 'races'
 
 export async function listRacesByCampaign(campaignId: string): Promise<Race[]> {
   if (!db) return []
-  const racesQuery = query(
-    collection(db, RACES_COLLECTION),
-    where('campaignTags', 'array-contains', campaignId),
-  )
+  const racesQuery = query(collection(db, RACES_COLLECTION), where('campaignId', '==', campaignId))
   const snapshot = await getDocs(racesQuery)
   return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }) as Race)
 }

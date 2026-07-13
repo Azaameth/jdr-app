@@ -3,6 +3,8 @@ import path from 'path'
 import { initializeApp } from 'firebase/app'
 import { getFirestore, doc, setDoc } from 'firebase/firestore'
 
+const DEFAULT_CAMPAIGN_ID = '8mEHIVueGKuwUr9DuBH3'
+
 function resolveEnv() {
   const env = process.env
   return {
@@ -32,6 +34,7 @@ async function main() {
   })
 
   const db = getFirestore(app)
+  const campaignId = process.env.STATIC_DATA_CAMPAIGN_ID || DEFAULT_CAMPAIGN_ID
 
   const base = path.resolve(process.cwd(), 'scripts', 'data')
   const races = JSON.parse(fs.readFileSync(path.join(base, 'races.json'), 'utf-8'))
@@ -49,7 +52,7 @@ async function main() {
       .replace(/[^a-z0-9]+/g, '_')
     const imgPath = r.img && !/^https?:/.test(r.img) ? `/images/${r.img}` : r.img || null
     const ref = doc(db, 'races', id)
-    await setDoc(ref, { ...r, img: imgPath, campaignTags: ['alesia'] })
+    await setDoc(ref, { ...r, img: imgPath, campaignId })
     console.log('races ->', id)
   }
 
@@ -61,7 +64,7 @@ async function main() {
       .replace(/[^a-z0-9]+/g, '_')
     const imgPath = c.img && !/^https?:/.test(c.img) ? `/images/${c.img}` : c.img || null
     const ref = doc(db, 'classes', id)
-    await setDoc(ref, { ...c, img: imgPath, campaignTags: ['alesia'] })
+    await setDoc(ref, { ...c, img: imgPath, campaignId })
     console.log('classes ->', id)
   }
 

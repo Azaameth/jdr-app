@@ -9,7 +9,7 @@ export async function listClassesByCampaign(campaignId: string): Promise<Class[]
   if (!db) return []
   const classesQuery = query(
     collection(db, CLASSES_COLLECTION),
-    where('campaignTags', 'array-contains', campaignId),
+    where('campaignId', '==', campaignId),
   )
   const snapshot = await getDocs(classesQuery)
   return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }) as Class)

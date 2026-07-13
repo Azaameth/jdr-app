@@ -3,9 +3,13 @@ import { computed, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useAuthStore } from '../controllers/useAuthStore'
 import { getCharacterById } from '../models/repositories/CharacterRepository'
+import { listClassesByCampaign } from '../models/repositories/ClassRepository'
 import { getMembershipByCharacterId } from '../models/repositories/MembershipRepository'
+import { listRacesByCampaign } from '../models/repositories/RaceRepository'
 import type { CharacterProfile } from '../models/types/Character'
+import type { Class } from '../models/types/Class'
 import type { Membership } from '../models/types/Membership'
+import type { Race } from '../models/types/Race'
 
 const props = withDefaults(
   defineProps<{
@@ -28,11 +32,58 @@ const membership = ref<Membership | null>(null)
 const loading = ref(false)
 const error = ref('')
 const forbidden = ref(false)
+const raceCatalogCache = ref<Record<string, Race[]>>({})
+const classCatalogCache = ref<Record<string, Class[]>>({})
+const characterRace = ref<Race | null>(null)
+const characterClass = ref<Class | null>(null)
+
+function normalizeToken(input: string | undefined): string {
+  return String(input ?? '')
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/['’]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+}
+
+function matchRaceFromCharacter(char: CharacterProfile, races: Race[]): Race | null {
+  const raceToken = normalizeToken(char.raceId)
+  return (
+    races.find((race) => {
+      const candidates = [race.id, race.n, race.sub]
+      return candidates.some((candidate) => normalizeToken(candidate) === raceToken)
+    }) ?? null
+  )
+}
+
+function matchClassFromCharacter(char: CharacterProfile, classes: Class[]): Class | null {
+  const classToken = normalizeToken(char.classId)
+  return (
+    classes.find((klass) => {
+      const candidates = [klass.id, klass.n, klass.sub]
+      return candidates.some((candidate) => normalizeToken(candidate) === classToken)
+    }) ?? null
+  )
+}
+
+async function ensureCatalogLoaded(targetCampaignId: string) {
+  if (!raceCatalogCache.value[targetCampaignId]) {
+    raceCatalogCache.value[targetCampaignId] = await listRacesByCampaign(targetCampaignId)
+  }
+
+  if (!classCatalogCache.value[targetCampaignId]) {
+    classCatalogCache.value[targetCampaignId] = await listClassesByCampaign(targetCampaignId)
+  }
+}
 
 async function loadCharacter() {
   if (!campaignId.value || !characterId.value) {
     character.value = null
     membership.value = null
+    characterRace.value = null
+    characterClass.value = null
     error.value = ''
     forbidden.value = false
     loading.value = false
@@ -48,8 +99,17 @@ async function loadCharacter() {
       getCharacterById(characterId.value),
       getMembershipByCharacterId(characterId.value, campaignId.value),
     ])
+
+    await ensureCatalogLoaded(campaignId.value)
+
     character.value = char
     membership.value = mem
+    characterRace.value = char
+      ? matchRaceFromCharacter(char, raceCatalogCache.value[campaignId.value] ?? [])
+      : null
+    characterClass.value = char
+      ? matchClassFromCharacter(char, classCatalogCache.value[campaignId.value] ?? [])
+      : null
 
     // Guard : un joueur ne peut voir que son propre personnage
     const user = authStore.user.value
@@ -87,6 +147,58 @@ watch([campaignId, characterId, () => authStore.user.value?.uid], loadCharacter,
           <span v-if="character.xp !== undefined"><b>XP :</b> {{ character.xp }}</span>
           <span><b>Éléments :</b> {{ character.elements.join(', ') || '—' }}</span>
           <span><b>Langues :</b> {{ character.languages.join(', ') || '—' }}</span>
+        </div>
+      </section>
+
+      <section class="card bonus-card">
+        <h2>Bonus de race et de classe</h2>
+        <div class="bonus-grid">
+          <article class="bonus-panel">
+            <header class="bonus-header">
+              <p class="bonus-label">Race</p>
+              <h3>{{ characterRace?.n ?? character.raceId }}</h3>
+              <p v-if="characterRace?.sub" class="bonus-subtitle">{{ characterRace.sub }}</p>
+            </header>
+
+            <template v-if="characterRace">
+              <div class="bonus-list-wrap">
+                <h4>Bonus raciaux</h4>
+                <ul class="bonus-list">
+                  <li v-for="bonus in characterRace.bon" :key="bonus">{{ bonus }}</li>
+                </ul>
+              </div>
+              <div class="bonus-list-wrap">
+                <h4>Malus raciaux</h4>
+                <ul class="bonus-list malus">
+                  <li v-for="malus in characterRace.mal" :key="malus">{{ malus }}</li>
+                </ul>
+              </div>
+            </template>
+            <p v-else class="muted">Aucune fiche de race trouvée pour ce personnage.</p>
+          </article>
+
+          <article class="bonus-panel">
+            <header class="bonus-header">
+              <p class="bonus-label">Classe</p>
+              <h3>{{ characterClass?.n ?? character.classId }}</h3>
+              <p v-if="characterClass?.sub" class="bonus-subtitle">{{ characterClass.sub }}</p>
+            </header>
+
+            <template v-if="characterClass">
+              <div class="class-mods">
+                <span class="mod-chip">PV {{ characterClass.pv }}</span>
+                <span class="mod-chip">Mana {{ characterClass.mana }}</span>
+                <span class="mod-chip">Armure {{ characterClass.arm }}</span>
+              </div>
+              <div class="bonus-list-wrap">
+                <h4>Capacités de classe</h4>
+                <ul class="bonus-list">
+                  <li v-for="cap in characterClass.caps" :key="cap">{{ cap }}</li>
+                </ul>
+              </div>
+            </template>
+            <p v-else class="muted">Aucune fiche de classe trouvée pour ce personnage.</p>
+          </article>
         </div>
       </section>
 
@@ -260,5 +372,98 @@ h3 {
 }
 .error {
   color: #ffb0b0;
+}
+
+.bonus-card {
+  background:
+    radial-gradient(circle at top right, rgba(201, 168, 76, 0.12), transparent 42%), #1a1208;
+}
+
+.bonus-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.bonus-panel {
+  background: #22170b;
+  border: 1px solid #5c4a2a;
+  border-radius: 8px;
+  padding: 0.9rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+}
+
+.bonus-header {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.bonus-label {
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 0.72rem;
+  color: #a07820;
+}
+
+.bonus-subtitle {
+  margin: 0;
+  color: #b8a07a;
+  font-size: 0.85rem;
+}
+
+h4 {
+  margin: 0;
+  color: #f0c96a;
+  font-size: 0.85rem;
+}
+
+.bonus-list-wrap {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.bonus-list {
+  margin: 0;
+  padding-left: 1rem;
+  display: grid;
+  gap: 0.25rem;
+  color: #d8c8a3;
+  font-size: 0.88rem;
+}
+
+.bonus-list.malus {
+  color: #e1b39c;
+}
+
+.class-mods {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.mod-chip {
+  font-size: 0.75rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: 999px;
+  border: 1px solid #6d562f;
+  background: rgba(240, 201, 106, 0.08);
+  color: #f0c96a;
+}
+
+.muted {
+  margin: 0;
+  font-size: 0.88rem;
+  color: #b8a07a;
+}
+
+@media (max-width: 800px) {
+  .bonus-grid,
+  .grid-2,
+  .grid-3 {
+    grid-template-columns: 1fr;
+  }
 }
 </style>
