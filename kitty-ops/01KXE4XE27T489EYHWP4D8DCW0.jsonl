@@ -1,0 +1,2 @@
+{"event": "started", "invocation_id": "01KXE4XE27T489EYHWP4D8DCW0", "profile_id": "architect-alphonso", "action": "specify", "request_text": "Is there anything missing in spec kitty?", "actor": "claude", "mode_of_work": "task_execution", "governance_context_hash": "a16c40af3845b3da", "governance_context_available": true, "router_confidence": "canonical_verb", "started_at": "2026-07-13T16:28:11.883672+00:00"}
+{"event": "completed", "invocation_id": "01KXE4XE27T489EYHWP4D8DCW0", "completed_at": "2026-07-13T16:28:37.862124+00:00", "outcome": "abandoned", "closed_by": "agent"}
