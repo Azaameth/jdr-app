@@ -38,13 +38,15 @@ async function main() {
 
   const dryRun = process.env.DRY_RUN === '1'
   const charactersPath = path.resolve(process.cwd(), 'scripts', 'data', 'characters.json')
-  const membershipsPath = path.resolve(process.cwd(), 'scripts', 'data', 'memberships.json')
+  const participantsPath = path.resolve(process.cwd(), 'scripts', 'data', 'participants.json')
+  const inventoriesPath = path.resolve(process.cwd(), 'scripts', 'data', 'inventories.json')
 
   const characters = readJsonOrFail(charactersPath)
-  const memberships = readJsonOrFail(membershipsPath)
+  const participants = readJsonOrFail(participantsPath)
+  const inventories = readJsonOrFail(inventoriesPath)
 
   console.log(
-    `Seeding ${characters.length} characters and ${memberships.length} memberships to project ${sa.project_id}`,
+    `Seeding ${characters.length} characters, ${participants.length} participants and ${inventories.length} inventories to project ${sa.project_id}`,
   )
 
   for (const profile of characters) {
@@ -57,12 +59,20 @@ async function main() {
     console.log('character ->', profile.id)
   }
 
-  for (const membership of memberships) {
-    const membershipId = `${membership.campaignId}_${membership.uid}`
+  for (const participant of participants) {
+    const participantId = `${participant.campaignId}_${participant.uid}`
     if (!dryRun) {
-      await db.collection('memberships').doc(membershipId).set(membership, { merge: true })
+      await db.collection('participants').doc(participantId).set(participant, { merge: true })
     }
-    console.log('membership ->', membershipId)
+    console.log('participant ->', participantId)
+  }
+
+  for (const inventory of inventories) {
+    const inventoryId = `${inventory.campaignId}_${inventory.characterId}`
+    if (!dryRun) {
+      await db.collection('inventories').doc(inventoryId).set(inventory, { merge: true })
+    }
+    console.log('inventory ->', inventoryId)
   }
 
   console.log(dryRun ? 'Dry run complete' : 'Seed complete')

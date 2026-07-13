@@ -14,7 +14,7 @@ Feature-parity gap between `legacy-reference/index.html` (the pre-Vue monolith) 
 
 Roughly in suggested priority order — earlier items unblock or are prerequisites for later ones:
 
-1. **Character creation flow.** The class/race carousels look like a first step toward creating a character, but there's no view that lets a player actually create and save one — `CharacterRepository`/`MembershipRepository` have no `create*` functions yet. Worth confirming this gap with the project owner before starting; it may already be handled by an admin seed script for now.
+1. **Character creation flow.** The class/race carousels look like a first step toward creating a character, but there's no view that lets a player actually create and save one — `CharacterRepository`/`ParticipantRepository` have no `create*` functions yet. Worth confirming this gap with the project owner before starting; it may already be handled by an admin seed script for now.
 2. **Cosmology tree** (Déïques / Légendaires / Effroyables / Rares / Communes tiers). Largely static lore content like the faction browser, but with a nontrivial layout (connector lines between tiers).
 3. **Functional dice roller.** `CampaignShell.vue` already has placeholder labels ("Lanceur de dés", "Dés d'Aventure") in the sidebar with no behavior wired up.
 4. **Inventory editing.** Session inventory is currently read-only in `PlayerView.vue`; the legacy file has an interactive inventory-slot modal.

@@ -1,0 +1,329 @@
+[
+  {
+    "uid": "azarius",
+    "campaignId": "2",
+    "characterId": "azarius",
+    "items": [
+      {
+        "itemId": "inv-1-vieille-epee-d4-1",
+        "name": "Vieille épée (D4/−1)",
+        "quantity": 1,
+        "equipped": true
+      },
+      {
+        "itemId": "inv-2-robe-d-arcaniste-enchantee-rd2",
+        "name": "Robe d'Arcaniste enchantée (RD2)",
+        "quantity": 1,
+        "equipped": true
+      },
+      {
+        "itemId": "inv-3-anneau-du-dieu-du-feu-rd2-vs-proj-magiques",
+        "name": "Anneau du Dieu du Feu (RD2 vs proj. magiques)",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "itemId": "inv-4-robe-d-arcaniste-enchantee-rd2",
+        "name": "Robe d'Arcaniste enchantée (RD2)",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "itemId": "inv-5-anneau-du-dieu-du-feu-vs-proj-magiques",
+        "name": "Anneau du Dieu du Feu (vs proj. magiques)",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "itemId": "inv-6-rations",
+        "name": "Rations",
+        "quantity": 19,
+        "equipped": false
+      },
+      {
+        "itemId": "inv-7-sac-enchante",
+        "name": "Sac enchanté",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "itemId": "inv-8-kit-medical",
+        "name": "Kit médical",
+        "quantity": 4,
+        "equipped": false
+      },
+      {
+        "itemId": "inv-9-boussole-magique",
+        "name": "Boussole magique",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "itemId": "inv-10-parchemin-demon",
+        "name": "Parchemin démon",
+        "quantity": 20,
+        "equipped": false
+      },
+      {
+        "itemId": "inv-11-corde-11m",
+        "name": "Corde 11m",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "itemId": "inv-12-livre-orc",
+        "name": "Livre Orc",
+        "quantity": 1,
+        "equipped": false
+      }
+    ],
+    "createdAt": "2026-07-13T19:51:37.516Z",
+    "updatedAt": "2026-07-13T19:51:37.516Z"
+  },
+  {
+    "uid": "dy",
+    "campaignId": "2",
+    "characterId": "dy",
+    "items": [
+      {
+        "itemId": "inv-1-baguette-d4-3",
+        "name": "Baguette (D4/−3)",
+        "quantity": 1,
+        "equipped": true
+      },
+      {
+        "itemId": "inv-2-dague-d6-1",
+        "name": "Dague (D6/+1)",
+        "quantity": 1,
+        "equipped": true
+      },
+      {
+        "itemId": "inv-3-robe-d-arcaniste-enchantee-rd2",
+        "name": "Robe d'Arcaniste enchantée (RD2)",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "itemId": "inv-4-anneau-du-dieu-du-vent",
+        "name": "Anneau du Dieu du Vent",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "itemId": "inv-5-rations",
+        "name": "Rations",
+        "quantity": 5,
+        "equipped": false
+      },
+      {
+        "itemId": "inv-6-kit-medical",
+        "name": "Kit médical",
+        "quantity": 4,
+        "equipped": false
+      },
+      {
+        "itemId": "inv-7-potion-vie-d6",
+        "name": "Potion vie D6",
+        "quantity": 3,
+        "equipped": false
+      },
+      {
+        "itemId": "inv-8-livre-de-magie",
+        "name": "Livre de Magie",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "itemId": "inv-9-corde-10m",
+        "name": "Corde 10m",
+        "quantity": 1,
+        "equipped": false
+      }
+    ],
+    "createdAt": "2026-07-13T19:51:37.518Z",
+    "updatedAt": "2026-07-13T19:51:37.518Z"
+  },
+  {
+    "uid": "firm",
+    "campaignId": "2",
+    "characterId": "firm",
+    "items": [
+      {
+        "itemId": "inv-1-baton-long-druidique-d6-1",
+        "name": "Bâton Long druidique (D6/+1)",
+        "quantity": 1,
+        "equipped": true
+      },
+      {
+        "itemId": "inv-2-wok-d4-0",
+        "name": "Wok (D4/0)",
+        "quantity": 1,
+        "equipped": true
+      },
+      {
+        "itemId": "inv-3-armure-enchantee-druidique-rd6",
+        "name": "Armure enchantée druidique (RD6)",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "itemId": "inv-4-bouclier-de-cuivre-rd2",
+        "name": "Bouclier de cuivre (RD2)",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "itemId": "inv-5-rations",
+        "name": "Rations",
+        "quantity": 6,
+        "equipped": false
+      },
+      {
+        "itemId": "inv-6-bandages",
+        "name": "Bandages",
+        "quantity": 3,
+        "equipped": false
+      },
+      {
+        "itemId": "inv-7-potion-pv-d10",
+        "name": "Potion PV D10",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "itemId": "inv-8-lanterne",
+        "name": "Lanterne",
+        "quantity": 1,
+        "equipped": false
+      }
+    ],
+    "createdAt": "2026-07-13T19:51:37.518Z",
+    "updatedAt": "2026-07-13T19:51:37.518Z"
+  },
+  {
+    "uid": "mwassa",
+    "campaignId": "2",
+    "characterId": "mwassa",
+    "items": [
+      {
+        "itemId": "inv-1-tambourins-et-castagnettes-d4-2",
+        "name": "Tambourins et Castagnettes (D4/−2)",
+        "quantity": 1,
+        "equipped": true
+      },
+      {
+        "itemId": "inv-2-pistolet-a-silex-d6-0",
+        "name": "Pistolet à silex (D6/0)",
+        "quantity": 1,
+        "equipped": true
+      },
+      {
+        "itemId": "inv-3-dague-d4-0",
+        "name": "Dague (D4/0)",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "itemId": "inv-4-armure-impossible-oracle",
+        "name": "(Armure impossible — Oracle)",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "itemId": "inv-5-rations",
+        "name": "Rations",
+        "quantity": 2,
+        "equipped": false
+      },
+      {
+        "itemId": "inv-6-balles",
+        "name": "Balles",
+        "quantity": 19,
+        "equipped": false
+      },
+      {
+        "itemId": "inv-7-kit-medical",
+        "name": "Kit médical",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "itemId": "inv-8-kit-crochetage",
+        "name": "Kit crochetage",
+        "quantity": 3,
+        "equipped": false
+      },
+      {
+        "itemId": "inv-9-anneau-de-mana",
+        "name": "Anneau de Mana",
+        "quantity": 1,
+        "equipped": false
+      }
+    ],
+    "createdAt": "2026-07-13T19:51:37.518Z",
+    "updatedAt": "2026-07-13T19:51:37.518Z"
+  },
+  {
+    "uid": "nindey",
+    "campaignId": "2",
+    "characterId": "nindey",
+    "items": [
+      {
+        "itemId": "inv-1-deux-haches-a-une-main-d10-4",
+        "name": "Deux haches à une main (D10/+4)",
+        "quantity": 1,
+        "equipped": true
+      },
+      {
+        "itemId": "inv-2-hache-a-deux-mains-d12-4",
+        "name": "Hache à deux mains (D12/+4)",
+        "quantity": 1,
+        "equipped": true
+      },
+      {
+        "itemId": "inv-3-pioche-marteau-d4-3",
+        "name": "Pioche + Marteau (D4/+3)",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "itemId": "inv-4-armure-runique-rd4",
+        "name": "Armure runique (RD4)",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "itemId": "inv-5-anneau-anti-magie-rd1",
+        "name": "Anneau anti-magie RD1",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "itemId": "inv-6-rations",
+        "name": "Rations",
+        "quantity": 18,
+        "equipped": false
+      },
+      {
+        "itemId": "inv-7-kit-medical",
+        "name": "Kit médical",
+        "quantity": 2,
+        "equipped": false
+      },
+      {
+        "itemId": "inv-8-rune-majeur-feu-50k-po",
+        "name": "Rune Majeur Feu (50k PO)",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "itemId": "inv-9-corde-10m",
+        "name": "Corde 10m",
+        "quantity": 1,
+        "equipped": false
+      }
+    ],
+    "createdAt": "2026-07-13T19:51:37.519Z",
+    "updatedAt": "2026-07-13T19:51:37.519Z"
+  }
+]

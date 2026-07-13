@@ -1,5 +1,5 @@
 /**
- * Clears all documents in campaigns, characters, memberships, races, classes collections.
+ * Clears all documents in campaigns, characters, participants, inventories, races, classes collections.
  * Usage: node scripts/clearFirebase.mjs [serviceAccountPath]
  */
 
@@ -18,7 +18,7 @@ function loadServiceAccount() {
   return JSON.parse(fs.readFileSync(p, 'utf8'))
 }
 
-const COLLECTIONS = ['campaigns', 'characters', 'memberships', 'races', 'classes']
+const COLLECTIONS = ['campaigns', 'characters', 'participants', 'inventories', 'races', 'classes']
 
 async function clearCollection(db, name) {
   const snapshot = await db.collection(name).get()

@@ -119,7 +119,7 @@ on:
   doc). Publishing them needs a human decision — see the commit `security:
 add version-controlled Firestore rules` for the full writeup, and consider
   testing via the Firebase Console's Rules Playground before publishing.
-- **`membership.personalNote`** sits on a document every campaign member can
+- **`participant.personalNote`** sits on a document every campaign member can
   otherwise legitimately read. Firestore rules can't hide a single field
   within a document — real privacy needs it moved to a separate
   owner/mj-only document (subcollection).

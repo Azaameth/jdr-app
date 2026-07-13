@@ -1,6 +1,6 @@
 /**
  * Cascade seed script.
- * Order: campaign → races → classes → characters → memberships
+ * Order: campaign → races → classes → characters → participants → inventories
  *
  * Usage:
  *   node scripts/seedAll.mjs [serviceAccountPath]
@@ -239,7 +239,7 @@ function mapCharacter(characterId, raw, campaignId, ownerUid = characterId) {
     createdAt: now,
     updatedAt: now,
   }
-  const membership = {
+  const participant = {
     uid: ownerUid,
     campaignId,
     characterId,
@@ -251,13 +251,26 @@ function mapCharacter(characterId, raw, campaignId, ownerUid = characterId) {
       mana: toInt(raw.mana, 0),
       maxMana: toInt(raw.mana_max, 0),
       posture: 'FOCUS',
-      inventory: parseSessionInventory(raw),
       updatedAt: now,
     },
     createdAt: now,
     updatedAt: now,
   }
-  return { profile: cleanUndefined(profile), membership: cleanUndefined(membership) }
+
+  const inventory = {
+    uid: ownerUid,
+    campaignId,
+    characterId,
+    items: parseSessionInventory(raw),
+    createdAt: now,
+    updatedAt: now,
+  }
+
+  return {
+    profile: cleanUndefined(profile),
+    participant: cleanUndefined(participant),
+    inventory: cleanUndefined(inventory),
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -365,25 +378,33 @@ async function main() {
     }
 
     // ------------------------------------------------------------------
-    // Step 4 & 5 — Characters + Memberships
+    // Step 4, 5 & 6 — Characters + Participants + Inventories
     // ------------------------------------------------------------------
     const entries = Object.entries(defaultChars)
-    console.log(`[4/5] Characters (${entries.length})...`)
-    console.log(`[5/5] Memberships (${entries.length})...`)
+    console.log(`[4/6] Characters (${entries.length})...`)
+    console.log(`[5/6] Participants (${entries.length})...`)
+    console.log(`[6/6] Inventories (${entries.length})...`)
 
     for (const [characterId, raw] of entries) {
       const ownerUid = resolveOwnerUid(raw, characterId)
-      const { profile, membership } = mapCharacter(characterId, raw, campaignId, ownerUid)
+      const { profile, participant, inventory } = mapCharacter(
+        characterId,
+        raw,
+        campaignId,
+        ownerUid,
+      )
       if (!dryRun) {
         await db
           .collection('characters')
           .doc(profile.id)
           .set({ ...profile, raceBonusNotes: FieldValue.delete() }, { merge: true })
-        const membershipId = `${membership.campaignId}_${membership.uid}`
-        await db.collection('memberships').doc(membershipId).set(membership, { merge: true })
+        const participantId = `${participant.campaignId}_${participant.uid}`
+        const inventoryId = `${inventory.campaignId}_${inventory.characterId}`
+        await db.collection('participants').doc(participantId).set(participant, { merge: true })
+        await db.collection('inventories').doc(inventoryId).set(inventory, { merge: true })
       }
       console.log(
-        `  character -> ${profile.id}  |  membership -> ${membership.campaignId}_${membership.uid}`,
+        `  character -> ${profile.id}  |  participant -> ${participant.campaignId}_${participant.uid}  |  inventory -> ${inventory.campaignId}_${inventory.characterId}`,
       )
     }
 

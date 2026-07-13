@@ -77,9 +77,19 @@ service cloud.firestore {
         && (resource.data.ownerUid == request.auth.uid || isMjOrAdmin());
     }
 
-    // Session state (hp/mana/inventory) + personalNote. Same ownership
+    // Session state (hp/mana/posture) + personalNote. Same ownership
     // model and the same personalNote privacy gap as characters above.
-    match /memberships/{membershipId} {
+    match /participants/{participantId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn()
+        && (request.resource.data.uid == request.auth.uid || isMjOrAdmin());
+      allow update, delete: if isSignedIn()
+        && (resource.data.uid == request.auth.uid || isMjOrAdmin());
+    }
+
+    // Character inventory extracted from participant session state.
+    // Ownership and mj/admin permissions mirror participants.
+    match /inventories/{inventoryId} {
       allow read: if isSignedIn();
       allow create: if isSignedIn()
         && (request.resource.data.uid == request.auth.uid || isMjOrAdmin());

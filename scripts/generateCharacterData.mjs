@@ -220,7 +220,7 @@ function mapOne(characterId, raw, campaignId, ownerUid = characterId) {
     updatedAt: now,
   }
 
-  const membership = {
+  const participant = {
     uid: ownerUid,
     campaignId,
     characterId,
@@ -232,14 +232,22 @@ function mapOne(characterId, raw, campaignId, ownerUid = characterId) {
       mana: toInt(raw.mana, 0),
       maxMana: toInt(raw.mana_max, 0),
       posture: 'FOCUS',
-      inventory: parseSessionInventory(raw),
       updatedAt: now,
     },
     createdAt: now,
     updatedAt: now,
   }
 
-  return { profile, membership }
+  const inventory = {
+    uid: ownerUid,
+    campaignId,
+    characterId,
+    items: parseSessionInventory(raw),
+    createdAt: now,
+    updatedAt: now,
+  }
+
+  return { profile, participant, inventory }
 }
 
 function cleanUndefined(value) {
@@ -264,26 +272,31 @@ function main() {
   const campaignId = process.env.CAMPAIGN_ID || process.argv[2] || '2'
   const sourcePath = path.resolve(process.cwd(), 'scripts', 'data', 'defaultChars.json')
   const outputCharactersPath = path.resolve(process.cwd(), 'scripts', 'data', 'characters.json')
-  const outputMembershipsPath = path.resolve(process.cwd(), 'scripts', 'data', 'memberships.json')
+  const outputParticipantsPath = path.resolve(process.cwd(), 'scripts', 'data', 'participants.json')
+  const outputInventoriesPath = path.resolve(process.cwd(), 'scripts', 'data', 'inventories.json')
 
   const rawDefaults = JSON.parse(fs.readFileSync(sourcePath, 'utf8'))
   const entries = Object.entries(rawDefaults)
 
   const characters = []
-  const memberships = []
+  const participants = []
+  const inventories = []
 
   for (const [characterId, raw] of entries) {
     const ownerUid = resolveOwnerUid(raw, characterId)
-    const { profile, membership } = mapOne(characterId, raw, campaignId, ownerUid)
+    const { profile, participant, inventory } = mapOne(characterId, raw, campaignId, ownerUid)
     characters.push(cleanUndefined(profile))
-    memberships.push(cleanUndefined(membership))
+    participants.push(cleanUndefined(participant))
+    inventories.push(cleanUndefined(inventory))
   }
 
   fs.writeFileSync(outputCharactersPath, JSON.stringify(characters, null, 2) + '\n', 'utf8')
-  fs.writeFileSync(outputMembershipsPath, JSON.stringify(memberships, null, 2) + '\n', 'utf8')
+  fs.writeFileSync(outputParticipantsPath, JSON.stringify(participants, null, 2) + '\n', 'utf8')
+  fs.writeFileSync(outputInventoriesPath, JSON.stringify(inventories, null, 2) + '\n', 'utf8')
 
   console.log(`Generated ${characters.length} characters -> ${outputCharactersPath}`)
-  console.log(`Generated ${memberships.length} memberships -> ${outputMembershipsPath}`)
+  console.log(`Generated ${participants.length} participants -> ${outputParticipantsPath}`)
+  console.log(`Generated ${inventories.length} inventories -> ${outputInventoriesPath}`)
 }
 
 main()
