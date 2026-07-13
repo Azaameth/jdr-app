@@ -1,0 +1,27 @@
+work_packages:
+  - id: WP01
+    title: "Two-column character sheet layout"
+    dependencies: []
+    owned_files:
+      - "src/views/PlayerView.vue"
+      - "src/views/__tests__/PlayerView.spec.ts"
+      - "e2e/player-sheet.spec.ts"
+    create_intent:
+      - "src/views/__tests__/PlayerView.spec.ts"
+      - "e2e/player-sheet.spec.ts"
+    requirement_refs:
+      - FR-001
+      - FR-002
+      - FR-003
+      - NFR-001
+      - NFR-002
+      - C-001
+      - C-002
+      - C-003
+    plan_concern_refs: []
+    cross_cutting: true
+    subtasks:
+      - T001
+      - T002
+      - T003
+    prompt_file: "tasks/WP01-two-column-layout.md"
