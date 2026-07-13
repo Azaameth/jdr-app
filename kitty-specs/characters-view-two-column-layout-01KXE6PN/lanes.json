@@ -1,0 +1,32 @@
+{
+  "version": 1,
+  "mission_slug": "characters-view-two-column-layout-01KXE6PN",
+  "mission_id": "01KXE6PN912RFYGKPQ9VP4NBVJ",
+  "mission_branch": "kitty/mission-characters-view-two-column-layout-01KXE6PN",
+  "target_branch": "dev",
+  "lanes": [
+    {
+      "lane_id": "lane-a",
+      "wp_ids": [
+        "WP01"
+      ],
+      "write_scope": [
+        "e2e/player-sheet.spec.ts",
+        "src/views/PlayerView.vue",
+        "src/views/__tests__/PlayerView.spec.ts"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "app-shell",
+        "artifact-rendering",
+        "legacy-cleanup",
+        "tests"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    }
+  ],
+  "computed_at": "2026-07-13T17:10:45.105196+00:00",
+  "computed_from": "dependency_graph+ownership",
+  "planning_artifact_wps": []
+}
