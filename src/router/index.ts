@@ -54,7 +54,9 @@ const router = createRouter({
     },
     {
       path: '/campaigns/:id/players',
-      redirect: (to) => `/campaigns/${to.params.id}/team`,
+      name: 'player-list',
+      component: () => import('../views/PlayerListView.vue'),
+      meta: { requiresAuth: true },
     },
     {
       path: '/campaigns/:id/players/:uid/notes',
@@ -65,7 +67,7 @@ const router = createRouter({
     {
       path: '/campaigns/:id/players/:characterId',
       name: 'player',
-      component: () => import('../views/PlayerView.vue'),
+      component: () => import('../views/PlayerListView.vue'),
       meta: { requiresAuth: true },
     },
   ],

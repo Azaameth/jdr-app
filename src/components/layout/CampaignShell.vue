@@ -4,6 +4,7 @@ import { RouterLink, useRouter } from 'vue-router'
 import { useAuthStore } from '../../controllers/useAuthStore'
 import { useCampaignStore } from '../../controllers/useCampaignStore'
 import { usePlayerStore } from '../../controllers/usePlayerStore'
+import { CAMPAIGN_STATUS_LABELS } from '../../models/types/Campaign'
 
 const props = defineProps<{
   campaignId: string
@@ -18,6 +19,19 @@ const user = computed(() => authStore.user.value)
 const campaign = computed(() =>
   campaignStore.campaigns.value.find((item) => item.id === props.campaignId),
 )
+
+const campaignStatusClass = computed(() => {
+  if (!campaign.value) return 'status-unknown'
+  if (campaign.value.status === 'active') return 'status-active'
+  if (campaign.value.status === 'recrutement') return 'status-recruiting'
+  if (campaign.value.status === 'terminee') return 'status-ended'
+  return 'status-unknown'
+})
+
+const campaignStatusLabel = computed(() => {
+  if (!campaign.value) return 'Statut inconnu'
+  return CAMPAIGN_STATUS_LABELS[campaign.value.status] ?? 'Statut inconnu'
+})
 
 const characterId = ref<string | null>(null)
 
@@ -36,96 +50,102 @@ async function logout() {
 
 <template>
   <div class="campaign-shell">
-    <aside class="sidebar">
-      <div class="sidebar-group">
-        <div class="group-heading">Joueur</div>
-        <div class="group-card">
-          <span>{{ user?.displayName ?? 'Invité' }}</span>
-          <strong>{{ user?.role ?? 'Rôle inconnu' }}</strong>
-        </div>
-        <RouterLink
-          v-if="characterId"
-          :to="`/campaigns/${props.campaignId}/players/${characterId}/notes`"
-          class="group-link"
-        >
-          Notes perso
-        </RouterLink>
-        <RouterLink
-          v-if="characterId"
-          :to="`/campaigns/${props.campaignId}/players/${characterId}`"
-          class="group-link"
-        >
-          Personnage
-        </RouterLink>
-        <span v-else class="group-link disabled">Personnage (non assigné)</span>
+    <header class="campaign-topbar">
+      <div class="campaign-topbar-title-row">
+        <p class="campaign-topbar-label">Campagne</p>
+        <h1 class="campaign-topbar-title">{{ campaign?.title ?? 'Campagne inconnue' }}</h1>
       </div>
+      <span class="campaign-status" :class="campaignStatusClass">
+        {{ campaignStatusLabel }}
+      </span>
+    </header>
 
-      <div class="sidebar-group">
-        <div class="group-heading">Équipe</div>
-        <RouterLink :to="`/campaigns/${props.campaignId}/team`" class="group-link"
-          >Situation globale</RouterLink
-        >
-      </div>
-
-      <div class="sidebar-group campaign-group">
-        <div class="group-heading">Campagne</div>
-        <div class="group-card campaign-card">
-          <strong>{{ campaign?.title ?? 'Campagne inconnue' }}</strong>
-          <p>{{ campaign?.summary ?? 'Résumé et contexte de la campagne.' }}</p>
+    <div class="campaign-body">
+      <aside class="sidebar">
+        <div class="sidebar-group">
+          <div class="group-heading">Joueur</div>
+          <RouterLink :to="`/campaigns/${props.campaignId}/players`" class="group-link"
+            >Personnages</RouterLink
+          >
+          <RouterLink
+            v-if="characterId"
+            :to="`/campaigns/${props.campaignId}/players/${characterId}/notes`"
+            class="group-link"
+          >
+            Notes perso
+          </RouterLink>
+          <span v-else class="group-link disabled">Notes perso (non assigné)</span>
         </div>
-        <div class="sidebar-links">
-          <RouterLink :to="`/campaigns/${props.campaignId}`" class="sidebar-link"
-            >Univers</RouterLink
-          >
-          <RouterLink :to="`/campaigns/${props.campaignId}/races`" class="sidebar-link"
-            >Races</RouterLink
-          >
-          <RouterLink :to="`/campaigns/${props.campaignId}/classes`" class="sidebar-link"
-            >Classes</RouterLink
-          >
-          <RouterLink :to="`/campaigns/${props.campaignId}/castes`" class="sidebar-link"
-            >Castes</RouterLink
+
+        <div class="sidebar-group">
+          <div class="group-heading">Équipe</div>
+          <RouterLink :to="`/campaigns/${props.campaignId}/team`" class="group-link"
+            >Situation globale</RouterLink
           >
         </div>
-      </div>
 
-      <div class="sidebar-group tools-group">
-        <div class="group-heading">Outils</div>
-        <RouterLink :to="`/campaigns/${props.campaignId}/des`" class="group-link">
-          Lanceur de des
-        </RouterLink>
-        <span class="group-link disabled">Des d'Aventure</span>
-      </div>
-
-      <div class="account-box">
-        <div>
-          <p>{{ user?.displayName ?? 'Invité' }}</p>
-          <span>{{ user?.role ?? 'Rôle inconnu' }}</span>
+        <div class="sidebar-group">
+          <div class="group-heading">Campagne</div>
+          <div class="sidebar-links">
+            <RouterLink :to="`/campaigns/${props.campaignId}`" class="sidebar-link"
+              >Univers</RouterLink
+            >
+            <RouterLink :to="`/campaigns/${props.campaignId}/races`" class="sidebar-link"
+              >Races</RouterLink
+            >
+            <RouterLink :to="`/campaigns/${props.campaignId}/classes`" class="sidebar-link"
+              >Classes</RouterLink
+            >
+            <RouterLink :to="`/campaigns/${props.campaignId}/castes`" class="sidebar-link"
+              >Castes</RouterLink
+            >
+          </div>
         </div>
-        <button class="logout-btn" @click="logout()">Déconnexion</button>
-      </div>
-    </aside>
 
-    <main class="content">
-      <slot />
-    </main>
+        <div class="sidebar-group tools-group">
+          <div class="group-heading">Outils</div>
+          <RouterLink :to="`/campaigns/${props.campaignId}/des`" class="group-link">
+            Lanceur de des
+          </RouterLink>
+          <span class="group-link disabled">Des d'Aventure</span>
+        </div>
+
+        <div class="account-box">
+          <div>
+            <p>{{ user?.displayName ?? 'Invité' }}</p>
+            <span>{{ user?.role ?? 'Rôle inconnu' }}</span>
+          </div>
+          <button class="logout-btn" @click="logout()">Déconnexion</button>
+        </div>
+      </aside>
+
+      <main class="content">
+        <slot />
+      </main>
+    </div>
   </div>
 </template>
 
 <style scoped>
 .campaign-shell {
-  display: flex;
+  --topbar-height: 86px;
+  display: block;
   min-height: 100vh;
   background: #111008;
   color: #f2e6cc;
 }
 
+.campaign-body {
+  display: flex;
+  min-height: calc(100vh - var(--topbar-height));
+}
+
 .sidebar {
   position: sticky;
-  top: 0;
+  top: var(--topbar-height);
   align-self: flex-start;
   width: 320px;
-  min-height: 100vh;
+  min-height: calc(100vh - var(--topbar-height));
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
@@ -279,13 +299,91 @@ async function logout() {
   padding: 1.75rem;
 }
 
+.campaign-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  min-height: var(--topbar-height);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1.4rem;
+  border-bottom: 1px solid rgba(212, 168, 67, 0.26);
+  background:
+    radial-gradient(circle at 10% 0%, rgba(212, 168, 67, 0.2), transparent 42%),
+    linear-gradient(135deg, rgba(25, 18, 10, 0.98), rgba(17, 13, 8, 0.98));
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.32);
+}
+
+.campaign-topbar-title-row {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.campaign-topbar-label {
+  margin: 0;
+  font-size: 0.72rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #a07820;
+}
+
+.campaign-topbar-title {
+  margin: 0;
+  font-size: clamp(1.05rem, 1.6vw, 1.4rem);
+  color: #f2e6cc;
+}
+
+.campaign-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.4rem 0.8rem;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.status-recruiting {
+  color: #f2d28a;
+  background: rgba(212, 168, 67, 0.18);
+  border-color: rgba(212, 168, 67, 0.35);
+}
+
+.status-active {
+  color: #c7f4a0;
+  background: rgba(125, 201, 75, 0.16);
+  border-color: rgba(125, 201, 75, 0.32);
+}
+
+.status-ended {
+  color: #f0c3a7;
+  background: rgba(186, 116, 74, 0.16);
+  border-color: rgba(186, 116, 74, 0.32);
+}
+
+.status-unknown {
+  color: #d9cbb2;
+  background: rgba(217, 203, 178, 0.1);
+  border-color: rgba(217, 203, 178, 0.2);
+}
+
 @media (max-width: 900px) {
   .campaign-shell {
+    --topbar-height: 98px;
+  }
+
+  .campaign-body {
     flex-direction: column;
   }
 
   .sidebar {
     position: relative;
+    top: 0;
     width: 100%;
     min-height: auto;
     max-height: none;
@@ -296,6 +394,11 @@ async function logout() {
 
   .tool-row {
     grid-template-columns: 1fr;
+  }
+
+  .campaign-topbar {
+    flex-direction: column;
+    align-items: flex-start;
   }
 }
 </style>
