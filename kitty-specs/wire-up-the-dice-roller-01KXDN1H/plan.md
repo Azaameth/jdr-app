@@ -43,4 +43,3 @@ src/
 - **Affected surfaces**: src/views/CampaignShell.vue
 - **Sequencing/depends-on**: IC-01
 - **Risks**: Sidebar layout may need minor CSS adjustment
-  EOF
