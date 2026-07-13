@@ -29,6 +29,19 @@ const loading = ref(false)
 const error = ref('')
 const forbidden = ref(false)
 
+function imageUrl(path: string) {
+  if (!path) return ''
+  if (/^https?:\/\//.test(path)) return path
+  const clean = path.replace(/^\//, '')
+  return `${import.meta.env.BASE_URL}${clean}`
+}
+
+function handlePortraitError(event: Event) {
+  const img = event.target as HTMLImageElement | null
+  if (!img) return
+  img.style.display = 'none'
+}
+
 async function loadCharacter() {
   if (!campaignId.value || !characterId.value) {
     character.value = null
@@ -78,6 +91,13 @@ watch([campaignId, characterId, () => authStore.user.value?.uid], loadCharacter,
     <template v-else-if="character">
       <!-- Identité -->
       <section class="card">
+        <img
+          v-if="character.img"
+          class="portrait"
+          :src="imageUrl(character.img)"
+          :alt="`Portrait de ${character.name}`"
+          @error="handlePortraitError"
+        />
         <h1>{{ character.name }}</h1>
         <div class="grid-2">
           <span><b>Race :</b> {{ character.raceId }}</span>
@@ -130,14 +150,10 @@ watch([campaignId, characterId, () => authStore.user.value?.uid], loadCharacter,
         </div>
       </section>
 
-      <!-- Lore -->
-      <section class="card" v-if="character.lore.backstory">
+      <!-- Histoire -->
+      <section class="card" v-if="character.backstory">
         <h2>Histoire</h2>
-        <p class="lore">{{ character.lore.backstory }}</p>
-        <template v-if="character.lore.notesPrivate">
-          <h3>Notes privées</h3>
-          <p class="lore">{{ character.lore.notesPrivate }}</p>
-        </template>
+        <p class="lore">{{ character.backstory }}</p>
       </section>
 
       <!-- Session -->
@@ -181,6 +197,14 @@ watch([campaignId, characterId, () => authStore.user.value?.uid], loadCharacter,
   border: 1px solid #5c4a2a;
   border-radius: 6px;
   padding: 1rem 1.25rem;
+}
+.portrait {
+  width: 110px;
+  height: 110px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid #5c4a2a;
+  margin-bottom: 0.75rem;
 }
 h1 {
   font-size: 1.5rem;

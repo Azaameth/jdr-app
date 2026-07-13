@@ -67,14 +67,14 @@ Typical flow for a new mission (see `MIGRATION_BACKLOG.md` for candidates):
 3. `/spec-kitty.tasks` — break into work packages (`wps.yaml`, `tasks/WP*.md`)
 4. `/spec-kitty.analyze` — cross-check spec/plan/tasks against the charter
    before implementation starts; **this gate is enforced** — `spec-kitty agent
-   action implement` refuses to start (`analysis_report_required`) without a
+action implement` refuses to start (`analysis_report_required`) without a
    recorded analysis. Do this for real; it's caught real gaps before (e.g. a
    charter-mandated e2e test the task list had missed).
 5. `spec-kitty agent action implement WP01 --agent <name>` — claims the work
    package, gives you a worktree at `.worktrees/<mission>-lane-a` on its own
    branch, and the full task prompt.
 6. `spec-kitty agent action review WP01 --agent <name>` → `spec-kitty agent
-   tasks move-task WP01 --to approved --mission <slug> --note "..."` once
+tasks move-task WP01 --to approved --mission <slug> --note "..."` once
    implementation passes review.
 7. `spec-kitty accept --mission <slug>` → `spec-kitty merge --mission <slug>`
    → `spec-kitty review --mission <slug>` to land the mission's branch into
@@ -91,7 +91,7 @@ Things that aren't obvious from the CLI's own help text:
   If that happens, don't panic-fix it — check `kitty-specs/<slug>/status.events.jsonl`
   directly; the underlying event log is usually fine even when the CLI's
   reported state looks wrong. Prefer the explicit `spec-kitty agent action
-  implement`/`review` commands over `spec-kitty next` for manual driving.
+implement`/`review` commands over `spec-kitty next` for manual driving.
 - **The built-in `software-dev` mission type's path conventions
   (`tests/`, `contracts/`, `docs/`) don't match this repo's actual layout**
   (`e2e/` + colocated `src/**/__tests__/`, no contracts/docs folders).
@@ -117,12 +117,12 @@ on:
   the previous Console-only rules (any signed-in user could write any
   document, including granting themselves admin via their own `users/{uid}`
   doc). Publishing them needs a human decision — see the commit `security:
-  add version-controlled Firestore rules` for the full writeup, and consider
+add version-controlled Firestore rules` for the full writeup, and consider
   testing via the Firebase Console's Rules Playground before publishing.
-- **`character.lore.notesPrivate` and `membership.personalNote`** sit on
-  documents every campaign member can otherwise legitimately read. Firestore
-  rules can't hide a single field within a document — real privacy needs
-  those moved to a separate owner/mj-only document (subcollection).
+- **`membership.personalNote`** sits on a document every campaign member can
+  otherwise legitimately read. Firestore rules can't hide a single field
+  within a document — real privacy needs it moved to a separate
+  owner/mj-only document (subcollection).
 - **`src/firebase/testConnection.ts`** (`testFirebaseConnection`, writes to a
   `healthcheck` collection) is unreferenced anywhere in `src/` — dead code,
   same category as the `HomeView`/`AppShell` cleanup already done.

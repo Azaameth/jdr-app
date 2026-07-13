@@ -45,8 +45,24 @@ async function loadClasses() {
   try {
     await campaignStore.fetchCampaigns()
     const campaign = campaignStore.campaigns.value.find((c) => c.id === campaignId.value)
-    const tag = campaign?.slug || campaignId.value
-    cards.value = await listClassesByCampaign(tag)
+
+    const tagsToTry = [campaign?.slug, campaignId.value].filter(
+      (tag, index, arr): tag is string => Boolean(tag) && arr.indexOf(tag) === index,
+    )
+
+    let results: Class[] = []
+    for (const tag of tagsToTry) {
+      results = await listClassesByCampaign(tag)
+      if (results.length > 0) {
+        break
+      }
+    }
+
+    cards.value = results
+
+    if (!campaign && campaignStore.error.value) {
+      error.value = campaignStore.error.value
+    }
   } catch (err) {
     error.value = err instanceof Error ? err.message : 'Erreur lors du chargement des classes.'
   } finally {

@@ -66,10 +66,8 @@ export interface CharacterProfile {
   skills: CharacterSkill[]
   gifts: CharacterGift[]
   languages: string[]
-  lore: {
-    backstory: string
-    notesPrivate?: string
-  }
+  img: string
+  backstory: string
   createdAt?: string
   updatedAt?: string
 }

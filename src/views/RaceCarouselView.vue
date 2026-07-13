@@ -62,8 +62,24 @@ async function loadRaces() {
   try {
     await campaignStore.fetchCampaigns()
     const campaign = campaignStore.campaigns.value.find((c) => c.id === campaignId.value)
-    const tag = campaign?.slug || campaignId.value
-    cards.value = await listRacesByCampaign(tag)
+
+    const tagsToTry = [campaign?.slug, campaignId.value].filter(
+      (tag, index, arr): tag is string => Boolean(tag) && arr.indexOf(tag) === index,
+    )
+
+    let results: Race[] = []
+    for (const tag of tagsToTry) {
+      results = await listRacesByCampaign(tag)
+      if (results.length > 0) {
+        break
+      }
+    }
+
+    cards.value = results
+
+    if (!campaign && campaignStore.error.value) {
+      error.value = campaignStore.error.value
+    }
   } catch (err) {
     error.value = err instanceof Error ? err.message : 'Erreur lors du chargement des races.'
   } finally {
