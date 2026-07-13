@@ -1,0 +1,53 @@
+work_packages:
+  - id: WP01
+    title: "Character/membership create + update repository functions"
+    dependencies: []
+    owned_files:
+      - "src/models/repositories/CharacterRepository.ts"
+      - "src/models/repositories/MembershipRepository.ts"
+      - "src/models/repositories/__tests__/CharacterRepository.spec.ts"
+      - "src/models/repositories/__tests__/MembershipRepository.spec.ts"
+    create_intent:
+      - "src/models/repositories/__tests__/CharacterRepository.spec.ts"
+      - "src/models/repositories/__tests__/MembershipRepository.spec.ts"
+    requirement_refs:
+      - FR-001
+      - FR-003
+      - NFR-001
+      - NFR-002
+      - C-001
+      - C-003
+    plan_concern_refs:
+      - IC-01
+    cross_cutting: false
+    subtasks:
+      - T001
+      - T002
+      - T003
+    prompt_file: "tasks/WP01-repository-crud.md"
+
+  - id: WP02
+    title: "Dashboard resolution + create/edit UI"
+    dependencies:
+      - WP01
+    owned_files:
+      - "src/views/TeamView.vue"
+      - "src/views/PlayerView.vue"
+      - "src/views/__tests__/TeamView.spec.ts"
+      - "e2e/team-roster.spec.ts"
+    create_intent:
+      - "src/views/__tests__/TeamView.spec.ts"
+      - "e2e/team-roster.spec.ts"
+    requirement_refs:
+      - FR-002
+      - FR-004
+      - NFR-002
+    plan_concern_refs:
+      - IC-02
+    cross_cutting: false
+    subtasks:
+      - T004
+      - T005
+      - T006
+      - T007
+    prompt_file: "tasks/WP02-dashboard-ui.md"
