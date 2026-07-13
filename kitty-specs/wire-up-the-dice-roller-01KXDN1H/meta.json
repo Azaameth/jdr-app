@@ -10,5 +10,7 @@
   "purpose_tldr": "wire up the dice roller",
   "slug": "wire-up-the-dice-roller-01KXDN1H",
   "target_branch": "dev",
-  "topology": "single_branch"
+  "topology": "single_branch",
+  "vcs": "git",
+  "vcs_locked_at": "2026-07-13T12:24:08.950194+00:00"
 }

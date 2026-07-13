@@ -11,6 +11,9 @@ tracker_refs: []
 planning_base_branch: dev
 merge_target_branch: dev
 branch_strategy: Planning artifacts for this mission were generated on dev. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into dev unless the human explicitly redirects the landing branch.
+base_branch: kitty/mission-wire-up-the-dice-roller-01KXDN1H
+base_commit: 0f638d8f8a0c8979341af94412bee3ce49c26691
+created_at: '2026-07-13T12:24:08.991842+00:00'
 subtasks:
 - T001
 - T002
@@ -19,6 +22,8 @@ subtasks:
 - T005
 assignee: ''
 agent: ''
+shell_pid: '2503'
+shell_pid_created_at: '1783944773.0'
 history: []
 agent_profile: frontend-freddy
 authoritative_surface: src/
