@@ -51,6 +51,18 @@ async function logout() {
 <template>
   <div class="campaign-shell">
     <header class="campaign-topbar">
+      <RouterLink
+        :to="{ name: 'campaign-list' }"
+        class="home-link"
+        aria-label="Retour au menu des campagnes"
+      >
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path
+            d="M3.75 10.81 12 4.25l8.25 6.56v8.44a.75.75 0 0 1-.75.75h-5.25v-6h-4.5v6H4.5a.75.75 0 0 1-.75-.75v-8.44Z"
+          />
+        </svg>
+        <span>Campagnes</span>
+      </RouterLink>
       <div class="campaign-topbar-title-row">
         <p class="campaign-topbar-label">Campagne</p>
         <h1 class="campaign-topbar-title">{{ campaign?.title ?? 'Campagne inconnue' }}</h1>
@@ -316,6 +328,36 @@ async function logout() {
   box-shadow: 0 8px 18px rgba(0, 0, 0, 0.32);
 }
 
+.home-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.55rem 0.8rem;
+  border-radius: 999px;
+  border: 1px solid rgba(212, 168, 67, 0.24);
+  background: rgba(212, 168, 67, 0.1);
+  color: #f2e6cc;
+  text-decoration: none;
+  font-size: 0.9rem;
+  font-weight: 600;
+  transition:
+    transform 0.18s ease,
+    background 0.18s ease,
+    border-color 0.18s ease;
+}
+
+.home-link svg {
+  width: 16px;
+  height: 16px;
+  fill: currentColor;
+}
+
+.home-link:hover {
+  transform: translateY(-1px);
+  background: rgba(212, 168, 67, 0.17);
+  border-color: rgba(240, 201, 106, 0.35);
+}
+
 .campaign-topbar-title-row {
   display: grid;
   gap: 0.2rem;
@@ -399,6 +441,10 @@ async function logout() {
   .campaign-topbar {
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  .home-link {
+    order: -1;
   }
 }
 </style>

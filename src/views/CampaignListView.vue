@@ -14,7 +14,8 @@ const canManageCampaigns = computed(() => authStore.isMj.value || authStore.isAd
 const campaigns = computed(() => campaignStore.campaigns.value)
 const loading = computed(() => campaignStore.loading.value)
 const error = computed(() => campaignStore.error.value)
-const showLoginPopup = computed(() => !user.value)
+const authReady = computed(() => authStore.authReady.value)
+const showLoginPopup = computed(() => authReady.value && !user.value)
 const campaignCount = computed(() => campaigns.value.length)
 const recruitingCount = computed(
   () => campaigns.value.filter((campaign) => campaign.status === 'recrutement').length,
