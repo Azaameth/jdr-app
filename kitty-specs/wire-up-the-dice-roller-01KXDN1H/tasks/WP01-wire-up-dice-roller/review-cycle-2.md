@@ -7,6 +7,10 @@ reviewed_at: '2026-07-13T12:31:38Z'
 reviewer_agent: unknown
 verdict: rejected
 wp_id: WP01
+review_artifact_override_at: "2026-07-13T13:18:15Z"
+review_artifact_override_actor: "operator"
+review_artifact_override_wp_id: "WP01"
+review_artifact_override_reason: "Arbiter override: latest requested fixes validated live with user; dedicated dice route confirmed."
 ---
 
 # Review Cycle 1 — WP01 (Changes Requested)
