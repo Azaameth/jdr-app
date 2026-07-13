@@ -18,7 +18,6 @@ subtasks:
 - T004
 - T005
 assignee: ''
-agent: "copilot"
 history: []
 agent_profile: frontend-freddy
 authoritative_surface: src/
@@ -33,7 +32,6 @@ owned_files:
 - src/components/__tests__/DiceRoller.spec.ts
 role: implementer
 tags: []
-shell_pid: "2503"
 shell_pid_created_at: "1783944773.0"
 ---
 
@@ -91,3 +89,4 @@ Implementation command: `spec-kitty agent action implement WP01 --agent claude`
 - 2026-07-13T12:28:37Z – copilot – shell_pid=2503 – Assigned agent via action command
 - 2026-07-13T12:29:34Z – copilot – shell_pid=2503 – Ready for review
 - 2026-07-13T12:30:35Z – copilot – shell_pid=2503 – Started review via action command
+- 2026-07-13T12:31:38Z – user – Moved to planned
