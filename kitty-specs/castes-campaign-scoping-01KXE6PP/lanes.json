@@ -1,0 +1,32 @@
+{
+  "version": 1,
+  "mission_slug": "castes-campaign-scoping-01KXE6PP",
+  "mission_id": "01KXE6PPH7SD2M7PHJS4MFER4D",
+  "mission_branch": "kitty/mission-castes-campaign-scoping-01KXE6PP",
+  "target_branch": "dev",
+  "lanes": [
+    {
+      "lane_id": "lane-a",
+      "wp_ids": [
+        "WP01"
+      ],
+      "write_scope": [
+        "scripts/uploadStaticDataAdmin.mjs",
+        "src/models/repositories/FactionRepository.ts",
+        "src/models/types/Faction.ts",
+        "src/views/FactionBrowserView.vue",
+        "src/views/__tests__/FactionBrowserView.spec.ts"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "artifact-rendering",
+        "legacy-cleanup"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    }
+  ],
+  "computed_at": "2026-07-13T17:14:17.564432+00:00",
+  "computed_from": "dependency_graph+ownership",
+  "planning_artifact_wps": []
+}
