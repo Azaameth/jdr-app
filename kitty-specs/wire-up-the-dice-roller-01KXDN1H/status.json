@@ -1,7 +1,7 @@
 {
-  "event_count": 1,
-  "last_event_id": "01KXDPJV78EPPTSKKQS9C6E89P",
-  "materialized_at": "2026-07-13T12:17:43.656308+00:00",
+  "event_count": 3,
+  "last_event_id": "01KXDPYKHNJ7WT3WNVA1AE1EAK",
+  "materialized_at": "2026-07-13T12:24:09.013234+00:00",
   "mission_number": "",
   "mission_slug": "wire-up-the-dice-roller-01KXDN1H",
   "mission_type": "software-dev",
@@ -12,17 +12,17 @@
     "claimed": 0,
     "done": 0,
     "for_review": 0,
-    "in_progress": 0,
+    "in_progress": 1,
     "in_review": 0,
-    "planned": 1
+    "planned": 0
   },
   "work_packages": {
     "WP01": {
-      "actor": "finalize-tasks",
+      "actor": "copilot",
       "force_count": 0,
-      "lane": "planned",
-      "last_event_id": "01KXDPJV78EPPTSKKQS9C6E89P",
-      "last_transition_at": "2026-07-13T12:17:43.656308+00:00"
+      "lane": "in_progress",
+      "last_event_id": "01KXDPYKHNJ7WT3WNVA1AE1EAK",
+      "last_transition_at": "2026-07-13T12:24:09.013234+00:00"
     }
   }
 }
