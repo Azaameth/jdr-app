@@ -91,10 +91,10 @@ async function logout() {
 
       <div class="sidebar-group tools-group">
         <div class="group-heading">Outils</div>
-        <div class="tool-row">
-          <span>Lanceur de dés</span>
-          <span>Dés d’Aventure</span>
-        </div>
+        <RouterLink :to="`/campaigns/${props.campaignId}/des`" class="group-link">
+          Lanceur de des
+        </RouterLink>
+        <span class="group-link disabled">Des d'Aventure</span>
       </div>
 
       <div class="account-box">

@@ -47,6 +47,12 @@ const router = createRouter({
       meta: { requiresAuth: true },
     },
     {
+      path: '/campaigns/:id/des',
+      name: 'dice-roller',
+      component: () => import('../views/DiceRollerView.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
       path: '/campaigns/:id/players',
       redirect: (to) => `/campaigns/${to.params.id}/team`,
     },
