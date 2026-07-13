@@ -7,6 +7,10 @@ const router = createRouter({
   routes: [
     {
       path: '/',
+      redirect: { name: 'campaign-list' },
+    },
+    {
+      path: '/login',
       name: 'login',
       component: () => import('../views/LoginView.vue'),
     },
@@ -14,7 +18,6 @@ const router = createRouter({
       path: '/campaigns',
       name: 'campaign-list',
       component: () => import('../views/CampaignListView.vue'),
-      meta: { requiresAuth: true },
     },
     {
       path: '/campaigns/:id',
@@ -76,12 +79,12 @@ const router = createRouter({
 router.beforeEach((to) => {
   const authStore = useAuthStore()
 
-  if (to.name === 'login' && authStore.isAuthenticated.value) {
+  if (to.name === 'login') {
     return { name: 'campaign-list' }
   }
 
   if (to.meta.requiresAuth && !authStore.isAuthenticated.value) {
-    return { name: 'login' }
+    return { name: 'campaign-list' }
   }
 
   // Un joueur ne peut accéder qu'à sa propre fiche personnage

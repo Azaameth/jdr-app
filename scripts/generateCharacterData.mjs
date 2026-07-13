@@ -178,6 +178,15 @@ function toGender(value) {
   return 'Autre'
 }
 
+function toCharacterImagePath(characterId) {
+  return `/images/portraits/${characterId}.jpg`
+}
+
+function resolveOwnerUid(raw, fallbackCharacterId) {
+  const candidate = String(raw?.ownerUid ?? raw?.uid ?? raw?.userId ?? '').trim()
+  return candidate || fallbackCharacterId
+}
+
 function mapOne(characterId, raw, campaignId, ownerUid = characterId) {
   const now = new Date().toISOString()
 
@@ -205,10 +214,8 @@ function mapOne(characterId, raw, campaignId, ownerUid = characterId) {
       .split(',')
       .map((item) => item.trim())
       .filter(Boolean),
-    lore: {
-      backstory: raw.notes || '',
-      notesPrivate: raw.init ? `Init: ${raw.init}` : undefined,
-    },
+    img: toCharacterImagePath(characterId),
+    backstory: raw.notes || '',
     createdAt: now,
     updatedAt: now,
   }
@@ -266,7 +273,8 @@ function main() {
   const memberships = []
 
   for (const [characterId, raw] of entries) {
-    const { profile, membership } = mapOne(characterId, raw, campaignId)
+    const ownerUid = resolveOwnerUid(raw, characterId)
+    const { profile, membership } = mapOne(characterId, raw, campaignId, ownerUid)
     characters.push(cleanUndefined(profile))
     memberships.push(cleanUndefined(membership))
   }

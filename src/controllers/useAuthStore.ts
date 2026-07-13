@@ -13,6 +13,7 @@ import { createOrUpdateUserProfile } from '../models/repositories/UserRepository
 const user = ref<User | null>(null)
 const loading = ref(false)
 const error = ref<string | null>(null)
+const authReady = ref(false)
 
 async function syncUserProfile(firebaseUser: FirebaseUser) {
   const profile: User = {
@@ -39,7 +40,10 @@ if (auth) {
     } else {
       user.value = null
     }
+    authReady.value = true
   })
+} else {
+  authReady.value = true
 }
 
 export function useAuthStore() {
@@ -47,6 +51,7 @@ export function useAuthStore() {
     user: computed(() => user.value),
     loading: computed(() => loading.value),
     error: computed(() => error.value),
+    authReady: computed(() => authReady.value),
     isAuthenticated: computed(() => Boolean(user.value)),
     isAdmin: computed(() => user.value?.role === 'admin'),
     isMj: computed(() => user.value?.role === 'mj'),

@@ -2,16 +2,24 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import CampaignShell from '../components/layout/CampaignShell.vue'
+import { useCampaignStore } from '../controllers/useCampaignStore'
 import { listRacesByCampaign } from '../models/repositories/RaceRepository'
 import type { Race } from '../models/types/Race'
 
 const route = useRoute()
 const campaignId = computed(() => String(route.params.id ?? ''))
+const campaignStore = useCampaignStore()
 const cards = ref<Race[]>([])
 const loading = ref(true)
 const error = ref('')
 const currentIndex = ref(0)
 const visibleCount = 3
+
+const currentCampaign = computed(() =>
+  campaignStore.campaigns.value.find((campaign) => campaign.id === campaignId.value),
+)
+
+const campaignTitle = computed(() => currentCampaign.value?.title || 'Campagne')
 
 const emptyMessage = computed(() => {
   if (loading.value) {
@@ -21,22 +29,28 @@ const emptyMessage = computed(() => {
 })
 
 const visibleCards = computed(() => {
-  return cards.value.slice(currentIndex.value, currentIndex.value + visibleCount)
+  const total = cards.value.length
+  if (total === 0) return []
+
+  const count = Math.min(visibleCount, total)
+  return Array.from(
+    { length: count },
+    (_, offset) => cards.value[(currentIndex.value + offset) % total],
+  ).filter((card): card is Race => Boolean(card))
 })
 
-const hasPrev = computed(() => currentIndex.value > 0)
-const hasNext = computed(() => currentIndex.value + visibleCount < cards.value.length)
+const hasNavigation = computed(() => cards.value.length > visibleCount)
 
 function prevPage() {
-  if (hasPrev.value) {
-    currentIndex.value = Math.max(0, currentIndex.value - 1)
-  }
+  const total = cards.value.length
+  if (!hasNavigation.value || total === 0) return
+  currentIndex.value = (currentIndex.value - 1 + total) % total
 }
 
 function nextPage() {
-  if (hasNext.value) {
-    currentIndex.value = Math.min(cards.value.length - visibleCount, currentIndex.value + 1)
-  }
+  const total = cards.value.length
+  if (!hasNavigation.value || total === 0) return
+  currentIndex.value = (currentIndex.value + 1) % total
 }
 
 function imageUrl(path: string) {
@@ -58,7 +72,27 @@ function handleImageError(event: Event) {
 
 async function loadRaces() {
   try {
-    cards.value = await listRacesByCampaign(campaignId.value)
+    await campaignStore.fetchCampaigns()
+    const campaign = currentCampaign.value
+
+    const tagsToTry = [campaign?.slug, campaignId.value].filter(
+      (tag, index, arr): tag is string => Boolean(tag) && arr.indexOf(tag) === index,
+    )
+
+    let results: Race[] = []
+    for (const tag of tagsToTry) {
+      results = await listRacesByCampaign(tag)
+      if (results.length > 0) {
+        break
+      }
+    }
+
+    cards.value = results
+    currentIndex.value = 0
+
+    if (!campaign && campaignStore.error.value) {
+      error.value = campaignStore.error.value
+    }
   } catch (err) {
     error.value = err instanceof Error ? err.message : 'Erreur lors du chargement des races.'
   } finally {
@@ -75,14 +109,14 @@ onMounted(loadRaces)
       <header class="page-header">
         <div>
           <p class="section-label">Races de campagne</p>
-          <h1>Races d'Alésia</h1>
+          <h1>{{ campaignTitle }}</h1>
         </div>
       </header>
 
       <div class="carousel-shell">
         <button
           class="nav-button left"
-          :disabled="!hasPrev"
+          :disabled="!hasNavigation"
           @click="prevPage"
           aria-label="Précédent"
         >
@@ -125,7 +159,7 @@ onMounted(loadRaces)
         </div>
         <button
           class="nav-button right"
-          :disabled="!hasNext"
+          :disabled="!hasNavigation"
           @click="nextPage"
           aria-label="Suivant"
         >
@@ -160,14 +194,11 @@ h1 {
   font-size: clamp(2rem, 2.5vw, 3rem);
 }
 .carousel-shell {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 1rem;
+  position: relative;
   width: 100%;
+  padding: 0 4rem;
 }
 .carousel-window {
-  flex: 1;
   display: flex;
   justify-content: center;
   overflow: hidden;
@@ -179,9 +210,9 @@ h1 {
   width: min(1080px, 100%);
 }
 .nav-button {
-  position: relative;
-  top: auto;
-  transform: none;
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
   width: 48px;
   height: 48px;
   min-width: 48px;
@@ -192,6 +223,13 @@ h1 {
   color: #f2e6cc;
   font-size: 1.75rem;
   cursor: pointer;
+  z-index: 2;
+}
+.nav-button.left {
+  left: 0.5rem;
+}
+.nav-button.right {
+  right: 0.5rem;
 }
 .nav-button:disabled {
   opacity: 0.35;
@@ -289,11 +327,17 @@ h1 {
     grid-template-columns: 1fr;
   }
   .carousel-shell {
-    flex-direction: column;
+    padding: 0 3.25rem;
   }
   .nav-button {
     width: 48px;
     height: 48px;
+  }
+  .nav-button.left {
+    left: 0.25rem;
+  }
+  .nav-button.right {
+    right: 0.25rem;
   }
 }
 </style>

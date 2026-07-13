@@ -1,7 +1,12 @@
-import { collection, getDocs, query, where } from 'firebase/firestore'
+import { collection, getDocs, query, where, writeBatch } from 'firebase/firestore'
 
 import { db } from '../../firebase/config'
-import type { Membership, MembershipStatus, Posture, SessionInventoryItem } from '../types/Membership'
+import type {
+  Membership,
+  MembershipStatus,
+  Posture,
+  SessionInventoryItem,
+} from '../types/Membership'
 
 const MEMBERSHIPS_COLLECTION = 'memberships'
 
@@ -61,4 +66,32 @@ export async function getMembershipByCharacterId(
   const snapshot = await getDocs(q)
   const first = snapshot.docs[0]
   return first ? mapMembership(first.data()) : null
+}
+
+export async function resetTeamSessionToMax(campaignId: string): Promise<number> {
+  if (!db) return 0
+
+  const q = query(collection(db, MEMBERSHIPS_COLLECTION), where('campaignId', '==', campaignId))
+  const snapshot = await getDocs(q)
+  if (snapshot.empty) return 0
+
+  const now = new Date().toISOString()
+  const batch = writeBatch(db)
+
+  snapshot.docs.forEach((membershipDoc) => {
+    const data = membershipDoc.data() as Record<string, unknown>
+    const rawSession = (data.session ?? {}) as Record<string, unknown>
+    const maxHp = Number(rawSession.maxHp ?? 0)
+    const maxMana = Number(rawSession.maxMana ?? 0)
+
+    batch.update(membershipDoc.ref, {
+      'session.hp': maxHp,
+      'session.mana': maxMana,
+      'session.updatedAt': now,
+      updatedAt: now,
+    })
+  })
+
+  await batch.commit()
+  return snapshot.size
 }

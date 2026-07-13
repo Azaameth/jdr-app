@@ -2,16 +2,24 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import CampaignShell from '../components/layout/CampaignShell.vue'
+import { useCampaignStore } from '../controllers/useCampaignStore'
 import { listClassesByCampaign } from '../models/repositories/ClassRepository'
 import type { Class } from '../models/types/Class'
 
 const route = useRoute()
 const campaignId = computed(() => String(route.params.id ?? ''))
+const campaignStore = useCampaignStore()
 const cards = ref<Class[]>([])
 const loading = ref(true)
 const error = ref('')
 const currentIndex = ref(0)
 const visibleCount = 3
+
+const currentCampaign = computed(() =>
+  campaignStore.campaigns.value.find((campaign) => campaign.id === campaignId.value),
+)
+
+const campaignTitle = computed(() => currentCampaign.value?.title || 'Campagne')
 
 const emptyMessage = computed(() => {
   if (loading.value) {
@@ -21,27 +29,53 @@ const emptyMessage = computed(() => {
 })
 
 const visibleCards = computed(() => {
-  return cards.value.slice(currentIndex.value, currentIndex.value + visibleCount)
+  const total = cards.value.length
+  if (total === 0) return []
+
+  const count = Math.min(visibleCount, total)
+  return Array.from(
+    { length: count },
+    (_, offset) => cards.value[(currentIndex.value + offset) % total],
+  ).filter((card): card is Class => Boolean(card))
 })
 
-const hasPrev = computed(() => currentIndex.value > 0)
-const hasNext = computed(() => currentIndex.value + visibleCount < cards.value.length)
+const hasNavigation = computed(() => cards.value.length > visibleCount)
 
 function prevPage() {
-  if (hasPrev.value) {
-    currentIndex.value = Math.max(0, currentIndex.value - 1)
-  }
+  const total = cards.value.length
+  if (!hasNavigation.value || total === 0) return
+  currentIndex.value = (currentIndex.value - 1 + total) % total
 }
 
 function nextPage() {
-  if (hasNext.value) {
-    currentIndex.value = Math.min(cards.value.length - visibleCount, currentIndex.value + 1)
-  }
+  const total = cards.value.length
+  if (!hasNavigation.value || total === 0) return
+  currentIndex.value = (currentIndex.value + 1) % total
 }
 
 async function loadClasses() {
   try {
-    cards.value = await listClassesByCampaign(campaignId.value)
+    await campaignStore.fetchCampaigns()
+    const campaign = currentCampaign.value
+
+    const tagsToTry = [campaign?.slug, campaignId.value].filter(
+      (tag, index, arr): tag is string => Boolean(tag) && arr.indexOf(tag) === index,
+    )
+
+    let results: Class[] = []
+    for (const tag of tagsToTry) {
+      results = await listClassesByCampaign(tag)
+      if (results.length > 0) {
+        break
+      }
+    }
+
+    cards.value = results
+    currentIndex.value = 0
+
+    if (!campaign && campaignStore.error.value) {
+      error.value = campaignStore.error.value
+    }
   } catch (err) {
     error.value = err instanceof Error ? err.message : 'Erreur lors du chargement des classes.'
   } finally {
@@ -74,15 +108,15 @@ onMounted(loadClasses)
     <main class="carousel-page">
       <header class="page-header">
         <div>
-          <p class="section-label">Classes jouables</p>
-          <h1>Classes d'Alésia</h1>
+          <p class="section-label">Classes de campagne</p>
+          <h1>{{ campaignTitle }}</h1>
         </div>
       </header>
 
       <div class="carousel-shell">
         <button
           class="nav-button left"
-          :disabled="!hasPrev"
+          :disabled="!hasNavigation"
           @click="prevPage"
           aria-label="Précédent"
         >
@@ -99,7 +133,15 @@ onMounted(loadClasses)
             <div class="carousel-row">
               <article v-for="card in visibleCards" :key="card.id" class="card">
                 <div class="card-image">
-                  <img :src="imageUrl(card.img)" :alt="card.n" @error="handleImageError" />
+                  <img
+                    v-if="card.img"
+                    :src="imageUrl(card.img)"
+                    :alt="card.n"
+                    @error="handleImageError"
+                  />
+                  <div v-else class="card-image-placeholder">
+                    <i class="ti ti-sword"></i>
+                  </div>
                 </div>
                 <div class="card-body">
                   <strong class="card-title">{{ card.n }}</strong>
@@ -122,7 +164,7 @@ onMounted(loadClasses)
         </div>
         <button
           class="nav-button right"
-          :disabled="!hasNext"
+          :disabled="!hasNavigation"
           @click="nextPage"
           aria-label="Suivant"
         >
@@ -157,14 +199,11 @@ h1 {
   font-size: clamp(2rem, 2.5vw, 3rem);
 }
 .carousel-shell {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 1rem;
+  position: relative;
   width: 100%;
+  padding: 0 4rem;
 }
 .carousel-window {
-  flex: 1;
   display: flex;
   justify-content: center;
   overflow: hidden;
@@ -176,9 +215,9 @@ h1 {
   width: min(1080px, 100%);
 }
 .nav-button {
-  position: relative;
-  top: auto;
-  transform: none;
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
   width: 48px;
   height: 48px;
   min-width: 48px;
@@ -189,6 +228,13 @@ h1 {
   color: #f2e6cc;
   font-size: 1.75rem;
   cursor: pointer;
+  z-index: 2;
+}
+.nav-button.left {
+  left: 0.5rem;
+}
+.nav-button.right {
+  right: 0.5rem;
 }
 .nav-button:disabled {
   opacity: 0.35;
@@ -211,12 +257,22 @@ h1 {
 .card-image {
   position: relative;
   min-height: 100%;
+  background: rgba(212, 168, 67, 0.04);
 }
 .card-image img {
   width: 100%;
   height: 100%;
   object-fit: cover;
   display: block;
+}
+.card-image-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.5rem;
+  color: rgba(212, 168, 67, 0.25);
 }
 .card-body {
   display: flex;
@@ -289,6 +345,21 @@ h1 {
   }
   .card {
     min-height: 520px;
+  }
+}
+
+@media (max-width: 560px) {
+  .carousel-row {
+    grid-template-columns: 1fr;
+  }
+  .carousel-shell {
+    padding: 0 3.25rem;
+  }
+  .nav-button.left {
+    left: 0.25rem;
+  }
+  .nav-button.right {
+    right: 0.25rem;
   }
 }
 </style>

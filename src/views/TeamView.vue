@@ -1,25 +1,21 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import CampaignShell from '../components/layout/CampaignShell.vue'
 import { useAuthStore } from '../controllers/useAuthStore'
 import { useCampaignStore } from '../controllers/useCampaignStore'
-import { matchClassFromCharacter, matchRaceFromCharacter } from '../models/characterCatalog'
+import { listCharactersByCampaign } from '../models/repositories/CharacterRepository'
 import {
-  createCharacterWithMembership,
-  listCharactersByCampaign,
-} from '../models/repositories/CharacterRepository'
-import { listClassesByCampaign } from '../models/repositories/ClassRepository'
-import { listMembershipsByCampaign } from '../models/repositories/MembershipRepository'
-import { listRacesByCampaign } from '../models/repositories/RaceRepository'
-import type { CharacterGender, CharacterProfile } from '../models/types/Character'
-import type { Class } from '../models/types/Class'
+  listMembershipsByCampaign,
+  resetTeamSessionToMax,
+} from '../models/repositories/MembershipRepository'
 import type { Posture } from '../models/types/Membership'
 import type { Race } from '../models/types/Race'
 
 const route = useRoute()
 const router = useRouter()
 const campaignId = computed(() => route.params.id as string)
+const authStore = useAuthStore()
 const campaignStore = useCampaignStore()
 const authStore = useAuthStore()
 
@@ -41,6 +37,7 @@ const playerRows = ref<PlayerRow[]>([])
 const races = ref<Race[]>([])
 const classes = ref<Class[]>([])
 const loadingState = ref(false)
+const resettingState = ref(false)
 const errorState = ref('')
 
 const canEdit = computed(() => authStore.isMj.value || authStore.isAdmin.value)
@@ -56,21 +53,46 @@ const newGender = ref<CharacterGender>('Homme')
 const campaign = computed(() =>
   campaignStore.campaigns.value.find((c) => c.id === campaignId.value),
 )
+const canRestTeam = computed(() => authStore.isMj.value || authStore.isAdmin.value)
+
+const teamSummary = computed(() => {
+  const totals = playerRows.value.reduce(
+    (acc, player) => {
+      acc.hp += player.hp
+      acc.maxHp += player.maxHp
+      acc.mana += player.mana
+      acc.maxMana += player.maxMana
+      return acc
+    },
+    { hp: 0, maxHp: 0, mana: 0, maxMana: 0 },
+  )
+
+  return {
+    ...totals,
+    hpRate: totals.maxHp > 0 ? Math.round((totals.hp / totals.maxHp) * 100) : 0,
+    manaRate: totals.maxMana > 0 ? Math.round((totals.mana / totals.maxMana) * 100) : 0,
+  }
+})
+
+const playerSummaries = computed(() =>
+  playerRows.value.map((player) => ({
+    ...player,
+    hpRate: player.maxHp > 0 ? Math.round((player.hp / player.maxHp) * 100) : 0,
+    manaRate: player.maxMana > 0 ? Math.round((player.mana / player.maxMana) * 100) : 0,
+  })),
+)
 
 onMounted(async () => {
   await campaignStore.fetchCampaigns()
   await loadPlayers()
 })
 
-function resolveRaceName(character: CharacterProfile): string {
-  const match = matchRaceFromCharacter(character, races.value)
-  return match?.n ?? `(inconnu : ${character.raceId})`
-}
-
-function resolveClassName(character: CharacterProfile): string {
-  const match = matchClassFromCharacter(character, classes.value)
-  return match?.n ?? `(inconnu : ${character.classId})`
-}
+watch(
+  () => campaignId.value,
+  async () => {
+    await loadPlayers()
+  },
+)
 
 async function loadPlayers() {
   loadingState.value = true
@@ -113,54 +135,19 @@ function openPlayer(characterId: string) {
   router.push(`/campaigns/${campaignId.value}/players/${characterId}`)
 }
 
-function openNewCharacterForm() {
-  newName.value = ''
-  newOwnerUid.value = ''
-  newRaceId.value = races.value[0]?.id ?? ''
-  newClassId.value = classes.value[0]?.id ?? ''
-  newGender.value = 'Homme'
-  formError.value = ''
-  formVisible.value = true
-}
+async function restTeam() {
+  if (!canRestTeam.value || resettingState.value) return
+  if (!confirm("Faire reposer l'équipe et remettre PV/Mana au maximum ?")) return
 
-function cancelNewCharacterForm() {
-  formVisible.value = false
-  formError.value = ''
-}
-
-async function submitNewCharacter() {
-  if (!newName.value.trim() || !newOwnerUid.value.trim()) {
-    formError.value = 'Le nom et le propriétaire sont obligatoires.'
-    return
-  }
-  if (!races.value.some((r) => r.id === newRaceId.value)) {
-    formError.value = 'Race invalide.'
-    return
-  }
-  if (!classes.value.some((c) => c.id === newClassId.value)) {
-    formError.value = 'Classe invalide.'
-    return
-  }
-
-  formSaving.value = true
-  formError.value = ''
+  resettingState.value = true
+  errorState.value = ''
   try {
-    await createCharacterWithMembership({
-      campaignId: campaignId.value,
-      ownerUid: newOwnerUid.value.trim(),
-      name: newName.value.trim(),
-      raceId: newRaceId.value,
-      classId: newClassId.value,
-      gender: newGender.value,
-      elements: [],
-    })
-    formVisible.value = false
+    await resetTeamSessionToMax(campaignId.value)
     await loadPlayers()
   } catch (err) {
-    formError.value =
-      err instanceof Error ? err.message : 'Erreur lors de la création du personnage.'
+    errorState.value = err instanceof Error ? err.message : "Erreur lors du repos de l'équipe."
   } finally {
-    formSaving.value = false
+    resettingState.value = false
   }
 }
 </script>
@@ -168,88 +155,65 @@ async function submitNewCharacter() {
 <template>
   <CampaignShell :campaign-id="campaignId">
     <main>
-      <div class="header-row">
+      <div class="title-row">
         <h1>Équipe — {{ campaign?.title ?? 'Campagne' }}</h1>
         <button
-          v-if="canEdit && !formVisible"
-          type="button"
-          class="new-character-btn"
-          @click="openNewCharacterForm"
+          v-if="canRestTeam"
+          class="rest-btn"
+          :disabled="resettingState || loadingState"
+          @click="restTeam"
         >
-          Nouveau personnage
+          {{ resettingState ? 'Repos en cours...' : "Faire reposer l'équipe" }}
         </button>
       </div>
-
-      <div v-if="formVisible" class="new-character-form">
-        <label>
-          Nom
-          <input v-model="newName" type="text" />
-        </label>
-        <label>
-          Propriétaire (uid)
-          <input v-model="newOwnerUid" type="text" />
-        </label>
-        <label>
-          Race
-          <select v-model="newRaceId">
-            <option v-for="r in races" :key="r.id" :value="r.id">{{ r.n }}</option>
-          </select>
-        </label>
-        <label>
-          Classe
-          <select v-model="newClassId">
-            <option v-for="c in classes" :key="c.id" :value="c.id">{{ c.n }}</option>
-          </select>
-        </label>
-        <label>
-          Genre
-          <select v-model="newGender">
-            <option value="Homme">Homme</option>
-            <option value="Femme">Femme</option>
-            <option value="Autre">Autre</option>
-          </select>
-        </label>
-        <p v-if="formError" class="error">{{ formError }}</p>
-        <div class="form-actions">
-          <button type="button" :disabled="formSaving" @click="submitNewCharacter">Créer</button>
-          <button type="button" :disabled="formSaving" @click="cancelNewCharacterForm">
-            Annuler
-          </button>
-        </div>
-      </div>
-
       <p v-if="loadingState">Chargement...</p>
       <p v-else-if="errorState" class="error">{{ errorState }}</p>
       <p v-else-if="playerRows.length === 0">Aucun participant pour cette campagne.</p>
-      <table v-else>
-        <thead>
-          <tr>
-            <th>Nom</th>
-            <th>Race</th>
-            <th>Classe</th>
-            <th>Niv.</th>
-            <th>PV</th>
-            <th>Mana</th>
-            <th>Posture</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr
-            v-for="p in playerRows"
-            :key="p.characterId"
-            class="player-row"
-            @click="openPlayer(p.characterId)"
-          >
-            <td class="name">{{ p.name }}</td>
-            <td>{{ p.raceName }}</td>
-            <td>{{ p.className }}</td>
-            <td>{{ p.level }}</td>
-            <td>{{ p.hp }} / {{ p.maxHp }}</td>
-            <td>{{ p.mana }} / {{ p.maxMana }}</td>
-            <td>{{ p.posture }}</td>
-          </tr>
-        </tbody>
-      </table>
+      <template v-else>
+        <section class="summary-grid" aria-label="Résumé d'équipe">
+          <article class="summary-card">
+            <h2>PDV équipe</h2>
+            <p class="summary-value">{{ teamSummary.hp }} / {{ teamSummary.maxHp }}</p>
+            <p class="summary-rate">{{ teamSummary.hpRate }}%</p>
+          </article>
+
+          <article class="summary-card">
+            <h2>Mana équipe</h2>
+            <p class="summary-value">{{ teamSummary.mana }} / {{ teamSummary.maxMana }}</p>
+            <p class="summary-rate">{{ teamSummary.manaRate }}%</p>
+          </article>
+        </section>
+
+        <table>
+          <thead>
+            <tr>
+              <th>Nom</th>
+              <th>Race</th>
+              <th>Classe</th>
+              <th>Niv.</th>
+              <th>PV</th>
+              <th>Mana</th>
+              <th>Posture</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr
+              v-for="p in playerSummaries"
+              :key="p.characterId"
+              class="player-row"
+              @click="openPlayer(p.characterId)"
+            >
+              <td class="name">{{ p.name }}</td>
+              <td>{{ p.raceId }}</td>
+              <td>{{ p.classId }}</td>
+              <td>{{ p.level }}</td>
+              <td>{{ p.hp }} / {{ p.maxHp }} ({{ p.hpRate }}%)</td>
+              <td>{{ p.mana }} / {{ p.maxMana }} ({{ p.manaRate }}%)</td>
+              <td>{{ p.posture }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </template>
     </main>
   </CampaignShell>
 </template>
@@ -259,66 +223,72 @@ main {
   padding: 1.25rem;
   color: #f2e6cc;
 }
-.header-row {
+
+.title-row {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
-  gap: 0.75rem;
-  margin-bottom: 0.75rem;
+  gap: 1rem;
+  margin-bottom: 0.8rem;
 }
-.new-character-btn {
-  border: 1px solid #5c4a2a;
-  background: #1a1208;
-  color: #e7d3a0;
-  border-radius: 4px;
-  padding: 0.35rem 0.75rem;
+
+.title-row h1 {
+  margin: 0;
+}
+
+.rest-btn {
+  padding: 0.65rem 0.9rem;
+  border-radius: 10px;
+  border: 1px solid rgba(212, 168, 67, 0.32);
+  background: rgba(212, 168, 67, 0.14);
+  color: #f2e6cc;
   cursor: pointer;
-  font-size: 0.85rem;
+  font-weight: 600;
 }
-.new-character-btn:hover {
-  background: #2a1f0e;
+
+.rest-btn:hover {
+  background: rgba(212, 168, 67, 0.22);
 }
-.new-character-form {
-  display: flex;
-  flex-wrap: wrap;
+
+.rest-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
   gap: 0.75rem;
-  align-items: flex-end;
-  background: #2a1f0e;
-  border: 1px solid #5c4a2a;
-  border-radius: 6px;
-  padding: 0.75rem;
   margin-bottom: 1rem;
 }
-.new-character-form label {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-  font-size: 0.8rem;
-  color: #b8a07a;
+
+.summary-card {
+  padding: 0.85rem 1rem;
+  border: 1px solid rgba(212, 168, 67, 0.2);
+  border-radius: 14px;
+  background: rgba(32, 24, 13, 0.7);
 }
-.new-character-form input,
-.new-character-form select {
-  background: #1a1208;
-  border: 1px solid #5c4a2a;
-  border-radius: 4px;
-  color: #f2e6cc;
-  padding: 0.35rem 0.5rem;
+
+.summary-card h2 {
+  margin: 0;
+  font-size: 0.88rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #f0c96a;
 }
-.form-actions {
-  display: flex;
-  gap: 0.5rem;
+
+.summary-value {
+  margin: 0.45rem 0 0;
+  font-size: 1.1rem;
+  font-weight: 700;
 }
-.form-actions button {
-  border: 1px solid #5c4a2a;
-  background: #1a1208;
-  color: #e7d3a0;
-  border-radius: 4px;
-  padding: 0.35rem 0.75rem;
-  cursor: pointer;
+
+.summary-rate {
+  margin: 0.25rem 0 0;
+  color: #d2c39b;
+  font-size: 0.9rem;
 }
-.form-actions button:hover {
-  background: #2a1f0e;
-}
+
 table {
   width: 100%;
   border-collapse: collapse;
@@ -347,5 +317,12 @@ td {
 }
 .error {
   color: #ffb0b0;
+}
+
+@media (max-width: 720px) {
+  .title-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
 }
 </style>

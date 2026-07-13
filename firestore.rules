@@ -66,12 +66,9 @@ service cloud.firestore {
     // currently seeded via admin scripts), but the rule holds regardless
     // of what UI exists today.
     //
-    // Known gap: lore.notesPrivate is stored on this same document, so it
-    // is readable by any signed-in member, not just the owner/mj — Firestore
-    // rules can't restrict a single field within a document. Making that
-    // field actually private would need it moved to a separate
-    // owner/mj-only document (e.g. a subcollection), which is a data-model
-    // change beyond this pass.
+    // Note: documents are readable by any signed-in member by design
+    // (team roster use case). Keep owner/mj-only private fields out of this
+    // document and in a dedicated restricted path if needed later.
     match /characters/{characterId} {
       allow read: if isSignedIn();
       allow create: if isSignedIn()

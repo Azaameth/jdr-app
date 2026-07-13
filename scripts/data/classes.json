@@ -2,7 +2,7 @@
   {
     "n": "Rodeur",
     "sub": "Archer",
-    "img": "classes/rodeur.png",
+    "img": "classes/rodeur.jpg",
     "pv": "+0",
     "mana": "+0",
     "arm": "+0",
@@ -15,7 +15,7 @@
   {
     "n": "Gardien",
     "sub": "Paladin",
-    "img": "classes/gardien.png",
+    "img": "classes/gardien.jpg",
     "pv": "+2",
     "mana": "+0",
     "arm": "+1",
@@ -24,7 +24,7 @@
   {
     "n": "Lames Noires",
     "sub": "Assassin",
-    "img": "classes/lames_noires.png",
+    "img": "classes/lames_noires.jpg",
     "pv": "+0",
     "mana": "+0",
     "arm": "Impossible",
@@ -33,7 +33,7 @@
   {
     "n": "Arcaniste",
     "sub": "Mage",
-    "img": "classes/arcaniste.png",
+    "img": "classes/arcaniste.jpg",
     "pv": "+0",
     "mana": "+2",
     "arm": "+0",
@@ -45,7 +45,7 @@
   {
     "n": "Oracle",
     "sub": "Prêtre",
-    "img": "classes/oracle.png",
+    "img": "classes/oracle.jpg",
     "pv": "+1",
     "mana": "+1",
     "arm": "Impossible",
@@ -54,7 +54,7 @@
   {
     "n": "Cogneur",
     "sub": "Guerrier",
-    "img": "classes/cogneur.png",
+    "img": "classes/cogneur.jpg",
     "pv": "+0",
     "mana": "−1",
     "arm": "+2 degats",
@@ -63,7 +63,7 @@
   {
     "n": "Troubadour",
     "sub": "Barde",
-    "img": "classes/troubadour.png",
+    "img": "classes/troubadour.jpg",
     "pv": "+0",
     "mana": "+0",
     "arm": "+0",

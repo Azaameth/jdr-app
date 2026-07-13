@@ -187,6 +187,15 @@ function toGender(value) {
   return 'Autre'
 }
 
+function toCharacterImagePath(characterId) {
+  return `/images/portraits/${characterId}.jpg`
+}
+
+function resolveOwnerUid(raw, fallbackCharacterId) {
+  const candidate = String(raw?.ownerUid ?? raw?.uid ?? raw?.userId ?? '').trim()
+  return candidate || fallbackCharacterId
+}
+
 function cleanUndefined(value) {
   if (Array.isArray(value)) return value.map(cleanUndefined)
   if (value && typeof value === 'object') {
@@ -225,10 +234,8 @@ function mapCharacter(characterId, raw, campaignId, ownerUid = characterId) {
       .split(',')
       .map((s) => s.trim())
       .filter(Boolean),
-    lore: {
-      backstory: raw.notes || '',
-      notesPrivate: raw.init ? `Init: ${raw.init}` : undefined,
-    },
+    img: toCharacterImagePath(characterId),
+    backstory: raw.notes || '',
     createdAt: now,
     updatedAt: now,
   }
@@ -336,7 +343,7 @@ async function main() {
       const payload = {
         ...r,
         img: toImagePath(r.img),
-        campaignTags: FieldValue.arrayUnion(campaignId),
+        campaignTags: FieldValue.arrayUnion(campaignId, slug),
       }
       if (!dryRun) await db.collection('races').doc(id).set(payload, { merge: true })
       console.log(`  race -> ${id}`)
@@ -351,7 +358,7 @@ async function main() {
       const payload = {
         ...c,
         img: toImagePath(c.img),
-        campaignTags: FieldValue.arrayUnion(campaignId),
+        campaignTags: FieldValue.arrayUnion(campaignId, slug),
       }
       if (!dryRun) await db.collection('classes').doc(id).set(payload, { merge: true })
       console.log(`  class -> ${id}`)
@@ -365,7 +372,8 @@ async function main() {
     console.log(`[5/5] Memberships (${entries.length})...`)
 
     for (const [characterId, raw] of entries) {
-      const { profile, membership } = mapCharacter(characterId, raw, campaignId)
+      const ownerUid = resolveOwnerUid(raw, characterId)
+      const { profile, membership } = mapCharacter(characterId, raw, campaignId, ownerUid)
       if (!dryRun) {
         await db
           .collection('characters')
