@@ -1,0 +1,53 @@
+{
+  "version": 1,
+  "mission_slug": "character-data-dashboard-integration-01KXE6PE",
+  "mission_id": "01KXE6PEZ1B8W027660621B0YX",
+  "mission_branch": "kitty/mission-character-data-dashboard-integration-01KXE6PE",
+  "target_branch": "dev",
+  "lanes": [
+    {
+      "lane_id": "lane-a",
+      "wp_ids": [
+        "WP01"
+      ],
+      "write_scope": [
+        "src/models/repositories/CharacterRepository.ts",
+        "src/models/repositories/MembershipRepository.ts",
+        "src/models/repositories/__tests__/CharacterRepository.spec.ts",
+        "src/models/repositories/__tests__/MembershipRepository.spec.ts"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "tracker-integration"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    },
+    {
+      "lane_id": "lane-b",
+      "wp_ids": [
+        "WP02"
+      ],
+      "write_scope": [
+        "e2e/team-roster.spec.ts",
+        "src/views/PlayerView.vue",
+        "src/views/TeamView.vue",
+        "src/views/__tests__/TeamView.spec.ts"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "artifact-rendering",
+        "dashboard",
+        "legacy-cleanup",
+        "tests"
+      ],
+      "depends_on_lanes": [
+        "lane-a"
+      ],
+      "parallel_group": 1
+    }
+  ],
+  "computed_at": "2026-07-13T17:03:53.194032+00:00",
+  "computed_from": "dependency_graph+ownership",
+  "planning_artifact_wps": []
+}
