@@ -7,6 +7,54 @@ import type { MembershipStatus } from '../types/Membership'
 const CHARACTERS_COLLECTION = 'characters'
 const MEMBERSHIPS_COLLECTION = 'memberships'
 
+// Some existing Firestore documents predate this schema (seeded under an
+// older, flatter character model with no attributes/skills/gifts/lore) — a
+// blind cast would let PlayerView.vue crash reading e.g. attributes.primary
+// on a document that never had an attributes field at all.
+function mapCharacter(id: string, raw: Record<string, unknown>): CharacterProfile {
+  const rawAttributes = (raw.attributes ?? {}) as Record<string, unknown>
+  const rawPrimary = (rawAttributes.primary ?? {}) as Record<string, unknown>
+  const rawSecondary = (rawAttributes.secondary ?? {}) as Record<string, unknown>
+  const rawLore = (raw.lore ?? {}) as Record<string, unknown>
+
+  return {
+    id,
+    campaignId: String(raw.campaignId ?? ''),
+    ownerUid: String(raw.ownerUid ?? ''),
+    name: String(raw.name ?? ''),
+    raceId: String(raw.raceId ?? ''),
+    classId: String(raw.classId ?? ''),
+    gender: (raw.gender as CharacterGender) ?? 'Autre',
+    elements: Array.isArray(raw.elements) ? (raw.elements as string[]) : [],
+    level: Number(raw.level ?? 1),
+    xp: raw.xp !== undefined ? Number(raw.xp) : undefined,
+    attributes: {
+      primary: {
+        force: Number(rawPrimary.force ?? 0),
+        social: Number(rawPrimary.social ?? 0),
+        mental: Number(rawPrimary.mental ?? 0),
+      },
+      secondary: {
+        puissance: Number(rawSecondary.puissance ?? 0),
+        finesse: Number(rawSecondary.finesse ?? 0),
+        aura: Number(rawSecondary.aura ?? 0),
+        relation: Number(rawSecondary.relation ?? 0),
+        instinct: Number(rawSecondary.instinct ?? 0),
+        savoir: Number(rawSecondary.savoir ?? 0),
+      },
+    },
+    skills: Array.isArray(raw.skills) ? (raw.skills as CharacterProfile['skills']) : [],
+    gifts: Array.isArray(raw.gifts) ? (raw.gifts as CharacterProfile['gifts']) : [],
+    languages: Array.isArray(raw.languages) ? (raw.languages as string[]) : [],
+    lore: {
+      backstory: String(rawLore.backstory ?? ''),
+      notesPrivate: rawLore.notesPrivate ? String(rawLore.notesPrivate) : undefined,
+    },
+    createdAt: raw.createdAt ? String(raw.createdAt) : undefined,
+    updatedAt: raw.updatedAt ? String(raw.updatedAt) : undefined,
+  }
+}
+
 export async function listCharactersByCampaign(campaignId: string): Promise<CharacterProfile[]> {
   if (!db) {
     return []
@@ -18,7 +66,7 @@ export async function listCharactersByCampaign(campaignId: string): Promise<Char
   )
   const snapshot = await getDocs(charactersQuery)
 
-  return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }) as CharacterProfile)
+  return snapshot.docs.map((doc) => mapCharacter(doc.id, doc.data()))
 }
 
 export async function getCharacterById(id: string): Promise<CharacterProfile | null> {
@@ -26,7 +74,7 @@ export async function getCharacterById(id: string): Promise<CharacterProfile | n
   const ref = doc(db, CHARACTERS_COLLECTION, id)
   const snap = await getDoc(ref)
   if (!snap.exists()) return null
-  return { id: snap.id, ...snap.data() } as CharacterProfile
+  return mapCharacter(snap.id, snap.data())
 }
 
 export interface CreateCharacterInput {

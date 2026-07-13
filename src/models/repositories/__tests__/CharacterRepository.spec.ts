@@ -3,20 +3,21 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 const batchSetMock = vi.fn<(ref: unknown, data: Record<string, unknown>) => void>()
 const batchCommitMock = vi.fn<() => Promise<void>>()
 const updateDocMock = vi.fn<(ref: unknown, patch: Record<string, unknown>) => Promise<void>>()
+const getDocMock = vi.fn<() => Promise<unknown>>()
 
 vi.mock('firebase/firestore', () => ({
   collection: vi.fn<(db: unknown, name: string) => { __collection: string }>(
     (_db, name) => ({ __collection: name }),
   ),
-  doc: vi.fn<(collectionRef: { __collection?: string }) => { id: string }>((collectionRef) => ({
-    id: `generated-${collectionRef?.__collection ?? 'id'}`,
-  })),
+  doc: vi.fn<(collectionRef: { __collection?: string }, id?: string) => { id: string }>(
+    (collectionRef, id) => ({ id: id ?? `generated-${collectionRef?.__collection ?? 'id'}` }),
+  ),
   writeBatch: vi.fn<() => { set: typeof batchSetMock; commit: typeof batchCommitMock }>(() => ({
     set: batchSetMock,
     commit: batchCommitMock,
   })),
   updateDoc: updateDocMock,
-  getDoc: vi.fn<() => Promise<unknown>>(),
+  getDoc: getDocMock,
   getDocs: vi.fn<() => Promise<unknown>>(),
   query: vi.fn<() => unknown>(),
   where: vi.fn<() => unknown>(),
@@ -100,6 +101,27 @@ describe('CharacterRepository', () => {
       const [, patch] = updateDocMock.mock.calls[0] as [unknown, Record<string, unknown>]
       expect(patch).toMatchObject({ name: 'New name', level: 2 })
       expect(Object.keys(patch).sort()).toEqual(['level', 'name', 'updatedAt'])
+    })
+
+    it('getCharacterById defaults missing fields instead of throwing on a legacy-shaped document', async () => {
+      // Simulates a document seeded under the older, flatter character model
+      // (main branch's schema) that never had attributes/skills/gifts/lore —
+      // a blind cast here used to make PlayerView.vue crash on
+      // character.attributes.primary.
+      getDocMock.mockResolvedValue({
+        exists: () => true,
+        id: 'char-legacy',
+        data: () => ({ name: 'Azarius Legacy', campaignId: 'campaign-1', ownerUid: 'user-1' }),
+      })
+
+      const { getCharacterById } = await import('../CharacterRepository')
+      const character = await getCharacterById('char-legacy')
+
+      expect(character).not.toBeNull()
+      expect(character?.attributes.primary).toEqual({ force: 0, social: 0, mental: 0 })
+      expect(character?.skills).toEqual([])
+      expect(character?.gifts).toEqual([])
+      expect(character?.lore).toEqual({ backstory: '', notesPrivate: undefined })
     })
   })
 })
