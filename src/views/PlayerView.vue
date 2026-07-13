@@ -38,6 +38,21 @@ const classCatalogCache = ref<Record<string, Class[]>>({})
 const characterRace = ref<Race | null>(null)
 const characterClass = ref<Class | null>(null)
 
+// Portrait path is derived from the character id rather than stored on the
+// document — deterministic (matches how scripts/generateCharacterData.mjs's
+// toCharacterImagePath works) and avoids depending on a field that may not
+// exist on every character. Not every character has a custom portrait;
+// handlePortraitError hides the <img> rather than show a broken-image icon.
+function portraitUrl(id: string): string {
+  return `${import.meta.env.BASE_URL}images/portraits/${id}.jpg`
+}
+
+function handlePortraitError(event: Event) {
+  const img = event.target as HTMLImageElement | null
+  if (!img) return
+  img.style.display = 'none'
+}
+
 const canEdit = computed(() => authStore.isMj.value || authStore.isAdmin.value)
 const isEditing = ref(false)
 const editName = ref('')
@@ -149,170 +164,191 @@ watch([campaignId, characterId, () => authStore.user.value?.uid], loadCharacter,
     <p v-else-if="error" class="error">{{ error }}</p>
 
     <template v-else-if="character">
-      <!-- Identité -->
-      <section class="card">
-        <div class="identity-header">
-          <h1>{{ character.name }}</h1>
-          <button
-            v-if="canEdit && !isEditing"
-            type="button"
-            class="edit-btn"
-            @click="startEditing"
-          >
-            Modifier
-          </button>
-        </div>
-
-        <div v-if="isEditing" class="edit-form">
-          <label>
-            Nom
-            <input v-model="editName" type="text" />
-          </label>
-          <label>
-            Niveau
-            <input v-model.number="editLevel" type="number" min="1" />
-          </label>
-          <p v-if="editError" class="error">{{ editError }}</p>
-          <div class="edit-actions">
-            <button type="button" :disabled="editSaving" @click="saveEditing">Enregistrer</button>
-            <button type="button" :disabled="editSaving" @click="cancelEditing">Annuler</button>
-          </div>
-        </div>
-
-        <div class="grid-2">
-          <span><b>Race :</b> {{ character.raceId }}</span>
-          <span><b>Classe :</b> {{ character.classId }}</span>
-          <span><b>Genre :</b> {{ character.gender }}</span>
-          <span><b>Niveau :</b> {{ character.level }}</span>
-          <span v-if="character.xp !== undefined"><b>XP :</b> {{ character.xp }}</span>
-          <span><b>Éléments :</b> {{ character.elements.join(', ') || '—' }}</span>
-          <span><b>Langues :</b> {{ character.languages.join(', ') || '—' }}</span>
-        </div>
-      </section>
-
-      <section class="card bonus-card">
-        <h2>Bonus de race et de classe</h2>
-        <div class="bonus-grid">
-          <article class="bonus-panel">
-            <header class="bonus-header">
-              <p class="bonus-label">Race</p>
-              <h3>{{ characterRace?.n ?? character.raceId }}</h3>
-              <p v-if="characterRace?.sub" class="bonus-subtitle">{{ characterRace.sub }}</p>
-            </header>
-
-            <template v-if="characterRace">
-              <div class="bonus-list-wrap">
-                <h4>Bonus raciaux</h4>
-                <ul class="bonus-list">
-                  <li v-for="bonus in characterRace.bon" :key="bonus">{{ bonus }}</li>
-                </ul>
+      <div class="player-columns">
+        <div class="player-col-left">
+          <!-- Identité -->
+          <section class="card">
+            <div class="identity-header">
+              <img
+                class="portrait"
+                :src="portraitUrl(character.id)"
+                :alt="character.name"
+                @error="handlePortraitError"
+              />
+              <div class="identity-title">
+                <h1>{{ character.name }}</h1>
+                <button
+                  v-if="canEdit && !isEditing"
+                  type="button"
+                  class="edit-btn"
+                  @click="startEditing"
+                >
+                  Modifier
+                </button>
               </div>
-              <div class="bonus-list-wrap">
-                <h4>Malus raciaux</h4>
-                <ul class="bonus-list malus">
-                  <li v-for="malus in characterRace.mal" :key="malus">{{ malus }}</li>
-                </ul>
+            </div>
+
+            <div v-if="isEditing" class="edit-form">
+              <label>
+                Nom
+                <input v-model="editName" type="text" />
+              </label>
+              <label>
+                Niveau
+                <input v-model.number="editLevel" type="number" min="1" />
+              </label>
+              <p v-if="editError" class="error">{{ editError }}</p>
+              <div class="edit-actions">
+                <button type="button" :disabled="editSaving" @click="saveEditing">
+                  Enregistrer
+                </button>
+                <button type="button" :disabled="editSaving" @click="cancelEditing">
+                  Annuler
+                </button>
               </div>
+            </div>
+
+            <div class="grid-2">
+              <span><b>Race :</b> {{ character.raceId }}</span>
+              <span><b>Classe :</b> {{ character.classId }}</span>
+              <span><b>Genre :</b> {{ character.gender }}</span>
+              <span><b>Niveau :</b> {{ character.level }}</span>
+              <span v-if="character.xp !== undefined"><b>XP :</b> {{ character.xp }}</span>
+              <span><b>Éléments :</b> {{ character.elements.join(', ') || '—' }}</span>
+              <span><b>Langues :</b> {{ character.languages.join(', ') || '—' }}</span>
+            </div>
+          </section>
+
+          <section class="card bonus-card">
+            <h2>Bonus de race et de classe</h2>
+            <div class="bonus-grid">
+              <article class="bonus-panel">
+                <header class="bonus-header">
+                  <p class="bonus-label">Race</p>
+                  <h3>{{ characterRace?.n ?? character.raceId }}</h3>
+                  <p v-if="characterRace?.sub" class="bonus-subtitle">{{ characterRace.sub }}</p>
+                </header>
+
+                <template v-if="characterRace">
+                  <div class="bonus-list-wrap">
+                    <h4>Bonus raciaux</h4>
+                    <ul class="bonus-list">
+                      <li v-for="bonus in characterRace.bon" :key="bonus">{{ bonus }}</li>
+                    </ul>
+                  </div>
+                  <div class="bonus-list-wrap">
+                    <h4>Malus raciaux</h4>
+                    <ul class="bonus-list malus">
+                      <li v-for="malus in characterRace.mal" :key="malus">{{ malus }}</li>
+                    </ul>
+                  </div>
+                </template>
+                <p v-else class="muted">Aucune fiche de race trouvée pour ce personnage.</p>
+              </article>
+
+              <article class="bonus-panel">
+                <header class="bonus-header">
+                  <p class="bonus-label">Classe</p>
+                  <h3>{{ characterClass?.n ?? character.classId }}</h3>
+                  <p v-if="characterClass?.sub" class="bonus-subtitle">
+                    {{ characterClass.sub }}
+                  </p>
+                </header>
+
+                <template v-if="characterClass">
+                  <div class="class-mods">
+                    <span class="mod-chip">PV {{ characterClass.pv }}</span>
+                    <span class="mod-chip">Mana {{ characterClass.mana }}</span>
+                    <span class="mod-chip">Armure {{ characterClass.arm }}</span>
+                  </div>
+                  <div class="bonus-list-wrap">
+                    <h4>Capacités de classe</h4>
+                    <ul class="bonus-list">
+                      <li v-for="cap in characterClass.caps" :key="cap">{{ cap }}</li>
+                    </ul>
+                  </div>
+                </template>
+                <p v-else class="muted">Aucune fiche de classe trouvée pour ce personnage.</p>
+              </article>
+            </div>
+          </section>
+
+          <!-- Attributs -->
+          <section class="card">
+            <h2>Attributs principaux</h2>
+            <div class="grid-3">
+              <div class="attr" v-for="(val, key) in character.attributes.primary" :key="key">
+                <span class="label">{{ key }}</span>
+                <span class="val">{{ val }}</span>
+              </div>
+            </div>
+            <h2>Attributs secondaires</h2>
+            <div class="grid-3">
+              <div class="attr" v-for="(val, key) in character.attributes.secondary" :key="key">
+                <span class="label">{{ key }}</span>
+                <span class="val">{{ val }}</span>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <div class="player-col-right">
+          <!-- Compétences -->
+          <section class="card" v-if="character.skills.length">
+            <h2>Compétences</h2>
+            <div class="grid-2">
+              <div v-for="skill in character.skills" :key="skill.id" class="skill-row">
+                <span>{{ skill.name }}</span>
+                <span class="badge">{{ skill.domain }}</span>
+                <span class="val">{{ skill.rank }}</span>
+              </div>
+            </div>
+          </section>
+
+          <!-- Dons -->
+          <section class="card" v-if="character.gifts.length">
+            <h2>Dons</h2>
+            <div v-for="gift in character.gifts" :key="gift.id" class="gift-row">
+              <b>{{ gift.name }}</b>
+              <span v-if="gift.manaCost"> · {{ gift.manaCost }} mana</span>
+              <p class="desc">{{ gift.description }}</p>
+            </div>
+          </section>
+
+          <!-- Lore -->
+          <section class="card" v-if="character.lore.backstory">
+            <h2>Histoire</h2>
+            <p class="lore">{{ character.lore.backstory }}</p>
+            <template v-if="character.lore.notesPrivate">
+              <h3>Notes privées</h3>
+              <p class="lore">{{ character.lore.notesPrivate }}</p>
             </template>
-            <p v-else class="muted">Aucune fiche de race trouvée pour ce personnage.</p>
-          </article>
+          </section>
 
-          <article class="bonus-panel">
-            <header class="bonus-header">
-              <p class="bonus-label">Classe</p>
-              <h3>{{ characterClass?.n ?? character.classId }}</h3>
-              <p v-if="characterClass?.sub" class="bonus-subtitle">{{ characterClass.sub }}</p>
-            </header>
-
-            <template v-if="characterClass">
-              <div class="class-mods">
-                <span class="mod-chip">PV {{ characterClass.pv }}</span>
-                <span class="mod-chip">Mana {{ characterClass.mana }}</span>
-                <span class="mod-chip">Armure {{ characterClass.arm }}</span>
-              </div>
-              <div class="bonus-list-wrap">
-                <h4>Capacités de classe</h4>
-                <ul class="bonus-list">
-                  <li v-for="cap in characterClass.caps" :key="cap">{{ cap }}</li>
-                </ul>
-              </div>
+          <!-- Session -->
+          <section class="card" v-if="membership?.session">
+            <h2>État de session</h2>
+            <div class="grid-2">
+              <span><b>PV :</b> {{ membership.session.hp }} / {{ membership.session.maxHp }}</span>
+              <span
+                ><b>Mana :</b> {{ membership.session.mana }} /
+                {{ membership.session.maxMana }}</span
+              >
+              <span><b>Posture :</b> {{ membership.session.posture }}</span>
+            </div>
+            <template v-if="membership.session.inventory.length">
+              <h3>Inventaire</h3>
+              <ul class="inventory">
+                <li v-for="item in membership.session.inventory" :key="item.itemId">
+                  {{ item.name }}
+                  <span v-if="item.quantity > 1">×{{ item.quantity }}</span>
+                  <span v-if="item.equipped" class="badge">équipé</span>
+                </li>
+              </ul>
             </template>
-            <p v-else class="muted">Aucune fiche de classe trouvée pour ce personnage.</p>
-          </article>
+          </section>
         </div>
-      </section>
-
-      <!-- Attributs -->
-      <section class="card">
-        <h2>Attributs principaux</h2>
-        <div class="grid-3">
-          <div class="attr" v-for="(val, key) in character.attributes.primary" :key="key">
-            <span class="label">{{ key }}</span>
-            <span class="val">{{ val }}</span>
-          </div>
-        </div>
-        <h2>Attributs secondaires</h2>
-        <div class="grid-3">
-          <div class="attr" v-for="(val, key) in character.attributes.secondary" :key="key">
-            <span class="label">{{ key }}</span>
-            <span class="val">{{ val }}</span>
-          </div>
-        </div>
-      </section>
-
-      <!-- Compétences -->
-      <section class="card" v-if="character.skills.length">
-        <h2>Compétences</h2>
-        <div class="grid-2">
-          <div v-for="skill in character.skills" :key="skill.id" class="skill-row">
-            <span>{{ skill.name }}</span>
-            <span class="badge">{{ skill.domain }}</span>
-            <span class="val">{{ skill.rank }}</span>
-          </div>
-        </div>
-      </section>
-
-      <!-- Dons -->
-      <section class="card" v-if="character.gifts.length">
-        <h2>Dons</h2>
-        <div v-for="gift in character.gifts" :key="gift.id" class="gift-row">
-          <b>{{ gift.name }}</b>
-          <span v-if="gift.manaCost"> · {{ gift.manaCost }} mana</span>
-          <p class="desc">{{ gift.description }}</p>
-        </div>
-      </section>
-
-      <!-- Lore -->
-      <section class="card" v-if="character.lore.backstory">
-        <h2>Histoire</h2>
-        <p class="lore">{{ character.lore.backstory }}</p>
-        <template v-if="character.lore.notesPrivate">
-          <h3>Notes privées</h3>
-          <p class="lore">{{ character.lore.notesPrivate }}</p>
-        </template>
-      </section>
-
-      <!-- Session -->
-      <section class="card" v-if="membership?.session">
-        <h2>État de session</h2>
-        <div class="grid-2">
-          <span><b>PV :</b> {{ membership.session.hp }} / {{ membership.session.maxHp }}</span>
-          <span
-            ><b>Mana :</b> {{ membership.session.mana }} / {{ membership.session.maxMana }}</span
-          >
-          <span><b>Posture :</b> {{ membership.session.posture }}</span>
-        </div>
-        <template v-if="membership.session.inventory.length">
-          <h3>Inventaire</h3>
-          <ul class="inventory">
-            <li v-for="item in membership.session.inventory" :key="item.itemId">
-              {{ item.name }}
-              <span v-if="item.quantity > 1">×{{ item.quantity }}</span>
-              <span v-if="item.equipped" class="badge">équipé</span>
-            </li>
-          </ul>
-        </template>
-      </section>
+      </div>
     </template>
 
     <p v-else>Personnage introuvable.</p>
@@ -323,10 +359,19 @@ watch([campaignId, characterId, () => authStore.user.value?.uid], loadCharacter,
 .player-view {
   padding: 1.25rem;
   color: #f2e6cc;
+  max-width: 1400px;
+}
+.player-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  align-items: start;
+}
+.player-col-left,
+.player-col-right {
   display: flex;
   flex-direction: column;
   gap: 1rem;
-  max-width: 860px;
 }
 .card {
   background: #1a1208;
@@ -334,10 +379,31 @@ watch([campaignId, characterId, () => authStore.user.value?.uid], loadCharacter,
   border-radius: 6px;
   padding: 1rem 1.25rem;
 }
+.identity-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+}
+.portrait {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid #5c4a2a;
+  flex-shrink: 0;
+}
+.identity-title {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex: 1;
+}
 h1 {
   font-size: 1.5rem;
   color: #f0c96a;
-  margin: 0 0 0.75rem;
+  margin: 0;
 }
 h2 {
   font-size: 1rem;
@@ -412,13 +478,6 @@ h3 {
 }
 .error {
   color: #ffb0b0;
-}
-
-.identity-header {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 0.75rem;
 }
 
 .edit-btn {
@@ -567,6 +626,12 @@ h4 {
 }
 
 @media (max-width: 800px) {
+  .player-columns {
+    display: block;
+  }
+  .player-col-left {
+    margin-bottom: 1rem;
+  }
   .bonus-grid,
   .grid-2,
   .grid-3 {
