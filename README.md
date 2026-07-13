@@ -5,7 +5,9 @@ Vue 3 + Vite + TypeScript + Firebase (Auth/Firestore).
 
 Mid-migration from a single-file HTML prototype (`legacy-reference/index.html`)
 to this app — see [MIGRATION_BACKLOG.md](MIGRATION_BACKLOG.md) for what's left
-to port, and [CLAUDE.md](CLAUDE.md) for the conventions this codebase follows.
+to port, [MULTI_CAMPAIGN_ROADMAP.md](MULTI_CAMPAIGN_ROADMAP.md) for the larger
+architecture work needed to support multiple independent campaigns, and
+[CLAUDE.md](CLAUDE.md) for the conventions this codebase follows.
 
 ## Setup
 
@@ -136,6 +138,12 @@ on:
 - **`src/firebase/testConnection.ts`** (`testFirebaseConnection`, writes to a
   `healthcheck` collection) is unreferenced anywhere in `src/` — dead code,
   same category as the `HomeView`/`AppShell` cleanup already done.
+- **`spec-kitty retrospect summary` reports 0 missions** despite both completed
+  missions (`faction-caste-browser-01KXBRY3`, `wire-up-the-dice-roller-01KXDN1H`)
+  having well-formed `retrospective.yaml` files on disk. Looks like a cross-mission
+  indexing gap in spec-kitty itself, not something wrong in this project's data —
+  noted here in case it's still unresolved by the time someone next reaches for
+  that command; hasn't been investigated further.
 
 ## Recommended editor setup
 
