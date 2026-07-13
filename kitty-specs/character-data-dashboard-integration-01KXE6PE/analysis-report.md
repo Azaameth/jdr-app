@@ -4,7 +4,7 @@ artifact_type: spec-kitty.analysis-report
 command: /spec-kitty.analyze
 mission_slug: character-data-dashboard-integration-01KXE6PE
 mission_id: 01KXE6PEZ1B8W027660621B0YX
-generated_at: '2026-07-13T17:05:50.471789+00:00'
+generated_at: '2026-07-13T17:06:17.544342+00:00'
 analyzer_agent: claude
 input_artifacts:
   spec.md:
@@ -21,12 +21,39 @@ input_artifacts:
     sha256: 9be3aa3adef52c6aeb2278637f52277850543b5302307689e7b10186f09e0c2b
 verdict: unknown
 issue_counts:
-  info:
-  critical:
-  medium:
   high:
+  critical:
+  info:
   low:
+  medium:
 findings: []
+---
+
+---
+verdict: ready
+issue_counts:
+  critical: 0
+  high: 0
+  medium: 1
+  low: 2
+  info: 1
+findings:
+- id: A1
+  severity: high
+  category: ambiguity
+  summary: "Mission premise (\"migrate characters related data from membership\") has two plausible readings; spec.md discloses both and picks interpretation (a) as scope, flagging (b) as an explicit out-of-scope follow-up rather than hiding the ambiguity."
+- id: A2
+  severity: low
+  category: coverage
+  summary: "NFR-001 (atomic create) verified only via mocked writeBatch call-count assertions, not a real Firestore emulator — same test-infrastructure boundary already accepted in the faction-caste-browser mission."
+- id: A3
+  severity: info
+  category: coverage
+  summary: "WP01's requirement_refs include NFR-002 (role gating) though WP01 itself performs no role check — satisfied structurally via C-003 (rules alignment) and WP02's UI gate, not an independent check inside WP01."
+- id: A4
+  severity: low
+  category: coverage
+  summary: "E2e coverage for the new roster/create flow is limited to the unauthenticated-redirect check, same pre-existing no-auth-fixture limitation as e2e/castes.spec.ts."
 ---
 
 ## Specification Analysis Report
