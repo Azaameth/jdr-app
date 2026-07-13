@@ -52,8 +52,9 @@ async function loadClasses() {
 function imageUrl(path: string) {
   if (!path) return ''
   if (/^https?:\/\//.test(path)) return path
-  const normalized = path.startsWith('/') ? path : `/images/${path}`
-  return normalized.replace(/\.png$/i, '.jpg')
+  const clean = path.replace(/^\//, '').replace(/\.png$/i, '.jpg')
+  const withImages = clean.startsWith('images/') ? clean : `images/${clean}`
+  return `${import.meta.env.BASE_URL}${withImages}`
 }
 
 function handleImageError(event: Event) {
