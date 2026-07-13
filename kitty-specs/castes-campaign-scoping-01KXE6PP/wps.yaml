@@ -1,0 +1,27 @@
+work_packages:
+  - id: WP01
+    title: "Campaign-scope factions end-to-end"
+    dependencies: []
+    owned_files:
+      - "src/models/types/Faction.ts"
+      - "src/models/repositories/FactionRepository.ts"
+      - "src/views/FactionBrowserView.vue"
+      - "src/views/__tests__/FactionBrowserView.spec.ts"
+      - "scripts/uploadStaticDataAdmin.mjs"
+    create_intent: []
+    requirement_refs:
+      - FR-001
+      - FR-002
+      - FR-003
+      - NFR-001
+      - C-001
+      - C-002
+      - C-003
+    plan_concern_refs: []
+    cross_cutting: true
+    subtasks:
+      - T001
+      - T002
+      - T003
+      - T004
+    prompt_file: "tasks/WP01-campaign-scope-factions.md"
