@@ -120,6 +120,68 @@ export async function setParticipantSessionByCharacterId(
   })
 }
 
+export async function setParticipantPersonalNoteByCharacterId(
+  characterId: string,
+  campaignId: string,
+  personalNote: string,
+): Promise<Participant | null> {
+  if (!db) return null
+
+  const q = query(
+    collection(db, PARTICIPANTS_COLLECTION),
+    where('characterId', '==', characterId),
+    where('campaignId', '==', campaignId),
+  )
+  const snapshot = await getDocs(q)
+  const first = snapshot.docs[0]
+  if (!first) return null
+
+  const now = new Date().toISOString()
+
+  await updateDoc(first.ref, {
+    personalNote,
+    updatedAt: now,
+  })
+
+  const currentData = first.data() as Record<string, unknown>
+  return mapParticipant({
+    ...currentData,
+    personalNote,
+    updatedAt: now,
+  })
+}
+
+export async function setParticipantPersonalNoteByUid(
+  uid: string,
+  campaignId: string,
+  personalNote: string,
+): Promise<Participant | null> {
+  if (!db) return null
+
+  const q = query(
+    collection(db, PARTICIPANTS_COLLECTION),
+    where('uid', '==', uid),
+    where('campaignId', '==', campaignId),
+  )
+  const snapshot = await getDocs(q)
+  const first = snapshot.docs[0]
+  if (!first) return null
+
+  const now = new Date().toISOString()
+
+  await updateDoc(first.ref, {
+    personalNote,
+    updatedAt: now,
+  })
+
+  const currentData = first.data() as Record<string, unknown>
+  return mapParticipant({
+    ...currentData,
+    personalNote,
+    updatedAt: now,
+  })
+}
+
 export async function resetTeamSessionToMax(campaignId: string): Promise<number> {
   if (!db) return 0
 

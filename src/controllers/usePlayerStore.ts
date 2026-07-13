@@ -1,7 +1,10 @@
 import { computed, ref } from 'vue'
 import { listCharactersByCampaign } from '../models/repositories/CharacterRepository'
 import {
+  getParticipant,
   getParticipantByCharacterId,
+  setParticipantPersonalNoteByCharacterId,
+  setParticipantPersonalNoteByUid,
   setParticipantSessionByCharacterId,
 } from '../models/repositories/ParticipantRepository'
 import type { Participant, Posture } from '../models/types/Participant'
@@ -60,6 +63,45 @@ export function usePlayerStore() {
     }
   }
 
+  async function getPersonalNoteParticipant(
+    campaignId: string,
+    participantRef: string,
+  ): Promise<Participant | null> {
+    error.value = null
+
+    try {
+      const byCharacterId = await getParticipantByCharacterId(participantRef, campaignId)
+      if (byCharacterId) return byCharacterId
+      return await getParticipant(participantRef, campaignId)
+    } catch (err) {
+      error.value =
+        err instanceof Error ? err.message : 'Erreur lors de la récupération de la note.'
+      return null
+    }
+  }
+
+  async function setPersonalNote(
+    campaignId: string,
+    participantRef: string,
+    personalNote: string,
+  ): Promise<Participant | null> {
+    error.value = null
+
+    try {
+      const byCharacterId = await setParticipantPersonalNoteByCharacterId(
+        participantRef,
+        campaignId,
+        personalNote,
+      )
+      if (byCharacterId) return byCharacterId
+
+      return await setParticipantPersonalNoteByUid(participantRef, campaignId, personalNote)
+    } catch (err) {
+      error.value = err instanceof Error ? err.message : 'Erreur lors de la mise à jour de la note.'
+      return null
+    }
+  }
+
   /**
    * Returns the characterId owned by `ownerUid` in the given campaign.
    * Matches on character.ownerUid — works with both real auth UIDs and dev slugs.
@@ -83,6 +125,8 @@ export function usePlayerStore() {
     resolveCharacterId,
     setSessionResource,
     setSessionPosture,
+    getPersonalNoteParticipant,
+    setPersonalNote,
     cache: computed(() => cache.value),
     error: computed(() => error.value),
   }

@@ -187,11 +187,16 @@ async function loadPlayers() {
       listCharactersByCampaign(campaignId.value),
       listParticipantsByCampaign(campaignId.value),
     ])
+    const participantByCharacterId = new Map(
+      participants.map((participant) => [participant.characterId, participant]),
+    )
     const participantByUid = new Map(
       participants.map((participant) => [participant.uid, participant]),
     )
     playerRows.value = characters.map((character) => {
-      const participant = participantByUid.get(character.ownerUid)
+      // Prefer the explicit character link; keep uid fallback for legacy participant rows.
+      const participant =
+        participantByCharacterId.get(character.id) ?? participantByUid.get(character.ownerUid)
       return {
         uid: character.ownerUid,
         characterId: character.id,
