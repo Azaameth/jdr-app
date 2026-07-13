@@ -1,0 +1,28 @@
+{
+  "event_count": 1,
+  "last_event_id": "01KXE7HVM8M65D367DJ5026W3Z",
+  "materialized_at": "2026-07-13T17:14:17.096080+00:00",
+  "mission_number": "",
+  "mission_slug": "castes-campaign-scoping-01KXE6PP",
+  "mission_type": "software-dev",
+  "summary": {
+    "approved": 0,
+    "blocked": 0,
+    "canceled": 0,
+    "claimed": 0,
+    "done": 0,
+    "for_review": 0,
+    "in_progress": 0,
+    "in_review": 0,
+    "planned": 1
+  },
+  "work_packages": {
+    "WP01": {
+      "actor": "finalize-tasks",
+      "force_count": 0,
+      "lane": "planned",
+      "last_event_id": "01KXE7HVM8M65D367DJ5026W3Z",
+      "last_transition_at": "2026-07-13T17:14:17.096080+00:00"
+    }
+  }
+}
