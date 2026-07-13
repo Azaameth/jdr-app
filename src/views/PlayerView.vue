@@ -2,7 +2,8 @@
 import { computed, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useAuthStore } from '../controllers/useAuthStore'
-import { getCharacterById } from '../models/repositories/CharacterRepository'
+import { matchClassFromCharacter, matchRaceFromCharacter } from '../models/characterCatalog'
+import { getCharacterById, updateCharacter } from '../models/repositories/CharacterRepository'
 import { listClassesByCampaign } from '../models/repositories/ClassRepository'
 import { getMembershipByCharacterId } from '../models/repositories/MembershipRepository'
 import { listRacesByCampaign } from '../models/repositories/RaceRepository'
@@ -37,35 +38,47 @@ const classCatalogCache = ref<Record<string, Class[]>>({})
 const characterRace = ref<Race | null>(null)
 const characterClass = ref<Class | null>(null)
 
-function normalizeToken(input: string | undefined): string {
-  return String(input ?? '')
-    .trim()
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/['’]/g, '')
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
+const canEdit = computed(() => authStore.isMj.value || authStore.isAdmin.value)
+const isEditing = ref(false)
+const editName = ref('')
+const editLevel = ref(1)
+const editError = ref('')
+const editSaving = ref(false)
+
+function startEditing() {
+  if (!character.value) return
+  editName.value = character.value.name
+  editLevel.value = character.value.level
+  editError.value = ''
+  isEditing.value = true
 }
 
-function matchRaceFromCharacter(char: CharacterProfile, races: Race[]): Race | null {
-  const raceToken = normalizeToken(char.raceId)
-  return (
-    races.find((race) => {
-      const candidates = [race.id, race.n, race.sub]
-      return candidates.some((candidate) => normalizeToken(candidate) === raceToken)
-    }) ?? null
-  )
+function cancelEditing() {
+  isEditing.value = false
+  editError.value = ''
 }
 
-function matchClassFromCharacter(char: CharacterProfile, classes: Class[]): Class | null {
-  const classToken = normalizeToken(char.classId)
-  return (
-    classes.find((klass) => {
-      const candidates = [klass.id, klass.n, klass.sub]
-      return candidates.some((candidate) => normalizeToken(candidate) === classToken)
-    }) ?? null
-  )
+async function saveEditing() {
+  if (!character.value) return
+  if (!editName.value.trim()) {
+    editError.value = 'Le nom ne peut pas être vide.'
+    return
+  }
+  editSaving.value = true
+  editError.value = ''
+  try {
+    await updateCharacter(character.value.id, {
+      name: editName.value.trim(),
+      level: editLevel.value,
+    })
+    isEditing.value = false
+    await loadCharacter()
+  } catch (err) {
+    editError.value =
+      err instanceof Error ? err.message : 'Erreur lors de la mise à jour du personnage.'
+  } finally {
+    editSaving.value = false
+  }
 }
 
 async function ensureCatalogLoaded(targetCampaignId: string) {
@@ -138,7 +151,34 @@ watch([campaignId, characterId, () => authStore.user.value?.uid], loadCharacter,
     <template v-else-if="character">
       <!-- Identité -->
       <section class="card">
-        <h1>{{ character.name }}</h1>
+        <div class="identity-header">
+          <h1>{{ character.name }}</h1>
+          <button
+            v-if="canEdit && !isEditing"
+            type="button"
+            class="edit-btn"
+            @click="startEditing"
+          >
+            Modifier
+          </button>
+        </div>
+
+        <div v-if="isEditing" class="edit-form">
+          <label>
+            Nom
+            <input v-model="editName" type="text" />
+          </label>
+          <label>
+            Niveau
+            <input v-model.number="editLevel" type="number" min="1" />
+          </label>
+          <p v-if="editError" class="error">{{ editError }}</p>
+          <div class="edit-actions">
+            <button type="button" :disabled="editSaving" @click="saveEditing">Enregistrer</button>
+            <button type="button" :disabled="editSaving" @click="cancelEditing">Annuler</button>
+          </div>
+        </div>
+
         <div class="grid-2">
           <span><b>Race :</b> {{ character.raceId }}</span>
           <span><b>Classe :</b> {{ character.classId }}</span>
@@ -372,6 +412,73 @@ h3 {
 }
 .error {
   color: #ffb0b0;
+}
+
+.identity-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.edit-btn {
+  border: 1px solid #5c4a2a;
+  background: #1a1208;
+  color: #e7d3a0;
+  border-radius: 4px;
+  padding: 0.25rem 0.6rem;
+  cursor: pointer;
+  font-size: 0.8rem;
+}
+
+.edit-btn:hover {
+  background: #2a1f0e;
+}
+
+.edit-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: flex-end;
+  background: #2a1f0e;
+  border: 1px solid #5c4a2a;
+  border-radius: 6px;
+  padding: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.edit-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.8rem;
+  color: #b8a07a;
+}
+
+.edit-form input {
+  background: #1a1208;
+  border: 1px solid #5c4a2a;
+  border-radius: 4px;
+  color: #f2e6cc;
+  padding: 0.35rem 0.5rem;
+}
+
+.edit-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.edit-actions button {
+  border: 1px solid #5c4a2a;
+  background: #1a1208;
+  color: #e7d3a0;
+  border-radius: 4px;
+  padding: 0.35rem 0.75rem;
+  cursor: pointer;
+}
+
+.edit-actions button:hover {
+  background: #2a1f0e;
 }
 
 .bonus-card {
