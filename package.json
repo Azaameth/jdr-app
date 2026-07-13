@@ -59,6 +59,7 @@
   },
   "allowScripts": {
     "@firebase/util@1.15.1": true,
-    "protobufjs@7.6.5": true
+    "protobufjs@7.6.5": true,
+    "protobufjs@6.11.3": true
   }
 }
