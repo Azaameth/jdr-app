@@ -19,17 +19,6 @@ input_artifacts:
   charter:
     path: /srv/dev-disk-by-uuid-880448de-a6f5-449f-a238-d5306ef7c278/programming/monthie/jdr-app/.kittify/charter/charter.md
     sha256: 9be3aa3adef52c6aeb2278637f52277850543b5302307689e7b10186f09e0c2b
-verdict: unknown
-issue_counts:
-  high:
-  critical:
-  info:
-  low:
-  medium:
-findings: []
----
-
----
 verdict: ready
 issue_counts:
   critical: 0
@@ -41,19 +30,19 @@ findings:
 - id: A1
   severity: high
   category: ambiguity
-  summary: "Mission premise (\"migrate characters related data from membership\") has two plausible readings; spec.md discloses both and picks interpretation (a) as scope, flagging (b) as an explicit out-of-scope follow-up rather than hiding the ambiguity."
+  summary: Mission premise ("migrate characters related data from membership") has two plausible readings; spec.md discloses both and picks interpretation (a) as scope, flagging (b) as an explicit out-of-scope follow-up rather than hiding the ambiguity.
 - id: A2
   severity: low
   category: coverage
-  summary: "NFR-001 (atomic create) verified only via mocked writeBatch call-count assertions, not a real Firestore emulator — same test-infrastructure boundary already accepted in the faction-caste-browser mission."
+  summary: NFR-001 (atomic create) verified only via mocked writeBatch call-count assertions, not a real Firestore emulator — same test-infrastructure boundary already accepted in the faction-caste-browser mission.
 - id: A3
   severity: info
   category: coverage
-  summary: "WP01's requirement_refs include NFR-002 (role gating) though WP01 itself performs no role check — satisfied structurally via C-003 (rules alignment) and WP02's UI gate, not an independent check inside WP01."
+  summary: WP01's requirement_refs include NFR-002 (role gating) though WP01 itself performs no role check — satisfied structurally via C-003 (rules alignment) and WP02's UI gate, not an independent check inside WP01.
 - id: A4
   severity: low
   category: coverage
-  summary: "E2e coverage for the new roster/create flow is limited to the unauthenticated-redirect check, same pre-existing no-auth-fixture limitation as e2e/castes.spec.ts."
+  summary: E2e coverage for the new roster/create flow is limited to the unauthenticated-redirect check, same pre-existing no-auth-fixture limitation as e2e/castes.spec.ts.
 ---
 
 ## Specification Analysis Report
@@ -63,8 +52,8 @@ Cross-check of spec.md/plan.md/tasks.md (WP01, WP02) against `.kittify/charter/c
 | ID | Category | Severity | Location(s) | Summary | Recommendation |
 |----|----------|----------|-------------|---------|----------------|
 | A1 | Product ambiguity | HIGH (disclosed, not blocking) | `spec.md` "Assumptions & Open Question" | The mission's premise ("migrate characters related data from membership") has two plausible readings; spec.md picks interpretation (a) — completing the CRUD gap — and explicitly flags (b) — a live-data backfill — as a separate, deliberately out-of-scope follow-up (C-002). This is a real unresolved product decision, surfaced transparently rather than hidden, per spk-mission-specify's own doctrine. | Confirm with the spec owner before `spec-kitty agent action implement WP01` is run for real. Not a blocker for the analyze gate itself since the ambiguity is disclosed, not silently assumed. |
-| A2 | Coverage | LOW | `tasks/WP01-repository-crud.md` T003 vs. NFR-001 | NFR-001 (atomic create) is verified only via mocked `writeBatch` call-count assertions (batch.set ×2, batch.commit ×1), not against a real Firestore emulator — true transactional rollback-on-partial-failure behavior is untestable with the current test infrastructure (no emulator harness exists in this repo yet). | Acceptable given the same test-infrastructure boundary already documented in the faction-caste-browser mission (A3) — note in Reviewer Guidance as verified by mock inspection, not integration test. |
-| A3 | Coverage clarity | INFO | `wps.yaml` WP01 requirement_refs includes NFR-002 (role gating) | WP01 is pure repository code with no caller-identity awareness — it does not itself enforce roles. NFR-002 is satisfied structurally by (1) WP01 not exposing a write path that bypasses the not-yet-deployed `firestore.rules` ownership checks (C-003), and (2) WP02's UI-level `canEdit` gate. Listing NFR-002 against WP01 could mislead a reviewer into expecting an in-repository role check that was never intended. | No task change needed — add a one-line clarification to WP01's Reviewer Guidance (already present: "Firestore rules drift" risk note covers the spirit of this) so the split of responsibility is explicit. |
+| A2 | Coverage | LOW | `tasks/WP01-repository-crud.md` T003 vs. NFR-001 | NFR-001 (atomic create) is verified only via mocked `writeBatch` call-count assertions (batch.set ×2, batch.commit ×1), not against a real Firestore emulator — true transactional rollback-on-partial-failure behavior is untestable with the current test infrastructure (no emulator harness exists in this repo yet). | Acceptable given the same test-infrastructure boundary already documented in the faction-caste-browser mission (A3). Note in Reviewer Guidance as verified by mock inspection, not integration test. |
+| A3 | Coverage clarity | INFO | `wps.yaml` WP01 requirement_refs includes NFR-002 (role gating) | WP01 is pure repository code with no caller-identity awareness — it does not itself enforce roles. NFR-002 is satisfied structurally by (1) WP01 not exposing a write path that bypasses the not-yet-deployed `firestore.rules` ownership checks (C-003), and (2) WP02's UI-level `canEdit` gate. Listing NFR-002 against WP01 could mislead a reviewer into expecting an in-repository role check that was never intended. | No task change needed — WP01's Reviewer Guidance already covers the spirit of this via its "Firestore rules drift" risk note; split of responsibility documented here for the record. |
 | A4 | Coverage | LOW | `tasks/WP02-dashboard-ui.md` T007 | E2e coverage for the new roster/create flow is limited to the unauthenticated redirect check, same pre-existing limitation as `e2e/castes.spec.ts` (no auth fixture exists yet in this suite). Authenticated creation/edit flows are only manually verified per T006's validation step. | Same accepted boundary as the faction-caste-browser mission's A3 finding — track "e2e auth fixture" as a standalone follow-up mission if deeper coverage is wanted later, not a blocker here. |
 
 **Coverage Summary Table:**
