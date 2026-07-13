@@ -21,8 +21,8 @@ subtasks:
 - T002
 - T003
 assignee: ''
-agent: ''
-shell_pid: '16112'
+agent: "claude"
+shell_pid: "16368"
 history: []
 agent_profile: implementer-ivan
 authoritative_surface: src/models/
@@ -139,3 +139,4 @@ Read before starting:
 Implementation command: `spec-kitty agent action implement WP01 --agent <name>`
 
 ## Activity Log
+- 2026-07-13T17:21:44Z – claude – shell_pid=16368 – Assigned agent via action command
