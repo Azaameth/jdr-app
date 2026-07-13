@@ -3,9 +3,13 @@ import { computed, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useAuthStore } from '../controllers/useAuthStore'
 import { getCharacterById } from '../models/repositories/CharacterRepository'
+import { listClassesByCampaign } from '../models/repositories/ClassRepository'
 import { getMembershipByCharacterId } from '../models/repositories/MembershipRepository'
+import { listRacesByCampaign } from '../models/repositories/RaceRepository'
 import type { CharacterProfile } from '../models/types/Character'
+import type { Class } from '../models/types/Class'
 import type { Membership } from '../models/types/Membership'
+import type { Race } from '../models/types/Race'
 
 const props = withDefaults(
   defineProps<{
@@ -25,9 +29,33 @@ const characterId = computed(() => props.characterId ?? (route.params.characterI
 
 const character = ref<CharacterProfile | null>(null)
 const membership = ref<Membership | null>(null)
+const races = ref<Race[]>([])
+const classes = ref<Class[]>([])
 const loading = ref(false)
 const error = ref('')
 const forbidden = ref(false)
+
+const selectedRace = computed(() => {
+  const raceId = character.value?.raceId
+  if (!raceId) return null
+  const normalized = raceId.trim().toLowerCase()
+  return (
+    races.value.find((race) => race.id === raceId) ??
+    races.value.find((race) => race.n.trim().toLowerCase() === normalized) ??
+    null
+  )
+})
+
+const selectedClass = computed(() => {
+  const classId = character.value?.classId
+  if (!classId) return null
+  const normalized = classId.trim().toLowerCase()
+  return (
+    classes.value.find((klass) => klass.id === classId) ??
+    classes.value.find((klass) => klass.n.trim().toLowerCase() === normalized) ??
+    null
+  )
+})
 
 function imageUrl(path: string) {
   if (!path) return ''
@@ -46,6 +74,8 @@ async function loadCharacter() {
   if (!campaignId.value || !characterId.value) {
     character.value = null
     membership.value = null
+    races.value = []
+    classes.value = []
     error.value = ''
     forbidden.value = false
     loading.value = false
@@ -57,12 +87,16 @@ async function loadCharacter() {
   forbidden.value = false
 
   try {
-    const [char, mem] = await Promise.all([
+    const [char, mem, raceList, classList] = await Promise.all([
       getCharacterById(characterId.value),
       getMembershipByCharacterId(characterId.value, campaignId.value),
+      listRacesByCampaign(campaignId.value),
+      listClassesByCampaign(campaignId.value),
     ])
     character.value = char
     membership.value = mem
+    races.value = raceList
+    classes.value = classList
 
     // Guard : un joueur ne peut voir que son propre personnage
     const user = authStore.user.value
@@ -107,6 +141,48 @@ watch([campaignId, characterId, () => authStore.user.value?.uid], loadCharacter,
           <span v-if="character.xp !== undefined"><b>XP :</b> {{ character.xp }}</span>
           <span><b>Éléments :</b> {{ character.elements.join(', ') || '—' }}</span>
           <span><b>Langues :</b> {{ character.languages.join(', ') || '—' }}</span>
+        </div>
+      </section>
+
+      <section class="card" v-if="selectedRace || selectedClass">
+        <h2>Bonus d'origine</h2>
+        <div class="grid-2 bonus-grid">
+          <div class="bonus-block" v-if="selectedRace">
+            <h3>Race · {{ selectedRace.n }}</h3>
+            <template v-if="selectedRace.bon.length">
+              <p class="bonus-label">Bonus</p>
+              <ul class="bonus-list">
+                <li v-for="(item, index) in selectedRace.bon" :key="`race-bon-${index}`">
+                  {{ item }}
+                </li>
+              </ul>
+            </template>
+            <template v-if="selectedRace.mal.length">
+              <p class="bonus-label">Malus</p>
+              <ul class="bonus-list malus-list">
+                <li v-for="(item, index) in selectedRace.mal" :key="`race-mal-${index}`">
+                  {{ item }}
+                </li>
+              </ul>
+            </template>
+          </div>
+
+          <div class="bonus-block" v-if="selectedClass">
+            <h3>Classe · {{ selectedClass.n }}</h3>
+            <div class="class-stats">
+              <span><b>PV :</b> {{ selectedClass.pv }}</span>
+              <span><b>Mana :</b> {{ selectedClass.mana }}</span>
+              <span><b>Armure :</b> {{ selectedClass.arm }}</span>
+            </div>
+            <template v-if="selectedClass.caps.length">
+              <p class="bonus-label">Capacités</p>
+              <ul class="bonus-list">
+                <li v-for="(item, index) in selectedClass.caps" :key="`class-cap-${index}`">
+                  {{ item }}
+                </li>
+              </ul>
+            </template>
+          </div>
         </div>
       </section>
 
@@ -284,5 +360,38 @@ h3 {
 }
 .error {
   color: #ffb0b0;
+}
+.bonus-grid {
+  align-items: start;
+}
+.bonus-block {
+  background: #2a1f0e;
+  border: 1px solid #5c4a2a;
+  border-radius: 6px;
+  padding: 0.6rem 0.7rem;
+}
+.bonus-label {
+  margin: 0.45rem 0 0.2rem;
+  color: #c9a84c;
+  font-size: 0.82rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.bonus-list {
+  margin: 0;
+  padding-left: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  font-size: 0.9rem;
+}
+.malus-list {
+  color: #e0b9a1;
+}
+.class-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  font-size: 0.9rem;
 }
 </style>
