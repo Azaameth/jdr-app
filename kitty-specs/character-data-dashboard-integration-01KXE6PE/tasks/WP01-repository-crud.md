@@ -22,7 +22,7 @@ subtasks:
 - T003
 assignee: ''
 agent: "claude"
-shell_pid: "16368"
+shell_pid: "20196"
 history: []
 agent_profile: implementer-ivan
 authoritative_surface: src/models/
@@ -142,3 +142,4 @@ Implementation command: `spec-kitty agent action implement WP01 --agent <name>`
 - 2026-07-13T17:21:44Z – claude – shell_pid=16368 – Assigned agent via action command
 - 2026-07-13T17:29:09Z – claude – shell_pid=16368 – Moved to for_review
 - 2026-07-13T17:35:17Z – claude – shell_pid=16368 – T001-T003 done, all gates green (type-check/lint/unit 12-12/build).
+- 2026-07-13T17:40:39Z – claude – shell_pid=20196 – Started review via action command
