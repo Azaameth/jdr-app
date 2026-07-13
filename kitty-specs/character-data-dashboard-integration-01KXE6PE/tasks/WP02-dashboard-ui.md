@@ -16,9 +16,9 @@ subtasks:
 - T005
 - T006
 - T007
-assignee: ''
-agent: ''
-shell_pid: '25021'
+agent: "claude"
+assignee: ""
+shell_pid: "25021"
 history: []
 agent_profile: frontend-freddy
 authoritative_surface: src/views/
@@ -149,3 +149,4 @@ Read before starting:
 Implementation command: `spec-kitty agent action implement WP02 --agent <name>`
 
 ## Activity Log
+- 2026-07-13T18:05:30Z – claude – shell_pid=25021 – Assigned agent via action command
