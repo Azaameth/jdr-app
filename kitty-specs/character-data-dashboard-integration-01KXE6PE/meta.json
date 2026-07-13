@@ -10,5 +10,7 @@
   "purpose_tldr": "character data dashboard integration",
   "slug": "character-data-dashboard-integration-01KXE6PE",
   "target_branch": "dev",
-  "topology": "single_branch"
+  "topology": "single_branch",
+  "vcs": "git",
+  "vcs_locked_at": "2026-07-13T17:21:33.109635+00:00"
 }

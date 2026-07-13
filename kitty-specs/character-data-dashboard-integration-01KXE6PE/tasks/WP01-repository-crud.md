@@ -13,13 +13,16 @@ tracker_refs: []
 planning_base_branch: dev
 merge_target_branch: dev
 branch_strategy: Planning artifacts for this mission were generated on dev. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into dev unless the human explicitly redirects the landing branch.
+base_branch: kitty/mission-character-data-dashboard-integration-01KXE6PE
+base_commit: b810282269fc751103c045fceba30d6c90fffe68
+created_at: '2026-07-13T17:21:33.202057+00:00'
 subtasks:
 - T001
 - T002
 - T003
-agent: ""
-assignee: ""
-shell_pid: ""
+assignee: ''
+agent: ''
+shell_pid: '16112'
 history: []
 agent_profile: implementer-ivan
 authoritative_surface: src/models/
