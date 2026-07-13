@@ -2,11 +2,13 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import CampaignShell from '../components/layout/CampaignShell.vue'
+import { useCampaignStore } from '../controllers/useCampaignStore'
 import { listRacesByCampaign } from '../models/repositories/RaceRepository'
 import type { Race } from '../models/types/Race'
 
 const route = useRoute()
 const campaignId = computed(() => String(route.params.id ?? ''))
+const campaignStore = useCampaignStore()
 const cards = ref<Race[]>([])
 const loading = ref(true)
 const error = ref('')
@@ -58,7 +60,10 @@ function handleImageError(event: Event) {
 
 async function loadRaces() {
   try {
-    cards.value = await listRacesByCampaign(campaignId.value)
+    await campaignStore.fetchCampaigns()
+    const campaign = campaignStore.campaigns.value.find((c) => c.id === campaignId.value)
+    const tag = campaign?.slug || campaignId.value
+    cards.value = await listRacesByCampaign(tag)
   } catch (err) {
     error.value = err instanceof Error ? err.message : 'Erreur lors du chargement des races.'
   } finally {

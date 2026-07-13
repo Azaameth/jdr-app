@@ -2,11 +2,13 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import CampaignShell from '../components/layout/CampaignShell.vue'
+import { useCampaignStore } from '../controllers/useCampaignStore'
 import { listClassesByCampaign } from '../models/repositories/ClassRepository'
 import type { Class } from '../models/types/Class'
 
 const route = useRoute()
 const campaignId = computed(() => String(route.params.id ?? ''))
+const campaignStore = useCampaignStore()
 const cards = ref<Class[]>([])
 const loading = ref(true)
 const error = ref('')
@@ -41,7 +43,10 @@ function nextPage() {
 
 async function loadClasses() {
   try {
-    cards.value = await listClassesByCampaign(campaignId.value)
+    await campaignStore.fetchCampaigns()
+    const campaign = campaignStore.campaigns.value.find((c) => c.id === campaignId.value)
+    const tag = campaign?.slug || campaignId.value
+    cards.value = await listClassesByCampaign(tag)
   } catch (err) {
     error.value = err instanceof Error ? err.message : 'Erreur lors du chargement des classes.'
   } finally {

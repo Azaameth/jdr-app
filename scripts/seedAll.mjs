@@ -336,7 +336,7 @@ async function main() {
       const payload = {
         ...r,
         img: toImagePath(r.img),
-        campaignTags: FieldValue.arrayUnion(campaignId),
+        campaignTags: FieldValue.arrayUnion(campaignId, slug),
       }
       if (!dryRun) await db.collection('races').doc(id).set(payload, { merge: true })
       console.log(`  race -> ${id}`)
@@ -351,7 +351,7 @@ async function main() {
       const payload = {
         ...c,
         img: toImagePath(c.img),
-        campaignTags: FieldValue.arrayUnion(campaignId),
+        campaignTags: FieldValue.arrayUnion(campaignId, slug),
       }
       if (!dryRun) await db.collection('classes').doc(id).set(payload, { merge: true })
       console.log(`  class -> ${id}`)
