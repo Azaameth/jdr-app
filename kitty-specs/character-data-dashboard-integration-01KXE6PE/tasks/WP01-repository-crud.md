@@ -141,3 +141,4 @@ Implementation command: `spec-kitty agent action implement WP01 --agent <name>`
 ## Activity Log
 - 2026-07-13T17:21:44Z – claude – shell_pid=16368 – Assigned agent via action command
 - 2026-07-13T17:29:09Z – claude – shell_pid=16368 – Moved to for_review
+- 2026-07-13T17:35:17Z – claude – shell_pid=16368 – T001-T003 done, all gates green (type-check/lint/unit 12-12/build).
