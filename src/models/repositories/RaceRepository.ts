@@ -9,7 +9,10 @@ export async function listRacesByCampaign(campaignId: string): Promise<Race[]> {
   if (!db) return []
 
   // Prefer the current schema (campaignId), then fall back to legacy campaignTags.
-  const byCampaignIdQuery = query(collection(db, RACES_COLLECTION), where('campaignId', '==', campaignId))
+  const byCampaignIdQuery = query(
+    collection(db, RACES_COLLECTION),
+    where('campaignId', '==', campaignId),
+  )
   const byCampaignIdSnapshot = await getDocs(byCampaignIdQuery)
   if (!byCampaignIdSnapshot.empty) {
     return byCampaignIdSnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }) as Race)

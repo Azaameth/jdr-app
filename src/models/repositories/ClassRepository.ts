@@ -9,7 +9,10 @@ export async function listClassesByCampaign(campaignId: string): Promise<Class[]
   if (!db) return []
 
   // Prefer the current schema (campaignId), then fall back to legacy campaignTags.
-  const byCampaignIdQuery = query(collection(db, CLASSES_COLLECTION), where('campaignId', '==', campaignId))
+  const byCampaignIdQuery = query(
+    collection(db, CLASSES_COLLECTION),
+    where('campaignId', '==', campaignId),
+  )
   const byCampaignIdSnapshot = await getDocs(byCampaignIdQuery)
   if (!byCampaignIdSnapshot.empty) {
     return byCampaignIdSnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }) as Class)
