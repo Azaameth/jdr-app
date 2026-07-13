@@ -44,7 +44,7 @@ onMounted(async () => {
 
 async function logout() {
   await authStore.signOut()
-  router.push({ name: 'login' })
+  router.push({ name: 'campaign-list' })
 }
 </script>
 

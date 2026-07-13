@@ -52,8 +52,9 @@ async function loadClasses() {
 function imageUrl(path: string) {
   if (!path) return ''
   if (/^https?:\/\//.test(path)) return path
-  const normalized = path.startsWith('/') ? path : `/images/${path}`
-  return normalized.replace(/\.png$/i, '.jpg')
+  const clean = path.replace(/^\//, '').replace(/\.png$/i, '.jpg')
+  const withImages = clean.startsWith('images/') ? clean : `images/${clean}`
+  return `${import.meta.env.BASE_URL}${withImages}`
 }
 
 function handleImageError(event: Event) {
@@ -98,7 +99,15 @@ onMounted(loadClasses)
             <div class="carousel-row">
               <article v-for="card in visibleCards" :key="card.id" class="card">
                 <div class="card-image">
-                  <img :src="imageUrl(card.img)" :alt="card.n" @error="handleImageError" />
+                  <img
+                    v-if="card.img"
+                    :src="imageUrl(card.img)"
+                    :alt="card.n"
+                    @error="handleImageError"
+                  />
+                  <div v-else class="card-image-placeholder">
+                    <i class="ti ti-sword"></i>
+                  </div>
                 </div>
                 <div class="card-body">
                   <strong class="card-title">{{ card.n }}</strong>
@@ -210,12 +219,22 @@ h1 {
 .card-image {
   position: relative;
   min-height: 100%;
+  background: rgba(212, 168, 67, 0.04);
 }
 .card-image img {
   width: 100%;
   height: 100%;
   object-fit: cover;
   display: block;
+}
+.card-image-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.5rem;
+  color: rgba(212, 168, 67, 0.25);
 }
 .card-body {
   display: flex;
