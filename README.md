@@ -105,6 +105,16 @@ Things that aren't obvious from the CLI's own help text:
   drive them for real in an interactive session, or scaffold with `--defaults`
   and hand-edit — the latter is what produced the current charter and the
   faction-caste-browser mission's artifacts.
+- **`spec-kitty review` in post-merge mode requires `issue-matrix.md`**
+  (a one-table-row-per-known-issue file, schema in
+  `specify_cli/cli/commands/review/_issue_matrix.py` if you need the exact
+  column/verdict vocabulary). Nothing in the implement/review prompts tells
+  you this up front — it's only surfaced as `MISSION_REVIEW_ISSUE_MATRIX_MISSING`
+  the first time you run `spec-kitty review` post-merge. Hit this on both
+  missions run so far (once with Claude, once with Copilot as the agent), so
+  it's a real recurring gap, not a one-off. Write it once you have real
+  findings to record — an empty/placeholder table also satisfies the schema
+  if there's nothing to log.
 
 ## Known follow-ups
 
