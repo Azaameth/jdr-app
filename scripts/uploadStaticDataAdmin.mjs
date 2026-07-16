@@ -27,9 +27,10 @@ async function main() {
   const races = JSON.parse(fs.readFileSync(path.join(base, 'races.json'), 'utf8'))
   const classes = JSON.parse(fs.readFileSync(path.join(base, 'classes.json'), 'utf8'))
   const factions = JSON.parse(fs.readFileSync(path.join(base, 'factions.json'), 'utf8'))
+  const cosmology = JSON.parse(fs.readFileSync(path.join(base, 'cosmology.json'), 'utf8'))
 
   console.log(
-    `Uploading ${races.length} races, ${classes.length} classes and ${factions.length} factions to project ${sa.project_id}`,
+    `Uploading ${races.length} races, ${classes.length} classes, ${factions.length} factions and ${cosmology.length} cosmology tiers to project ${sa.project_id}`,
   )
 
   for (const r of races) {
@@ -68,6 +69,11 @@ async function main() {
       .replace(/[^a-z0-9]+/g, '_')
     await db.collection('factions').doc(id).set(f)
     console.log('factions ->', id)
+  }
+
+  for (const c of cosmology) {
+    await db.collection('cosmology').doc(c.id).set(c)
+    console.log('cosmology ->', c.id)
   }
 
   console.log('Upload complete')

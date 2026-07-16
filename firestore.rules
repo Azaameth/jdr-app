@@ -63,6 +63,10 @@ service cloud.firestore {
       allow read: if isSignedIn();
       allow write: if false;
     }
+    match /cosmology/{tierId} {
+      allow read: if isSignedIn();
+      allow write: if false;
+    }
 
     // Character sheets. Readable by any signed-in member (team roster shows
     // everyone). Writable by the owner or mj/admin — checked against the

@@ -1,0 +1,68 @@
+[
+  {
+    "id": "deique",
+    "order": 0,
+    "title": "① CRÉATURES DÉÏQUES PRIMORDIALES",
+    "legendLabel": "Déïque",
+    "subtitle": "Sommet absolu — La Lumière & l'Obscurité",
+    "description": "Deux entités incompréhensibles. L'une incarne la Lumière, l'autre l'Obscurité. À l'origine du cycle cosmique, elles n'interviennent presque jamais directement. Leur trône peut être renversé : une créature légendaire qui les vainc devient à son tour une déité.",
+    "examples": []
+  },
+  {
+    "id": "legendaire",
+    "order": 1,
+    "title": "② LES 12 BÊTES LÉGENDAIRES",
+    "legendLabel": "Légendaire",
+    "subtitle": "Vythranax · Vindrasil · et 10 autres…",
+    "description": "Leur identité est inconnue du commun. Chacune règne sur un aspect fondamental du réel : magie, saisons, émotions, guerre, mémoire… Pleine conscience et volonté propre.",
+    "ruleNote": "Seul moyen d'en devenir une : tuer et remplacer l'une des 12.",
+    "examples": [
+      { "name": "Vythranax", "epithet": "Le Dragon Légendaire" },
+      { "name": "Vindrasil", "epithet": "Le Serpent des Profondeurs" }
+    ]
+  },
+  {
+    "id": "effroyable",
+    "order": 2,
+    "title": "③ BÊTES EFFROYABLES",
+    "legendLabel": "Effroyable",
+    "subtitle": "Titans · Aberrations · Horreurs",
+    "description": "Nombre inconnu, chaotiques, sans conscience, guidées par l'instinct de destruction. Incarnent des catastrophes vivantes : titans, aberrations, horreurs anciennes.",
+    "ruleNote": "⬆ Une Bête Effroyable qui tue une Légendaire devient soudain intelligente et consciente.",
+    "footnote": "→ Peut accéder au rang Légendaire",
+    "examples": [
+      { "name": "Kraken", "epithet": "Terreur des profondeurs" },
+      { "name": "Dragon de l'Ombre", "epithet": "Ravageur" }
+    ],
+    "branch": "left"
+  },
+  {
+    "id": "rare",
+    "order": 3,
+    "title": "④ BÊTES RARES",
+    "legendLabel": "Rare",
+    "subtitle": "Dragons · Créatures conscientes",
+    "description": "Ont une conscience, contrairement aux Effroyables. Créatures puissantes, exotiques, souvent uniques ou très peu nombreuses.",
+    "ruleNote": "⬇ Peuvent basculer en Bêtes Effroyables par une chute morale : massacres ou perte de conscience.",
+    "footnote": "↑ Ascension depuis les Communes possible",
+    "examples": [{ "name": "Dragon de Brume", "epithet": "Spectre des cieux" }],
+    "branch": "middle"
+  },
+  {
+    "id": "commune",
+    "order": 4,
+    "title": "⑤ CRÉATURES COMMUNES",
+    "legendLabel": "Commune",
+    "subtitle": "Races · Monstres · Esprits faibles",
+    "description": "Les races d'Alésia (humains, nains, elfes, kitsune…), les créatures ordinaires (gobelins, orcs, animaux) et les esprits faibles. Les plus nombreux, les moins proches du cycle divin.",
+    "ruleNote": "⬆ Certaines peuvent devenir des Bêtes Rares par ascension, mutation ou quête épique.",
+    "footnote": "Base du cycle — la plus grande diversité",
+    "examples": [
+      { "name": "Créature de la Terre", "epithet": "Peuples des royaumes" },
+      { "name": "Créature de la Mer", "epithet": "Vie des profondeurs" },
+      { "name": "Créature du Ciel", "epithet": "Volatiles des cieux" },
+      { "name": "Créature Magique", "epithet": "Petits esprits étranges" }
+    ],
+    "branch": "right"
+  }
+]

@@ -45,6 +45,12 @@ const router = createRouter({
       meta: { requiresAuth: true },
     },
     {
+      path: '/campaigns/:id/cosmology',
+      name: 'cosmology',
+      component: () => import('../views/CosmologyView.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
       path: '/campaigns/:id/des',
       name: 'dice-roller',
       component: () => import('../views/DiceRollerView.vue'),
