@@ -29,3 +29,31 @@ jobs:
         with: { path: ./dist }
       - id: deployment
         uses: actions/deploy-pages@v4
+
+  deploy-firestore-rules:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - id: changed
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            rules:
+              - 'firestore.rules'
+      - if: steps.changed.outputs.rules == 'true'
+        uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - if: steps.changed.outputs.rules == 'true'
+        run: npm ci
+      # Requires a FIRESTORE_DEPLOY_SERVICE_ACCOUNT repo secret: the
+      # base64-encoded JSON of a service account with Firestore Rules
+      # Admin (or Editor) on the la-tour-du-socier project — same kind of
+      # key already used locally by scripts/*Admin.mjs, just base64'd
+      # into a GitHub secret instead of a gitignored file.
+      - if: steps.changed.outputs.rules == 'true'
+        run: |
+          echo "$SERVICE_ACCOUNT_B64" | base64 -d > "$GOOGLE_APPLICATION_CREDENTIALS"
+          npx firebase deploy --only firestore:rules --project la-tour-du-socier --non-interactive
+        env:
+          SERVICE_ACCOUNT_B64: ${{ secrets.FIRESTORE_DEPLOY_SERVICE_ACCOUNT }}
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ github.workspace }}/service-account.json

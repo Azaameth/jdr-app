@@ -49,8 +49,9 @@ npm run type-check     # vue-tsc --build
 ```
 
 CI (`.github/workflows/ci.yml`) runs type-check/lint/unit/e2e on every PR and
-on pushes to `dev`/`main`. `.github/workflows/deploy.yml` separately builds
-and deploys to GitHub Pages on push to `main`.
+on pushes to `main` (the sole trunk — see CLAUDE.md). `.github/workflows/deploy.yml`
+separately builds and deploys to GitHub Pages on push to `main`, and deploys
+`firestore.rules` when that file changes.
 
 ## Working with spec-kitty
 
@@ -78,7 +79,7 @@ tasks move-task WP01 --to approved --mission <slug> --note "..."` once
    implementation passes review.
 7. `spec-kitty accept --mission <slug>` → `spec-kitty merge --mission <slug>`
    → `spec-kitty review --mission <slug>` to land the mission's branch into
-   `dev` and run the post-merge dead-code/issue-matrix checks.
+   `main` and run the post-merge dead-code/issue-matrix checks.
 
 Things that aren't obvious from the CLI's own help text:
 
@@ -112,20 +113,14 @@ Not migration gaps (see MIGRATION_BACKLOG.md for those) — things flagged
 during a 2026-07-12 best-practices pass that are deliberately not yet acted
 on:
 
-- **Firestore security rules are written but not deployed.** `firestore.rules`
-  (+ `firebase.json`/`.firebaserc`) exist in the repo and fix a real hole in
-  the previous Console-only rules (any signed-in user could write any
-  document, including granting themselves admin via their own `users/{uid}`
-  doc). Publishing them needs a human decision — see the commit `security:
-add version-controlled Firestore rules` for the full writeup, and consider
-  testing via the Firebase Console's Rules Playground before publishing.
 - **`participant.personalNote`** sits on a document every campaign member can
   otherwise legitimately read. Firestore rules can't hide a single field
   within a document — real privacy needs it moved to a separate
   owner/mj-only document (subcollection).
-- **`src/firebase/testConnection.ts`** (`testFirebaseConnection`, writes to a
-  `healthcheck` collection) is unreferenced anywhere in `src/` — dead code,
-  same category as the `HomeView`/`AppShell` cleanup already done.
+
+`firestore.rules` is deployed to production (`.github/workflows/deploy.yml`
+redeploys it automatically whenever the file changes), and
+`src/firebase/testConnection.ts` has been removed.
 
 ## Recommended editor setup
 

@@ -111,10 +111,8 @@ service cloud.firestore {
         && (resource.data.uid == request.auth.uid || isMjOrAdmin());
     }
 
-    // Deny by default: anything not explicitly matched above (including
-    // stray collections like the unused `healthcheck` probe in
-    // src/firebase/testConnection.ts) is neither readable nor writable by
-    // clients.
+    // Deny by default: anything not explicitly matched above is neither
+    // readable nor writable by clients.
     match /{document=**} {
       allow read, write: if false;
     }

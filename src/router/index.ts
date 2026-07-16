@@ -10,11 +10,6 @@ const router = createRouter({
       redirect: { name: 'campaign-list' },
     },
     {
-      path: '/login',
-      name: 'login',
-      component: () => import('../views/LoginView.vue'),
-    },
-    {
       path: '/campaigns',
       name: 'campaign-list',
       component: () => import('../views/CampaignListView.vue'),
@@ -78,10 +73,6 @@ const router = createRouter({
 
 router.beforeEach((to) => {
   const authStore = useAuthStore()
-
-  if (to.name === 'login') {
-    return { name: 'campaign-list' }
-  }
 
   if (to.meta.requiresAuth && !authStore.isAuthenticated.value) {
     return { name: 'campaign-list' }
