@@ -13,6 +13,8 @@ const campaignId = computed(() => String(route.params.id ?? ''))
 const uid = computed(() => String(route.params.uid ?? ''))
 
 const note = ref('')
+// participantRef holds the resolved participant's Firestore doc id (participants/{id}),
+// used as the key for the participantNotes/{id} note document.
 const participantRef = ref('')
 const lastSavedNote = ref('')
 const loadingState = ref(false)
@@ -54,17 +56,12 @@ async function persistPersonalNote() {
   saveInfo.value = 'Enregistrement...'
 
   try {
-    const updated = await playerStore.setPersonalNote(
-      campaignId.value,
-      participantRef.value,
-      note.value,
-    )
-    if (!updated) {
-      throw new Error("Impossible d'enregistrer les notes du joueur.")
+    await playerStore.setPersonalNote(participantRef.value, note.value)
+    if (playerStore.error.value) {
+      throw new Error(playerStore.error.value)
     }
 
-    note.value = updated.personalNote
-    lastSavedNote.value = updated.personalNote
+    lastSavedNote.value = note.value
     saveInfo.value = 'Notes enregistrées.'
     errorState.value = ''
   } catch (err) {
@@ -117,14 +114,14 @@ async function loadPersonalNote() {
   }
 
   try {
-    const participant = await playerStore.getPersonalNoteParticipant(campaignId.value, targetRef)
+    const participant = await playerStore.resolveParticipant(campaignId.value, targetRef)
     if (!participant) {
       throw new Error('Participant introuvable pour cette campagne.')
     }
 
-    participantRef.value = participant.characterId || participant.uid
-    note.value = participant.personalNote
-    lastSavedNote.value = participant.personalNote
+    participantRef.value = participant.id
+    note.value = await playerStore.getPersonalNote(participant.id)
+    lastSavedNote.value = note.value
   } catch (err) {
     errorState.value =
       err instanceof Error ? err.message : 'Erreur lors du chargement des notes personnelles.'

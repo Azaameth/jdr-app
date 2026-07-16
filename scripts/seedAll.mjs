@@ -244,7 +244,6 @@ function mapCharacter(characterId, raw, campaignId, ownerUid = characterId) {
     campaignId,
     characterId,
     status: 'approved',
-    personalNote: '',
     session: {
       hp: toInt(raw.pv, 0),
       maxHp: toInt(raw.pv_max, 0),

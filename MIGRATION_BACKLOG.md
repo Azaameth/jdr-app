@@ -24,7 +24,6 @@ Roughly in suggested priority order — earlier items unblock or are prerequisit
 ## Non-migration follow-ups tracked separately
 
 - Firestore security rules deployment status, dead-code cleanup, and other tooling items are tracked in README.md's "Known follow-ups" section.
-- The `participant.personalNote` field-level-privacy gap (currently readable by the whole campaign) is tracked there too — it needs a subcollection split, treated as its own small mission rather than bundled into any item above.
 
 ## Notes for whoever picks these up
 

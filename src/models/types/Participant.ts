@@ -11,11 +11,11 @@ export interface CharacterSessionState {
 }
 
 export interface Participant {
+  id: string
   uid: string
   campaignId: string
   characterId: string
   status: ParticipantStatus
-  personalNote: string
   session: CharacterSessionState
   createdAt?: string
   updatedAt?: string

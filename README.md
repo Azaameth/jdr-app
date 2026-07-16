@@ -109,18 +109,14 @@ implement`/`review` commands over `spec-kitty next` for manual driving.
 
 ## Known follow-ups
 
-Not migration gaps (see MIGRATION_BACKLOG.md for those) — things flagged
-during a 2026-07-12 best-practices pass that are deliberately not yet acted
-on:
-
-- **`participant.personalNote`** sits on a document every campaign member can
-  otherwise legitimately read. Firestore rules can't hide a single field
-  within a document — real privacy needs it moved to a separate
-  owner/mj-only document (subcollection).
-
+Not migration gaps (see MIGRATION_BACKLOG.md for those). All items flagged
+during a 2026-07-12 best-practices pass have since been resolved:
 `firestore.rules` is deployed to production (`.github/workflows/deploy.yml`
-redeploys it automatically whenever the file changes), and
-`src/firebase/testConnection.ts` has been removed.
+redeploys it automatically whenever the file changes), `src/firebase/testConnection.ts`
+has been removed, and `participant.personalNote` now lives in its own
+`participantNotes` collection (one doc per participant, keyed by the
+participant's own doc id) restricted to its owner/mj/admin — see
+`firestore.rules`.
 
 ## Recommended editor setup
 

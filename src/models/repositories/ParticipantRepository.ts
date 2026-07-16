@@ -10,14 +10,14 @@ import type {
 
 const PARTICIPANTS_COLLECTION = 'participants'
 
-function mapParticipant(raw: Record<string, unknown>): Participant {
+function mapParticipant(id: string, raw: Record<string, unknown>): Participant {
   const rawSession = (raw.session ?? {}) as Record<string, unknown>
   return {
+    id,
     uid: String(raw.uid ?? ''),
     campaignId: String(raw.campaignId ?? ''),
     characterId: String(raw.characterId ?? ''),
     status: (raw.status as ParticipantStatus) ?? 'pending',
-    personalNote: String(raw.personalNote ?? ''),
     session: {
       hp: Number(rawSession.hp ?? 0),
       maxHp: Number(rawSession.maxHp ?? 0),
@@ -35,7 +35,7 @@ export async function listParticipantsByCampaign(campaignId: string): Promise<Pa
   if (!db) return []
   const q = query(collection(db, PARTICIPANTS_COLLECTION), where('campaignId', '==', campaignId))
   const snapshot = await getDocs(q)
-  return snapshot.docs.map((doc) => mapParticipant(doc.data()))
+  return snapshot.docs.map((doc) => mapParticipant(doc.id, doc.data()))
 }
 
 export async function getParticipant(uid: string, campaignId: string): Promise<Participant | null> {
@@ -47,7 +47,7 @@ export async function getParticipant(uid: string, campaignId: string): Promise<P
   )
   const snapshot = await getDocs(q)
   const first = snapshot.docs[0]
-  return first ? mapParticipant(first.data()) : null
+  return first ? mapParticipant(first.id, first.data()) : null
 }
 
 export async function getParticipantByCharacterId(
@@ -62,7 +62,7 @@ export async function getParticipantByCharacterId(
   )
   const snapshot = await getDocs(q)
   const first = snapshot.docs[0]
-  return first ? mapParticipant(first.data()) : null
+  return first ? mapParticipant(first.id, first.data()) : null
 }
 
 export async function setParticipantSessionByCharacterId(
@@ -113,71 +113,9 @@ export async function setParticipantSessionByCharacterId(
     updatedAt: now,
   }
 
-  return mapParticipant({
+  return mapParticipant(first.id, {
     ...currentData,
     session: mergedSession,
-    updatedAt: now,
-  })
-}
-
-export async function setParticipantPersonalNoteByCharacterId(
-  characterId: string,
-  campaignId: string,
-  personalNote: string,
-): Promise<Participant | null> {
-  if (!db) return null
-
-  const q = query(
-    collection(db, PARTICIPANTS_COLLECTION),
-    where('characterId', '==', characterId),
-    where('campaignId', '==', campaignId),
-  )
-  const snapshot = await getDocs(q)
-  const first = snapshot.docs[0]
-  if (!first) return null
-
-  const now = new Date().toISOString()
-
-  await updateDoc(first.ref, {
-    personalNote,
-    updatedAt: now,
-  })
-
-  const currentData = first.data() as Record<string, unknown>
-  return mapParticipant({
-    ...currentData,
-    personalNote,
-    updatedAt: now,
-  })
-}
-
-export async function setParticipantPersonalNoteByUid(
-  uid: string,
-  campaignId: string,
-  personalNote: string,
-): Promise<Participant | null> {
-  if (!db) return null
-
-  const q = query(
-    collection(db, PARTICIPANTS_COLLECTION),
-    where('uid', '==', uid),
-    where('campaignId', '==', campaignId),
-  )
-  const snapshot = await getDocs(q)
-  const first = snapshot.docs[0]
-  if (!first) return null
-
-  const now = new Date().toISOString()
-
-  await updateDoc(first.ref, {
-    personalNote,
-    updatedAt: now,
-  })
-
-  const currentData = first.data() as Record<string, unknown>
-  return mapParticipant({
-    ...currentData,
-    personalNote,
     updatedAt: now,
   })
 }

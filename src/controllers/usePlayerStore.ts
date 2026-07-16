@@ -3,10 +3,12 @@ import { listCharactersByCampaign } from '../models/repositories/CharacterReposi
 import {
   getParticipant,
   getParticipantByCharacterId,
-  setParticipantPersonalNoteByCharacterId,
-  setParticipantPersonalNoteByUid,
   setParticipantSessionByCharacterId,
 } from '../models/repositories/ParticipantRepository'
+import {
+  getParticipantNote,
+  setParticipantNote,
+} from '../models/repositories/ParticipantNoteRepository'
 import type { Participant, Posture } from '../models/types/Participant'
 
 // Cache: campaignId → characterId for the current user
@@ -63,7 +65,7 @@ export function usePlayerStore() {
     }
   }
 
-  async function getPersonalNoteParticipant(
+  async function resolveParticipant(
     campaignId: string,
     participantRef: string,
   ): Promise<Participant | null> {
@@ -75,30 +77,30 @@ export function usePlayerStore() {
       return await getParticipant(participantRef, campaignId)
     } catch (err) {
       error.value =
-        err instanceof Error ? err.message : 'Erreur lors de la récupération de la note.'
+        err instanceof Error ? err.message : 'Erreur lors de la résolution du participant.'
       return null
     }
   }
 
-  async function setPersonalNote(
-    campaignId: string,
-    participantRef: string,
-    personalNote: string,
-  ): Promise<Participant | null> {
+  async function getPersonalNote(participantId: string): Promise<string> {
     error.value = null
 
     try {
-      const byCharacterId = await setParticipantPersonalNoteByCharacterId(
-        participantRef,
-        campaignId,
-        personalNote,
-      )
-      if (byCharacterId) return byCharacterId
+      return await getParticipantNote(participantId)
+    } catch (err) {
+      error.value =
+        err instanceof Error ? err.message : 'Erreur lors de la récupération de la note.'
+      return ''
+    }
+  }
 
-      return await setParticipantPersonalNoteByUid(participantRef, campaignId, personalNote)
+  async function setPersonalNote(participantId: string, personalNote: string): Promise<void> {
+    error.value = null
+
+    try {
+      await setParticipantNote(participantId, personalNote)
     } catch (err) {
       error.value = err instanceof Error ? err.message : 'Erreur lors de la mise à jour de la note.'
-      return null
     }
   }
 
@@ -125,7 +127,8 @@ export function usePlayerStore() {
     resolveCharacterId,
     setSessionResource,
     setSessionPosture,
-    getPersonalNoteParticipant,
+    resolveParticipant,
+    getPersonalNote,
     setPersonalNote,
     cache: computed(() => cache.value),
     error: computed(() => error.value),

@@ -83,8 +83,8 @@ service cloud.firestore {
         && (resource.data.ownerUid == request.auth.uid || isMjOrAdmin());
     }
 
-    // Session state (hp/mana/posture) + personalNote. Same ownership
-    // model and the same personalNote privacy gap as characters above.
+    // Session state (hp/mana/posture). Readable by any signed-in member
+    // (team roster use case); writable by the owner or mj/admin.
     match /participants/{participantId} {
       allow read: if isSignedIn();
       allow create: if isSignedIn()
@@ -97,6 +97,17 @@ service cloud.firestore {
         && (
           resource.data.uid == request.auth.uid
           || ownsCharacter(resource.data.characterId)
+          || isMjOrAdmin()
+        );
+    }
+
+    // Split out of `participants` so Firestore rules can actually restrict it —
+    // rules can't hide a single field within an otherwise campaign-readable doc.
+    match /participantNotes/{participantId} {
+      allow read, write: if isSignedIn()
+        && (
+          get(/databases/$(database)/documents/participants/$(participantId)).data.uid == request.auth.uid
+          || ownsCharacter(get(/databases/$(database)/documents/participants/$(participantId)).data.characterId)
           || isMjOrAdmin()
         );
     }
