@@ -104,10 +104,10 @@ Subtasks:
 - **Note**: swapping the PlayerView dons section to `<DonList>` is a small recorded out-of-map edit (PlayerView owned by WP02).
 
 Subtasks:
-- [ ] T018 `DonList.vue` (WP04)
-- [ ] T019 `DonDetailModal.vue` (WP04)
-- [ ] T020 PlayerView swap + passive rules (WP04)
-- [ ] T021 Component tests (WP04)
+- [x] T018 `DonList.vue` (WP04)
+- [x] T019 `DonDetailModal.vue` (WP04)
+- [x] T020 PlayerView swap + passive rules (WP04)
+- [x] T021 Component tests (WP04)
 
 ### Phase 5 — Polish
 
