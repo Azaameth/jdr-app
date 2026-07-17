@@ -9,7 +9,7 @@ requirement_refs:
 tracker_refs: []
 planning_base_branch: feat/inventory-slots-dons
 merge_target_branch: feat/inventory-slots-dons
-branch_strategy: mission-feature-branch
+branch_strategy: Planning artifacts for this mission were generated on feat/inventory-slots-dons. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into feat/inventory-slots-dons unless the human explicitly redirects the landing branch.
 subtasks:
 - T022
 - T023
@@ -18,12 +18,12 @@ agent: claude
 history:
 - 2026-07-17T16:47:51Z — created by /spec-kitty.tasks
 agent_profile: implementer-ivan
-authoritative_surface: e2e/
-create_intent: []
+authoritative_surface: MIGRATION_BACKLOG.md
+create_intent:
+- e2e/inventory.spec.ts
 execution_mode: code_change
 model: claude-sonnet-5
 owned_files:
-- e2e/inventory.spec.ts
 - MIGRATION_BACKLOG.md
 - NEXTSTEPS.md
 role: implementer

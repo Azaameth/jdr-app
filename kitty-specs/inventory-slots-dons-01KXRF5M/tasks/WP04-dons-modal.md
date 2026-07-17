@@ -9,7 +9,7 @@ requirement_refs:
 tracker_refs: []
 planning_base_branch: feat/inventory-slots-dons
 merge_target_branch: feat/inventory-slots-dons
-branch_strategy: mission-feature-branch
+branch_strategy: Planning artifacts for this mission were generated on feat/inventory-slots-dons. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into feat/inventory-slots-dons unless the human explicitly redirects the landing branch.
 subtasks:
 - T018
 - T019
@@ -20,14 +20,18 @@ history:
 - 2026-07-17T16:47:51Z — created by /spec-kitty.tasks
 agent_profile: frontend-freddy
 authoritative_surface: src/components/
-create_intent: []
+create_intent:
+- src/components/DonDetailModal.vue
+- src/components/DonList.vue
+- src/components/__tests__/DonDetailModal.spec.ts
+- src/components/__tests__/DonList.spec.ts
 execution_mode: code_change
 model: claude-sonnet-5
 owned_files:
-- src/components/DonList.vue
-- src/components/DonDetailModal.vue
-- src/components/__tests__/DonList.spec.ts
-- src/components/__tests__/DonDetailModal.spec.ts
+- src/components/DonList.*
+- src/components/DonDetailModal.*
+- src/components/__tests__/DonList.spec.*
+- src/components/__tests__/DonDetailModal.spec.*
 role: implementer
 tags: []
 ---
