@@ -17,7 +17,7 @@ subtasks:
 - T016
 - T017
 agent: "claude:sonnet:reviewer-renata:reviewer"
-shell_pid: "46185"
+shell_pid: "48682"
 history:
 - 2026-07-17T16:47:51Z — created by /spec-kitty.tasks
 agent_profile: frontend-freddy
@@ -110,3 +110,7 @@ Wire modal `save`/`delete` to `saveBackpackItem` / `removeBackpackItem` / `saveE
 - 2026-07-17T21:27:59Z – claude:sonnet:frontend-freddy:implementer – shell_pid=34541 – Ready for review: 167/167 unit tests pass, type-check and lint clean. AppModal (generic overlay) + InventorySlotModal (backpack/equipment variants) built; PlayerView wires slot-click with canEditInventory gating (inventory.uid match or mj/admin); save/delete routed to useInventoryStore, errors surfaced in-modal.
 - 2026-07-17T21:28:24Z – claude:sonnet:reviewer-renata:reviewer – shell_pid=46185 – Started review via action command
 - 2026-07-17T21:34:10Z – user – shell_pid=46185 – Moved to planned
+- 2026-07-17T21:34:45Z – claude:sonnet:frontend-freddy:implementer – shell_pid=47612 – Started implementation via action command
+- 2026-07-17T21:41:59Z – claude:sonnet:frontend-freddy:implementer – shell_pid=47612 – Cycle 2: added save/delete integration tests incl. at-cap rejection
+- 2026-07-17T21:42:29Z – claude:sonnet:reviewer-renata:reviewer – shell_pid=48682 – Started review via action command
+- 2026-07-17T21:51:07Z – user – shell_pid=48682 – Review passed (cycle 2): c51d418 adds 5 PlayerView-level tests (mount -> slot-click -> modal submit/delete) closing the cycle-1 gap. Verified against real wiring: handleSlotSave/handleSlotDelete in PlayerView.vue (lines 87-109) call saveBackpackItem/saveEquipmentItem/removeBackpackItem/removeEquipmentItem and only closeSlotModal() on truthy return - tests assert exact payload shapes and open/close behavior for both success and the category-full failure path (mocked error message matches useInventoryStore.ts's CATEGORY_FULL_ERROR constant verbatim, set via errorRef+return-false mirroring the real store contract). No product code touched since 79cc781 (diff empty for store/repository/PlayerView.vue/InventorySlotModal.vue/AppModal.vue/BackpackGrid.vue/WeaponArmorList.vue) - only the test file plus spec-kitty bookkeeping changed. Gates: type-check clean, lint clean, test:unit 18 files/172 tests passed (167+5 new, matches expected count).
