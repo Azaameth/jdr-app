@@ -7,6 +7,7 @@
   "mission_number": null,
   "mission_slug": "inventory-slots-dons-01KXRF5M",
   "mission_type": "software-dev",
+  "pr_bound": true,
   "purpose_context": "The current app shows a character's inventory as a flat read-only list and gifts as raw legacy strings. The legacy monolith has a categorized slot-grid backpack, typed weapon/armor stats, and a rich gift-detail modal whose data was never persisted. This mission migrates all of that onto typed, persisted Firestore data — the prerequisite for the upcoming Vitruve interactive character sheet.",
   "purpose_tldr": "Port the legacy categorized inventory (10 slot-capped backpack categories, typed weapons/armor) and enriched dons (gifts) with detail modal into the Vue app.",
   "slug": "inventory-slots-dons-01KXRF5M",
