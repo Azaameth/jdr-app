@@ -22,8 +22,4 @@ jobs:
       - run: npm run test:unit -- --run
       - run: npx playwright install --with-deps chromium
       - run: npm run build
-      - run: npm run preview &
-        # or: npm run dev & (if you prefer dev server instead of preview)
       - run: npx playwright test --project=chromium
-
-      
