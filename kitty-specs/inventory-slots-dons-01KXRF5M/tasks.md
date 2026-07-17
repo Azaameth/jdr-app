@@ -86,11 +86,11 @@ Subtasks:
 - **Note**: wiring click-handlers into `BackpackGrid.vue`/`WeaponArmorList.vue`/`PlayerView.vue` (owned by WP02) is an expected, recorded out-of-map edit — sequential lanes, no collision risk.
 
 Subtasks:
-- [ ] T013 `AppModal.vue` + test (WP03)
-- [ ] T014 `InventorySlotModal.vue` (WP03)
-- [ ] T015 Slot-click wiring + role gating (WP03)
-- [ ] T016 Save/remove flows + errors (WP03)
-- [ ] T017 Editing-flow tests (WP03)
+- [x] T013 `AppModal.vue` + test (WP03)
+- [x] T014 `InventorySlotModal.vue` (WP03)
+- [x] T015 Slot-click wiring + role gating (WP03)
+- [x] T016 Save/remove flows + errors (WP03)
+- [x] T017 Editing-flow tests (WP03)
 
 ### Phase 4 — Dons
 
