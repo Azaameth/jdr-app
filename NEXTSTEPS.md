@@ -60,6 +60,20 @@ Generalizes legacy's hardcoded "Furmiaou" tab (`legacy-reference/index.html:3494
 - The per-sub jaune/rouge state cycling (legacy's `_caracStates`, keyed `furm_<cat>_<idx>` vs `<charName>_<cat>_<idx>`) is reused as-is once Phase 3.3(b) introduces it for the main sheet — the alt-form stat block uses the same keying scheme, not a bespoke one.
 - Deliberately not modeled (no second data point to generalize from yet): multiple alt-forms per character, a structured mana-cost field per ability (legacy embeds cost in the description text inconsistently — don't force-extract it).
 
+## Inventory slots & dons system (spec-kitty mission `inventory-slots-dons-01KXRF5M`)
+
+Status: **WP01 approved** (2026-07-17) — remaining WPs pending. Branch: `feat/inventory-slots-dons`; WP code lives on lane branch `kitty/mission-inventory-slots-dons-01KXRF5M-lane-a` until `spec-kitty merge` after WP05. Mission artifacts (spec/plan/contracts/tasks/analysis) in `kitty-specs/inventory-slots-dons-01KXRF5M/`.
+
+The "Typed inventory schema" contract below is now **implemented** in WP01 (`src/models/types/Inventory.ts`, plus `src/utils/inventoryText.ts` parser, `InventoryRepository` writes, `useInventoryStore`, migrated fixtures) — future specs cite the code, not the prose. Two contract addenda from implementation: `CharacterInventory.id` (Firestore doc id, analysis finding U1) and `WeaponArmorItem.itemId` were added; `equipped` is vestigial and omitted from regenerated fixtures (U2).
+
+**Increments** (one per session, `/clear` between; resume with `spec-kitty next --agent claude --mission inventory-slots-dons-01KXRF5M`):
+
+- [x] WP01 — Data layer: types, parser, repository writes, store, fixture migration (approved cycle 1, 120 unit tests)
+- [ ] WP02 — Backpack & equipment display (read-only, PlayerView)
+- [ ] WP03 — Slot editing modals & permissions (AppModal extraction)
+- [ ] WP04 — Dons cards & detail modal
+- [ ] WP05 — E2E smoke, docs updates, final gates → then `spec-kitty accept` + `spec-kitty merge`, PR to `main`
+
 ## Vitruve character sheet (interactive layer)
 
 Status: **not started** — schema/naming contract locked above.
