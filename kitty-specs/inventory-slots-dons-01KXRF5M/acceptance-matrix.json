@@ -1,0 +1,119 @@
+{
+  "mission_slug": "inventory-slots-dons-01KXRF5M",
+  "mission_number": "",
+  "mission_type": "software-dev",
+  "overall_verdict": "pass",
+  "criteria": [
+    {
+      "criterion_id": "FR-001",
+      "description": "Backpack organized into exactly 10 fixed categories with hard slot caps (nourriture 1, munitions 2, quete 7, speciaux 7, docs 9, gemmes 9, bivouac 15, soins 15, potions 15, butin 16).",
+      "proof_type": "automated_test",
+      "evidence": "src/components/__tests__/BackpackGrid.spec.ts – 'renders the exact French category labels with slot counts, singular for nourriture' (all 10 categories asserted); src/controllers/__tests__/useInventoryStore.spec.ts – 'rejects a new item with a French error and does not call the repository when the category is full' (cap enforcement); caps declared once in src/models/types/Inventory.ts",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-07-17T22:47:39Z",
+      "notes": "npm run test:unit 197/197 (20 files), re-run independently by reviewer-renata in WP04 and WP05 review cycles"
+    },
+    {
+      "criterion_id": "FR-002",
+      "description": "Empty-slot placeholders computed from cap minus filled count, never stored as records.",
+      "proof_type": "automated_test",
+      "evidence": "src/components/__tests__/BackpackGrid.spec.ts – 'computes 14 empty slots when soins has 1 filled item (max 15)' and 'renders no items with all slots empty (T012 no-backend degradation)'; src/controllers/__tests__/useInventoryStore.spec.ts – 'computes max minus filled for a category' and 'returns the full max when no inventory is loaded'",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-07-17T22:47:39Z",
+      "notes": null
+    },
+    {
+      "criterion_id": "FR-003",
+      "description": "Slot add/edit/delete of an item (name + optional quantity), persisted and visible to all viewers.",
+      "proof_type": "automated_test",
+      "evidence": "src/components/__tests__/InventorySlotModal.spec.ts – save/delete payload suite ('emits a backpack save payload shaped for saveBackpackItem', 'emits delete with kind and itemId…'); src/views/__tests__/PlayerView.spec.ts – 'opens the modal via slot-click, calls saveBackpackItem with the right payload, and closes on success' + delete counterparts; src/models/repositories/__tests__/InventoryRepository.spec.ts – 'updateInventoryItems writes the items array and a refreshed updatedAt'",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-07-17T22:47:39Z",
+      "notes": "Persistence goes through the shared inventories doc, so all viewers of the character read the same data"
+    },
+    {
+      "criterion_id": "FR-004",
+      "description": "Weapons and armor as separate uncapped lists with structured combat stats; display pads to minimum 3 slots and shows DÉGÂTS (weapons) / ARMURE (armor) badges.",
+      "proof_type": "automated_test",
+      "evidence": "src/components/__tests__/WeaponArmorList.spec.ts – 'renders no items with 3 empty placeholder slots (pad to minimum)', 'pads 1 item up to 3 slots', 'renders all 4 slots without padding when items exceed the minimum', 'shows a DÉGÂTS badge with the structured damage stat for weapons', 'shows an ARMURE badge with the structured armor rating for armor'; src/controllers/__tests__/useInventoryStore.spec.ts – 'has no cap: it succeeds even past what would be a backpack limit'; src/models/repositories/__tests__/InventoryRepository.spec.ts – separate 'weapons'/'armor' field writes",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-07-17T22:47:39Z",
+      "notes": null
+    },
+    {
+      "criterion_id": "FR-005",
+      "description": "Legacy stat-annotation conversion never discards information: parseable parts become structured fields, the rest is kept verbatim as a freeform note and displayed.",
+      "proof_type": "automated_test",
+      "evidence": "src/utils/__tests__/inventoryText.spec.ts – parser suite incl. 'falls back to a verbatim statNote when nothing structured matches', Unicode-minus/ASCII-plus bonus cases, bare armor rating, rating + trailing note, round-trip badge reproduction; src/components/__tests__/WeaponArmorList.spec.ts – 'shows the badge value from a bare statNote when there are no structured stats'",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-07-17T22:47:39Z",
+      "notes": "NFR-002 corpus (incl. '(D4/−1)', '(RD2 vs proj. magiques)', '(Armure impossible — Oracle)', 'Kit médical ×4') exercised by the same spec and by scripts/migrateInventoryFixtures.mjs against the real seed data"
+    },
+    {
+      "criterion_id": "FR-006",
+      "description": "Dons carry mana cost (numeric or formula), damage dice, damage bonus, multi-line flavor text; clicking a don opens a detail view with MANA / DÉS / BONUS tiles and preserved line breaks.",
+      "proof_type": "automated_test",
+      "evidence": "src/components/__tests__/DonDetailModal.spec.ts – 'shows all three tiles for an enriched combat gift', 'shows the mana tile from manaNote (formula mana) when manaCost is absent', 'preserves description newlines verbatim (rendered via white-space: pre-line…)'; src/components/__tests__/DonList.spec.ts – 'emits open with the gift payload when a card is clicked'; wired in src/views/PlayerView.vue (WP04, commit 328d1bc)",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-07-17T22:47:39Z",
+      "notes": null
+    },
+    {
+      "criterion_id": "FR-007",
+      "description": "Legacy per-character gift data (DONS_DATA, legacy-reference/index.html:3305-3348) migrated into persisted character gift data via seed fixtures.",
+      "proof_type": "code_review",
+      "evidence": "scripts/migrateInventoryFixtures.mjs (WP01) enriches scripts/data/characters.json gifts with manaCost/manaNote/damageDice/damageBonus and real multi-line flavor text; verified against the DONS_DATA corpus during WP01 review and re-verified against real gift archetypes (full combat / passive / formula-mana) during WP04 review",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-07-17T22:47:39Z",
+      "notes": "No automated test replays the legacy HTML source itself; the migration script plus fixture diff is the auditable artifact"
+    },
+    {
+      "criterion_id": "FR-008",
+      "description": "Existing seed inventory data migrated to the new typed shapes: backpack items gain a category, weapons/armor move to their own lists, gift strings split into structured fields.",
+      "proof_type": "code_review",
+      "evidence": "scripts/migrateInventoryFixtures.mjs output committed to scripts/data/inventories.json (categorized items + weapons/armor lists) and scripts/data/characters.json (structured gifts); src/models/repositories/__tests__/InventoryRepository.spec.ts – 'defaults missing weapons/armor to [] when mapping a pre-migration doc' covers backward compatibility for unmigrated docs",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-07-17T22:47:39Z",
+      "notes": null
+    },
+    {
+      "criterion_id": "FR-009",
+      "description": "Inventory editing permitted only to the inventory's owner or MJ/admin roles (deliberately narrower than legacy).",
+      "proof_type": "automated_test",
+      "evidence": "src/views/__tests__/PlayerView.spec.ts – 'grants edit affordances to the inventory owner (joueur, own character)', 'grants edit affordances to an mj viewing another player's character', 'denies edit affordances when the viewer is not the inventory owner and not mj/admin', 'denies edit affordances (and view access entirely) for a joueur viewing another character'",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-07-17T22:47:39Z",
+      "notes": "Server side: existing firestore.rules inventories rules already express this model (spec C-005 — no rules change in this mission)"
+    },
+    {
+      "criterion_id": "FR-010",
+      "description": "Dons without combat data (passives) render without misleading values: stat tiles show '—', no mana/dice badges on the list card.",
+      "proof_type": "automated_test",
+      "evidence": "src/components/__tests__/DonList.spec.ts – 'renders no badges at all for a passive gift (FR-010, never fake zeros)', 'omits the DÉGÂTS badge when damageBonus is 0 and damageDice is absent (no synthesized zero)'; src/components/__tests__/DonDetailModal.spec.ts – 'shows all-\"—\" tiles for a passive gift, never fake zeros (FR-010)', 'treats a damageBonus of exactly 0 as \"—\", not \"+0\" (FR-010)'; src/components/__tests__/WeaponArmorList.spec.ts – 'omits the badge entirely when the item has no stats at all (FR-010, never synthesized)'",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-07-17T22:47:39Z",
+      "notes": "reviewer-renata traced all three gift archetypes through both components during WP04 review; no zero leak found"
+    },
+    {
+      "criterion_id": "NFR-001",
+      "description": "With no backend configured, the character page renders read-only with zero runtime errors; new data operations degrade to safe no-ops.",
+      "proof_type": "automated_test",
+      "evidence": "src/models/repositories/__tests__/InventoryRepository.spec.ts – 'no-ops every exported function without touching Firestore'; src/views/__tests__/PlayerView.spec.ts – 'renders no edit affordance in degraded no-backend mode (no inventory loaded)'; e2e/inventory.spec.ts – no-secrets build boots with zero console/page errors (run 3× in CI mode, WP05)",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-07-17T22:47:39Z",
+      "notes": "Route-level e2e stops at the auth guard (no e2e auth fixture exists yet — flagged as follow-up); structural assertions live at unit level"
+    }
+  ],
+  "negative_invariants": []
+}
