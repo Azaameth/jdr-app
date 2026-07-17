@@ -15,7 +15,8 @@ subtasks:
 - T019
 - T020
 - T021
-agent: claude
+agent: "claude"
+shell_pid: "53421"
 history:
 - 2026-07-17T16:47:51Z — created by /spec-kitty.tasks
 agent_profile: frontend-freddy
@@ -90,3 +91,10 @@ Replace the dons section markup in `PlayerView.vue` with `<DonList :gifts="chara
 
 - Feed the three gift archetypes (full combat, passive, formula-mana) through both components — zeros or "0 mana" appearing anywhere is a FR-010 violation.
 - Check `\n` in description renders as line breaks, not literal text or collapsed whitespace.
+
+## Activity Log
+
+- 2026-07-17T21:55:54Z – claude – shell_pid=50522 – Assigned agent via action command
+- 2026-07-17T22:05:49Z – claude – shell_pid=50522 – Ready for review: DonList.vue (cards w/ conditional MANA/DÉGÂTS badges, emoji-stripped names, empty state) + DonDetailModal.vue (composes AppModal unchanged; MANA/DÉS/BONUS tiles, pre-line description); PlayerView.vue dons section swapped in (out-of-map, WP02-owned file, rationale in commit body). 25 new component tests; lint/type-check/unit all green.
+- 2026-07-17T22:07:21Z – claude – shell_pid=53421 – Started review via action command
+- 2026-07-17T22:10:13Z – user – shell_pid=53421 – Review passed: DonList/DonDetailModal render all three gift archetypes per FR-006/FR-010 (no synthesized zeros; damageBonus 0 treated as absent, matching legacy bonus&&bonus!==0); pre-line description verified; AppModal reused unchanged (328d1bc touches only the 5 declared files); PlayerView swap is the sanctioned out-of-map edit with rationale in commit body; empty state 'Aucun don.' matches legacy always-rendered panel; 25 new tests cover badge matrix, emoji stripping, emission, pre-line, archetypes; lint/type-check/unit all green (197 tests). Anti-pattern checklist: all 8 PASS.
