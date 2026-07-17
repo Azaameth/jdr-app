@@ -1,4 +1,16 @@
 {
+  "acceptance_history": [
+    {
+      "acceptance_mode": "pr",
+      "accepted_at": "2026-07-17T22:49:29.546422+00:00",
+      "accepted_by": "monthie",
+      "accepted_from_commit": "8fccc063d6b72935df41b57d69c4bca8f9359165"
+    }
+  ],
+  "acceptance_mode": "pr",
+  "accepted_at": "2026-07-17T22:49:29.546422+00:00",
+  "accepted_by": "monthie",
+  "accepted_from_commit": "8fccc063d6b72935df41b57d69c4bca8f9359165",
   "coordination_branch": "kitty/mission-inventory-slots-dons-01KXRF5M",
   "created_at": "2026-07-17T16:39:49.996997+00:00",
   "flattened": false,
