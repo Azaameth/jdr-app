@@ -17,7 +17,8 @@ subtasks:
 - T010
 - T011
 - T012
-agent: claude
+agent: "claude:sonnet:reviewer-renata:reviewer"
+shell_pid: "33053"
 history:
 - 2026-07-17T16:47:51Z — created by /spec-kitty.tasks
 agent_profile: frontend-freddy
@@ -94,3 +95,10 @@ With no Firebase config the store returns null inventory: sections must render g
 - Count slots in the rendered output for a seeded character against `BACKPACK_MAX_SLOTS` — off-by-one in empty-slot math is the likely bug.
 - Confirm store-only data access (grep the diff for `InventoryRepository` imports in view/components — should be none).
 - Check French labels against the legacy list verbatim.
+
+## Activity Log
+
+- 2026-07-17T18:05:47Z – claude:sonnet:frontend-freddy:implementer – shell_pid=31501 – Assigned agent via action command
+- 2026-07-17T18:13:44Z – claude:sonnet:frontend-freddy:implementer – shell_pid=31501 – Ready for review: 15 test files / 139 unit tests pass, type-check clean, lint clean, no-backend build+preview shows no console errors.
+- 2026-07-17T18:14:14Z – claude:sonnet:reviewer-renata:reviewer – shell_pid=33053 – Started review via action command
+- 2026-07-17T18:17:10Z – user – shell_pid=33053 – Review passed: BackpackGrid + WeaponArmorList correctly render 10 categories/exact slot caps (max-filled empty math verified: soins 1 filled -> 14 empty, 96 total empty w/ zero items), weapons/armor pad to 3 via formatWeaponArmorStat with statNote-only badges shown verbatim (no synthesized numbers) and omitted when empty. PlayerView.vue consumes only useInventoryStore (no InventoryRepository import), old flat inventory list + vestigial 'équipé' badge fully removed, dons section untouched. slot-click emits are unwired in PlayerView per spec's explicit WP03 forward-compat instruction, not a read-only violation. No modals/save/remove calls introduced. type-check clean, lint clean (no diff after --fix), 139/139 unit tests pass across 15 files, no-backend build succeeds with zero console-breaking issues. WP02-owned diff scoped correctly to BackpackGrid.vue, WeaponArmorList.vue, their specs, and PlayerView.vue (broader stat diff is WP01 dependency merge, not WP02 work).

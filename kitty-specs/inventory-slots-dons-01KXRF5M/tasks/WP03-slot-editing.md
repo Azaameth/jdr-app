@@ -16,7 +16,8 @@ subtasks:
 - T015
 - T016
 - T017
-agent: claude
+agent: "claude:sonnet:reviewer-renata:reviewer"
+shell_pid: "46185"
 history:
 - 2026-07-17T16:47:51Z — created by /spec-kitty.tasks
 agent_profile: frontend-freddy
@@ -102,3 +103,10 @@ Wire modal `save`/`delete` to `saveBackpackItem` / `removeBackpackItem` / `saveE
 - Try the cap path mentally: nourriture already has 1 item, add another — store must reject, modal must show the message, Firestore write must not happen.
 - Check `editable` gating is enforced at render (no hidden-but-clickable buttons).
 - Verify AppModal accessibility basics (escape, aria attributes, focus).
+
+## Activity Log
+
+- 2026-07-17T18:20:19Z – claude:sonnet:frontend-freddy:implementer – shell_pid=34541 – Assigned agent via action command
+- 2026-07-17T21:27:59Z – claude:sonnet:frontend-freddy:implementer – shell_pid=34541 – Ready for review: 167/167 unit tests pass, type-check and lint clean. AppModal (generic overlay) + InventorySlotModal (backpack/equipment variants) built; PlayerView wires slot-click with canEditInventory gating (inventory.uid match or mj/admin); save/delete routed to useInventoryStore, errors surfaced in-modal.
+- 2026-07-17T21:28:24Z – claude:sonnet:reviewer-renata:reviewer – shell_pid=46185 – Started review via action command
+- 2026-07-17T21:34:10Z – user – shell_pid=46185 – Moved to planned
