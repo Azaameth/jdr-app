@@ -68,11 +68,11 @@ Subtasks:
 - **Dependencies**: WP01.
 
 Subtasks:
-- [ ] T008 `BackpackGrid.vue` (WP02)
-- [ ] T009 `WeaponArmorList.vue` (WP02)
-- [ ] T010 PlayerView integration (WP02)
-- [ ] T011 Component tests (WP02)
-- [ ] T012 Degradation check (WP02)
+- [x] T008 `BackpackGrid.vue` (WP02)
+- [x] T009 `WeaponArmorList.vue` (WP02)
+- [x] T010 PlayerView integration (WP02)
+- [x] T011 Component tests (WP02)
+- [x] T012 Degradation check (WP02)
 
 ### Phase 3 — Editing
 
