@@ -62,7 +62,7 @@ Generalizes legacy's hardcoded "Furmiaou" tab (`legacy-reference/index.html:3494
 
 ## Inventory slots & dons system (spec-kitty mission `inventory-slots-dons-01KXRF5M`)
 
-Status: **WP02 approved** (2026-07-17) — remaining WPs pending. Branch: `feat/inventory-slots-dons`; WP code lives on lane branches (`...lane-a` for WP01, `...lane-b` for WP02) until `spec-kitty merge` after WP05. Mission artifacts (spec/plan/contracts/tasks/analysis) in `kitty-specs/inventory-slots-dons-01KXRF5M/`.
+Status: **WP03 approved** (2026-07-17) — WP04/WP05 pending. Branch: `feat/inventory-slots-dons`; WP code lives on lane branches (`...lane-a`/`-b`/`-c` for WP01/02/03) until `spec-kitty merge` after WP05. Mission artifacts (spec/plan/contracts/tasks/analysis) in `kitty-specs/inventory-slots-dons-01KXRF5M/`.
 
 The "Typed inventory schema" contract below is now **implemented** in WP01 (`src/models/types/Inventory.ts`, plus `src/utils/inventoryText.ts` parser, `InventoryRepository` writes, `useInventoryStore`, migrated fixtures) — future specs cite the code, not the prose. Two contract addenda from implementation: `CharacterInventory.id` (Firestore doc id, analysis finding U1) and `WeaponArmorItem.itemId` were added; `equipped` is vestigial and omitted from regenerated fixtures (U2). WP02 adds read-only display (`src/components/BackpackGrid.vue`, `src/components/WeaponArmorList.vue`, `PlayerView.vue` integration) — the old "équipé" badge is gone per U2.
 
@@ -70,7 +70,7 @@ The "Typed inventory schema" contract below is now **implemented** in WP01 (`src
 
 - [x] WP01 — Data layer: types, parser, repository writes, store, fixture migration (approved cycle 1, 120 unit tests)
 - [x] WP02 — Backpack & equipment display (approved cycle 1, 139 unit tests)
-- [ ] WP03 — Slot editing modals & permissions (AppModal extraction)
+- [x] WP03 — Slot editing modals & permissions (approved cycle 2 — cycle 1 rejected for missing save/delete integration tests, fixed; 172 unit tests). `AppModal.vue` is now the reusable modal base (generic, a11y: role=dialog/Escape/backdrop); WP04's DonDetailModal must reuse it unmodified.
 - [ ] WP04 — Dons cards & detail modal
 - [ ] WP05 — E2E smoke, docs updates, final gates → then `spec-kitty accept` + `spec-kitty merge`, PR to `main`
 
