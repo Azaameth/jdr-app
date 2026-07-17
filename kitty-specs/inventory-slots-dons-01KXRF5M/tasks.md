@@ -49,13 +49,13 @@ Delivery constraint (spec C-006): **WP01 is the complete data layer and must be 
 - **Risks**: schema drift vs `contracts/data-layer.md` (cite it, don't improvise); silent data loss in migration (corpus tests are the guard).
 
 Subtasks:
-- [ ] T001 Extend `Inventory.ts` types (WP01)
-- [ ] T002 Enrich `CharacterGift`, retire dead types in `Character.ts` (WP01)
-- [ ] T003 Parser/formatter `inventoryText.ts` + corpus tests (WP01)
-- [ ] T004 Repository write functions + mapper + tests (WP01)
-- [ ] T005 `useInventoryStore` + tests (WP01)
-- [ ] T006 Fixture migration script + regenerated fixtures (WP01)
-- [ ] T007 Data-layer gate sweep (WP01)
+- [x] T001 Extend `Inventory.ts` types (WP01)
+- [x] T002 Enrich `CharacterGift`, retire dead types in `Character.ts` (WP01)
+- [x] T003 Parser/formatter `inventoryText.ts` + corpus tests (WP01)
+- [x] T004 Repository write functions + mapper + tests (WP01)
+- [x] T005 `useInventoryStore` + tests (WP01)
+- [x] T006 Fixture migration script + regenerated fixtures (WP01)
+- [x] T007 Data-layer gate sweep (WP01)
 
 ### Phase 2 — Display UI
 
