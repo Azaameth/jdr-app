@@ -19,7 +19,8 @@ subtasks:
 - T005
 - T006
 - T007
-agent: claude
+agent: "claude:sonnet:implementer-ivan:implementer"
+shell_pid: "23197"
 history:
 - 2026-07-17T16:47:51Z — created by /spec-kitty.tasks
 agent_profile: implementer-ivan
@@ -197,3 +198,7 @@ Run it, commit both the script and the regenerated JSON.
 - Hunt for silent data loss: any corpus string whose parse+format drops characters fails NFR-002.
 - Verify the fixture diff item-by-item for azarius (the messiest character) rather than trusting the script.
 - Confirm no `firestore.rules` changes and no UI-file changes snuck in.
+
+## Activity Log
+
+- 2026-07-17T16:55:36Z – claude:sonnet:implementer-ivan:implementer – shell_pid=23197 – Assigned agent via action command

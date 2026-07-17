@@ -12,5 +12,7 @@
   "purpose_tldr": "Port the legacy categorized inventory (10 slot-capped backpack categories, typed weapons/armor) and enriched dons (gifts) with detail modal into the Vue app.",
   "slug": "inventory-slots-dons-01KXRF5M",
   "target_branch": "feat/inventory-slots-dons",
-  "topology": "coord"
+  "topology": "coord",
+  "vcs": "git",
+  "vcs_locked_at": "2026-07-17T16:55:35.322253+00:00"
 }
