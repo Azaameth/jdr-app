@@ -120,9 +120,9 @@ Subtasks:
 - **Dependencies**: WP04.
 
 Subtasks:
-- [x] T022 E2E smoke (WP05)
-- [x] T023 Docs updates (WP05)
-- [x] T024 Final gate sweep (WP05)
+- [ ] T022 E2E smoke (WP05)
+- [ ] T023 Docs updates (WP05)
+- [ ] T024 Final gate sweep (WP05)
 
 ## Dependency Summary
 

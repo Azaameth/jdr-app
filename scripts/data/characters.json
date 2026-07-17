@@ -7,7 +7,9 @@
     "raceId": "kitsune",
     "classId": "cogneur",
     "gender": "Homme",
-    "elements": ["🔥 Feu"],
+    "elements": [
+      "🔥 Feu"
+    ],
     "level": 1,
     "attributes": {
       "primary": {
@@ -50,46 +52,59 @@
     "gifts": [
       {
         "id": "gift-1-turbo-fist-2-mana-1d10-2",
-        "name": "Turbo Fist — 2 mana / 1D10+2",
-        "description": "Turbo Fist — 2 mana / 1D10+2",
+        "name": "Turbo Fist",
+        "description": "Le bras mécanique se verrouille dans un claquement sec.\nUn grondement sourd monte depuis l'intérieur du coude.\nLes plaques d'acier vibrent. Les pistons s'alignent. Puis le réacteur s'allume.\nUne lumière brûlante traverse les conduits du bras. La pression monte brutalement. L'air autour du poing se déforme sous la chaleur.\nLe porteur pivote l'épaule.\nBOUM.",
         "source": "class",
-        "manaCost": 2
+        "manaCost": 2,
+        "damageDice": "1D10",
+        "damageBonus": 2
       },
       {
         "id": "gift-2-armagedon-sans-baton-5-mana-1d12-4",
-        "name": "Armagédon sans Bâton — 5 mana / 1D12+4",
-        "description": "Armagédon sans Bâton — 5 mana / 1D12+4",
+        "name": "Armagédon sans Bâton",
+        "description": "Le bras mécanique se déploie.\nLes plaques du bras coulissent avec un grincement métallique.\nLe poing se désassemble légèrement, révélant une chambre interne incandescente.\nLe réacteur du coude change de tonalité plus grave… plus instable.\nUne pression monte. Les soupapes vibrent.\nUn torrent de flammes jaillit du bras mécanique comme la gueule d'un dragon forgé en acier.",
         "source": "class",
-        "manaCost": 5
+        "manaCost": 5,
+        "damageDice": "1D12",
+        "damageBonus": 4
       },
       {
         "id": "gift-3-fire-shield-3-mana-1d6-1",
-        "name": "Fire Shield — 3 mana / 1D6+1",
-        "description": "Fire Shield — 3 mana / 1D6+1",
+        "name": "Fire Shield",
+        "description": "Un grondement sourd vibre dans le coude mécanique.\nLe réacteur s'embrase à bas régime.\nDes anneaux internes tournent autour de l'avant-bras, créant un champ thermique instable.\nUn cercle de flammes explose vers l'extérieur, formant un bouclier ardent devant le bras.\nLes flammes ne sont pas chaotiques.\nElles tournent en spirale, maintenues par un champ de pression généré par le réacteur.",
         "source": "class",
-        "manaCost": 3
+        "manaCost": 3,
+        "damageDice": "1D6",
+        "damageBonus": 1
       },
       {
         "id": "gift-4-say-my-name-8-mana-1d6-1d8-1",
-        "name": "Say My Name — 8 mana / 1D6+1D8+1",
-        "description": "Say My Name — 8 mana / 1D6+1D8+1",
+        "name": "Say My Name",
+        "description": "Le poing se verrouille.\nLes plaques d'acier glissent, révélant un noyau interne incandescent.\nLe réacteur du coude hurle pas en puissance continue…\nMais en compression extrême. Toute l'énergie est retenue.\nAccumulation maximale. Distance minimale.",
         "source": "class",
-        "manaCost": 8
+        "manaCost": 8,
+        "damageDice": "1D6+1D8",
+        "damageBonus": 1
       },
       {
         "id": "gift-5-maitrise-des-armes-relance-1-combat",
-        "name": "Maîtrise des Armes : relance 1×/combat",
-        "description": "Maîtrise des Armes : relance 1×/combat",
+        "name": "Maîtrise des Armes",
+        "description": "Capacité passive.\nRelance 1 fois par combat un jet raté en combat au corps à corps.",
         "source": "class"
       },
       {
         "id": "gift-6-baroud-d-honneur-30-pv-2-degats",
-        "name": "Baroud d'Honneur : <30% PV → +2 dégâts",
-        "description": "Baroud d'Honneur : <30% PV → +2 dégâts",
-        "source": "class"
+        "name": "Baroud d'Honneur",
+        "description": "Capacité passive.\nSi les PV tombent sous 30%, les attaques infligent +2 dégâts bonus automatiquement.",
+        "source": "class",
+        "damageBonus": 2
       }
     ],
-    "languages": ["Commun", "Kitsune", "Démoniaque"],
+    "languages": [
+      "Commun",
+      "Kitsune",
+      "Démoniaque"
+    ],
     "img": "/images/portraits/azarius.jpg",
     "backstory": "Né dans une tribu vivant au pied d'un volcan, Azarius Desbois fut initié très jeune à la magie du feu, considérée comme une force sacrée et vivante. Il apprit à en canaliser la chaleur, la colère et la beauté sous la guidance des anciens.\nMais un incendie magique incontrôlé ravagea sa forêt natale, réduisant sa tribu en cendres. Depuis ce jour, Azarius a juré de retrouver celui qui a déclenché le brasier et de protéger l'équilibre entre la flamme et la nature.\nPorté par ce serment et avide de réponses, il a rejoint les Téméraires, convaincu que la Prophétie du Lac lui révélera la vérité derrière le feu qui l'habite.",
     "createdAt": "2026-07-13T19:43:52.848Z",
@@ -103,7 +118,9 @@
     "raceId": "elfe",
     "classId": "arcaniste",
     "gender": "Femme",
-    "elements": ["💨 Air"],
+    "elements": [
+      "💨 Air"
+    ],
     "level": 1,
     "attributes": {
       "primary": {
@@ -153,57 +170,66 @@
     "gifts": [
       {
         "id": "gift-1-deplacement-d-air-2-mana",
-        "name": "Déplacement d'Air — 2 mana",
-        "description": "Déplacement d'Air — 2 mana",
+        "name": "Déplacement d'Air",
+        "description": "Dy concentre ses pouvoirs sur les courants environnants, créant un couloir d'air tourbillonnant capable de déplacer les cibles sur une distance définie.\n\nCoût en Mana : X par personne touchée\nDistance : X / 3 mètres\n\nPrécision ciblée :\nDy peut viser précisément une ou plusieurs personnes. Elle subit un malus de –20 sur son jet par personne ciblée.\n\nJet de sauvegarde :\nDy peut relancer un seul jet, une seule fois, pour augmenter ses chances de succès.",
         "source": "class",
-        "manaCost": 2
+        "manaNote": "X"
       },
       {
         "id": "gift-2-mur-d-air-6-mana",
-        "name": "Mur d'Air — 6 mana",
-        "description": "Mur d'Air — 6 mana",
+        "name": "Mur d'Air",
+        "description": "Dy concentre ses pouvoirs pour ériger un mur invisible mais tangible de vent tourbillonnant.\n\nEffet : Le mur impose un malus de –30 sur les jets de traversée ou d'attaque.\nSi Dy maintient le mur actif, elle ne peut effectuer aucune autre action pendant ce tour.\nCoût : X par tranche de –20 de malus.",
         "source": "class",
         "manaCost": 6
       },
       {
         "id": "gift-3-lame-d-air-3-mana-d8-2",
-        "name": "Lame d'Air — 3 mana / D8+2",
-        "description": "Lame d'Air — 3 mana / D8+2",
+        "name": "Lame d'Air",
+        "description": "Dy concentre le flux du vent en une lame tranchante et invisible, capable de fendre l'air avec la précision d'une épée. La lame frappe les ennemis comme une lame physique, infligeant des dégâts de coupure proportionnels à son intensité et à sa maîtrise.",
         "source": "class",
-        "manaCost": 3
+        "manaCost": 3,
+        "damageDice": "1D8",
+        "damageBonus": 2
       },
       {
         "id": "gift-4-largage-aerien-2-1-5m-mana",
-        "name": "Largage Aérien — 2+(1/5m) mana",
-        "description": "Largage Aérien — 2+(1/5m) mana",
-        "source": "class"
+        "name": "Largage Aérien",
+        "description": "Dy utilise la magie du vent pour téléporter sur une courte distance (15m) elle-même ou un autre joueur (une seule personne à la fois).",
+        "source": "class",
+        "manaNote": "2+(1/5m)"
       },
       {
         "id": "gift-5-invocations-demoniques",
         "name": "Invocations démoniques",
-        "description": "Invocations démoniques",
-        "source": "class"
+        "description": "Dy peut invoquer des entités démoniques pour l'assister au combat ou en dehors.",
+        "source": "class",
+        "manaNote": "?"
       },
       {
         "id": "gift-6-la-boule-magique-tout-le-mana",
-        "name": "La Boule Magique — tout le mana",
-        "description": "La Boule Magique — tout le mana",
-        "source": "class"
+        "name": "La Boule Magique",
+        "description": "Sort ultime. Dy dépense tout son mana restant pour déclencher une explosion magique massive.",
+        "source": "class",
+        "manaNote": "Tout"
       },
       {
         "id": "gift-7-maitrise-des-arcanes",
         "name": "Maîtrise des Arcanes",
-        "description": "Maîtrise des Arcanes",
+        "description": "Capacité passive. Maîtrise avancée des sorts arcaniques.",
         "source": "class"
       },
       {
         "id": "gift-8-connaissance-interdite",
         "name": "Connaissance Interdite",
-        "description": "Connaissance Interdite",
+        "description": "Capacité passive. Accès à des sorts normalement proscrits.",
         "source": "class"
       }
     ],
-    "languages": ["Commun", "Elfique", "Démoniaque"],
+    "languages": [
+      "Commun",
+      "Elfique",
+      "Démoniaque"
+    ],
     "img": "/images/portraits/dy.jpg",
     "backstory": "Née au cœur des forêts anciennes d'Akassya, Dy passa son enfance perchée parmi les branches, entourée des siens et bercée par le chant des vents et le bruissement des feuilles. Sa curiosité pour la magie naquit tôt, mais ce fut la rencontre fortuite avec un élémentaire du vent qui éveilla en elle un don exceptionnel : la capacité de comprendre et de manipuler les courants d'air comme un langage secret.\nÉduquée dans une école humaine d'arcanistes, Dy apprit à combiner la discipline humaine et l'instinct elfique, devenant une érudite des arcanes élémentaires. Sa soif de savoir et son désir de liberté l'ont menée à rejoindre les Téméraires, dans l'espoir de percer les secrets de la Prophétie du Lac et de lever la barrière de l'Île du Cœur.\nCependant, malgré son ouverture sur le monde, Dy nourrit un préjugé marqué contre les Kitsuné, qu'elle considère avec méfiance et suspicion, résultat d'expériences passées et de convictions culturelles profondément ancrées.\nPour Dy, chaque souffle de vent, chaque tourbillon et chaque tempête sont autant de leçons à écouter et à maîtriser, un écho des mystères qu'elle cherche à dévoiler à travers sa quête.",
     "createdAt": "2026-07-13T19:43:52.850Z",
@@ -217,7 +243,9 @@
     "raceId": "swamninyx",
     "classId": "gardien",
     "gender": "Homme",
-    "elements": ["🌿 Nature"],
+    "elements": [
+      "🌿 Nature"
+    ],
     "level": 1,
     "attributes": {
       "primary": {
@@ -267,44 +295,52 @@
     "gifts": [
       {
         "id": "gift-1-transmutation-1-2-mana",
-        "name": "Transmutation — 1-2 mana",
-        "description": "Transmutation — 1-2 mana",
+        "name": "Transmutation",
+        "description": "Double ses PV max et réduit le mana à 0. La vie du lanceur varie en fonction de ses PV manquants.",
         "source": "class",
-        "manaCost": 2
+        "manaNote": "1-2"
       },
       {
         "id": "gift-2-gonflette-2-mana-palier",
-        "name": "Gonflette — 2 mana/palier",
-        "description": "Gonflette — 2 mana/palier",
+        "name": "Gonflette",
+        "description": "Vous canalisez la puissance tellurique dans les muscles et la peau. Vos fibres se gonflent, votre cuir s'épaissit, vos nerfs se tendent.\nPour chaque palier de 2 points de mana dépensés, vous bénéficiez d'un bonus temporaire de +1 en Armure naturelle et +1 en Attaque physique.",
         "source": "class",
         "manaCost": 2
       },
       {
         "id": "gift-3-tarte-aux-prunes",
         "name": "Tarte aux prunes",
-        "description": "Tarte aux prunes",
-        "source": "class"
+        "description": "Renforce une de ses mains de feuilles et de fleurs magiques, puis gifle la personne souhaitée afin de la soigner.\n1 mana par PV soigné.",
+        "source": "class",
+        "manaNote": "1/PV",
+        "damageDice": "1D4",
+        "damageBonus": -1
       },
       {
         "id": "gift-4-extension-du-territoire",
         "name": "Extension du territoire",
-        "description": "Extension du territoire",
-        "source": "class"
+        "description": "Prend le contrôle d'un œil et d'une oreille d'un animal à proximité.",
+        "source": "class",
+        "manaCost": 1
       },
       {
         "id": "gift-5-chatiment-sacre",
         "name": "Châtiment Sacré",
-        "description": "Châtiment Sacré",
+        "description": "Capacité passive de combat sacré.",
         "source": "class"
       },
       {
         "id": "gift-6-provoc-sauvage",
         "name": "Provoc' Sauvage",
-        "description": "Provoc' Sauvage",
+        "description": "Provoque un ennemi pour attirer son attention sur Firm.",
         "source": "class"
       }
     ],
-    "languages": ["Commun", "Swamninyx", "Léonide"],
+    "languages": [
+      "Commun",
+      "Swamninyx",
+      "Léonide"
+    ],
     "img": "/images/portraits/firm.jpg",
     "backstory": "Né dans le royaume saint de Zarûn, Firm fut vendu par ses parents à l'âge de 5 ans à des esclavagistes pour une poignée d'or.\nPendant son transport vers les terres du commandant Suba, où il devait passer le restant de ses jours, il réussit à s'échapper lors d'une attaque par des pillards.\nSeul dans un territoire inconnu pendant des jours, il fut trouvé par un druide vagabond nommé Stonks, qui prit Firm sous son aile et décida de lui inculquer la voie du druide.\nFirm avait une grande affinité avec la magie de la nature, mais était très mauvais pour lancer des sorts. Par dépit, après de longues années de formation, Stonks décida de l'envoyer dans la forêt magique de Doulogne, en dehors d'Alésia, afin qu'il suive la voie de la transformation druidesque, où il passa 10 ans à contrôler la transformation de sa bête intérieure.\nUne fois sa formation achevée, il se mit en route pour rentrer à son pays natal, en quête d'ouvrir une école de formation de gardien-druides.",
     "createdAt": "2026-07-13T19:43:52.850Z",
@@ -318,7 +354,9 @@
     "raceId": "kitsune",
     "classId": "oracle",
     "gender": "Femme",
-    "elements": ["💧 Eaux"],
+    "elements": [
+      "💧 Eaux"
+    ],
     "level": 1,
     "attributes": {
       "primary": {
@@ -368,45 +406,52 @@
     "gifts": [
       {
         "id": "gift-1-benediction-du-goupil-3-mana",
-        "name": "Bénédiction du goupil — 3 mana",
-        "description": "Bénédiction du goupil — 3 mana",
+        "name": "Bénédiction du goupil",
+        "description": "Au rythme frénétique de son tambourin et du claquement de ses castagnettes, Mwassa invoque une bénédiction divine.\nUne vibration invisible parcourt l'air, trouve le cœur des alliés visés et y fait battre la force des hymnes anciens.\n\nEffet : Les personnes dans un rayon de 5m gagnent +10% sur tous leurs jets pendant 2 tours.\n+20% en mono-cible.",
         "source": "class",
         "manaCost": 3
       },
       {
         "id": "gift-2-aux-armes-1-d4-12-mana",
-        "name": "Aux armes ! — 1+D4-12 mana",
-        "description": "Aux armes ! — 1+D4-12 mana",
+        "name": "Aux armes !",
+        "description": "Mwassa appelle la mémoire des grands Hommes pour l'habiter. Elle projette cette énergie pour revigorer sa cible.\n\nEffet : 25% du dé est consommé en mana. Le résultat du dé est transféré à la cible.",
         "source": "class",
-        "manaCost": 12
+        "manaNote": "1+1D4-12"
       },
       {
         "id": "gift-3-marionette-6-mana",
-        "name": "Marionette — 6 mana",
-        "description": "Marionette — 6 mana",
+        "name": "Marionette",
+        "description": "Mwassa invoque un djin, fantôme de ses anciennes relations, et le projette dans sa cible.\nElle tisse autour de sa cible un filet invisible de charme et de désir, une promesse douce comme le vice et forte comme un serment.\nL'esprit de l'ennemi s'incline, docile, incapable de discerner l'enchantement de la fascination.\n\nEffet : Soumet un ennemi intelligent à la volonté de Mwassa pendant 1 heure.",
         "source": "class",
         "manaCost": 6
       },
       {
         "id": "gift-4-rosee-de-la-vitalite",
         "name": "Rosée de la vitalité",
-        "description": "Rosée de la vitalité",
-        "source": "class"
+        "description": "Mwassa condense l'eau autour de la cible qu'elle souhaite soigner.\nL'eau glisse dessus pour lui restaurer sa vitalité.\n\nEffet : 25% du dé est consommé en mana. Le résultat du dé est transféré à la cible.",
+        "source": "class",
+        "manaNote": "1+1D4-12"
       },
       {
         "id": "gift-5-soin-divin",
         "name": "Soin Divin",
-        "description": "Soin Divin",
-        "source": "class"
+        "description": "Soin divin canalisé par la grâce des 12.",
+        "source": "class",
+        "manaNote": "?"
       },
       {
         "id": "gift-6-pacte-des-12",
         "name": "Pacte des 12",
-        "description": "Pacte des 12",
-        "source": "class"
+        "description": "Invoque l'alliance sacrée des 12 divinités pour un effet puissant.",
+        "source": "class",
+        "manaNote": "?"
       }
     ],
-    "languages": ["Commun", "Kitsune", "Nain"],
+    "languages": [
+      "Commun",
+      "Kitsune",
+      "Nain"
+    ],
     "img": "/images/portraits/mwassa.jpg",
     "backstory": "Née dans les bas-quartiers d'Auregia, Mwassa grandit dans un bordel où elle apprit très tôt l'art de plaire et d'écouter. Lorsque sa jeunesse fanée perdit de sa valeur, elle fut renvoyée sans un mot. Pour survivre, elle transforma sa voix en arme et son tambourin en bouclier, charmant les tavernes et les passants d'Auregia jusqu'à Ozélis.\nSous ses airs charmeurs, elle garde un passé plus sombre : ancienne novice de Zarûn, enlevée enfant pour être vendue à la maison close. Elle conserve de cette vie une relique, qu'elle porte encore — entre honte et mémoire.\nConnue d'un ancien client devenu compagnon, elle a trouvé dans le groupe des Téméraires une nouvelle raison de chanter.\nCar pour Mwassa, la Prophétie est devenue tel un phare dans la nuit.",
     "createdAt": "2026-07-13T19:43:52.850Z",
@@ -420,7 +465,9 @@
     "raceId": "nain",
     "classId": "cogneur",
     "gender": "Homme",
-    "elements": ["⚡ Foudre"],
+    "elements": [
+      "⚡ Foudre"
+    ],
     "level": 1,
     "attributes": {
       "primary": {
@@ -470,46 +517,56 @@
     "gifts": [
       {
         "id": "gift-1-armes-foudroyante-3-mana",
-        "name": "Armes Foudroyante — 3 mana",
-        "description": "Armes Foudroyante — 3 mana",
+        "name": "Armes Foudroyante",
+        "description": "Ce pouvoir ancien permet au porteur de graver des runes draconiques sur ses armes. Ces runes, issues du langage primordial des Dragons-Tempêtes d'Alésia, servent de catalyseur : elles attirent et canalisent la foudre vivante.\nUne fois activées, l'arme se couvre d'arcs électriques qui tournent autour de la lame comme des serpents d'éclair. (5 Tours)",
         "source": "class",
-        "manaCost": 3
+        "manaCost": 3,
+        "damageBonus": 2
       },
       {
         "id": "gift-2-marteau-de-thor-2-mana",
-        "name": "Marteau de Thor — 2 mana",
-        "description": "Marteau de Thor — 2 mana",
+        "name": "Marteau de Thor",
+        "description": "Nindey peut lancer l'une de ses deux haches, recouverte de foudre. Un lien électrique relie sa main à la hache : tant qu'elle n'est pas coincée, celle-ci revient automatiquement dans sa main.",
         "source": "class",
         "manaCost": 2
       },
       {
         "id": "gift-3-blitzer-4-mana-d6-1",
-        "name": "Blitzer — 4 mana / D6+1",
-        "description": "Blitzer — 4 mana / D6+1",
+        "name": "Blitzer",
+        "description": "Vous invoquez une sphère d'électricité pure qui éclate en un instant. L'énergie électrise l'espace autour de vous, zébrant l'air de lignes de foudre qui fauchent tout être imprudent à portée (3m).",
         "source": "class",
-        "manaCost": 4
+        "manaCost": 4,
+        "damageDice": "1D6",
+        "damageBonus": 1
       },
       {
         "id": "gift-4-lance-de-foudre-6-mana",
-        "name": "Lance de Foudre — 6 mana",
-        "description": "Lance de Foudre — 6 mana",
+        "name": "Lance de Foudre",
+        "description": "Le joueur canalise l'énergie orageuse contenue dans ses runes draconiques pour façonner une lance entièrement faite de foudre pure.\nL'arme n'est pas matérielle : c'est une projection d'énergie condensée, vibrante et instable, prête à être lancée.\nUne fois formée, la lance crépite, illuminant les environs d'un bleu électrique avant de frapper sa cible avec la violence d'un tonnerre.",
         "source": "class",
-        "manaCost": 6
+        "manaCost": 6,
+        "damageDice": "1D10",
+        "damageBonus": 2
       },
       {
         "id": "gift-5-maitrise-des-armes",
         "name": "Maîtrise des Armes",
-        "description": "Maîtrise des Armes",
+        "description": "Capacité passive. Maîtrise avancée du maniement des armes.",
         "source": "class"
       },
       {
         "id": "gift-6-baroud-d-honneur",
         "name": "Baroud d'Honneur",
-        "description": "Baroud d'Honneur",
-        "source": "class"
+        "description": "Capacité passive. Si les PV tombent sous 30%, les attaques infligent +2 dégâts bonus.",
+        "source": "class",
+        "damageBonus": 2
       }
     ],
-    "languages": ["Commun", "Nain", "Draconique"],
+    "languages": [
+      "Commun",
+      "Nain",
+      "Draconique"
+    ],
     "img": "/images/portraits/nindey.jpg",
     "backstory": "Nindey naquit au cœur des mines profondes du royaume du Mont RockDur, là où les marteaux résonnent jour et nuit et où l'odeur de la bière est presque aussi omniprésente que celle du métal chaud. Comme tout bon nain, il grandit entre pierres, trésors, jurons crépitants et pintes bien remplies. Mais son destin prit une tournure aussi improbable qu'un elfe qui apprécierait une bonne bière : il se lia d'amitié avec un jeune dragon nommé Skarlath, être farouche, étincelant comme une tempête et légèrement pyromane doublé d'un certain attrait pour l'alcool.\nUn jour, alors que Nindey s'aventurait dans la forêt au-delà de la mine, il tomba dans une embuscade de créatures hostiles. Juste avant de finir réduit en compote nainesque, Skarlath fondit du ciel, balayant les ennemis dans une explosion d'éclairs et de flammes. Gravement blessé, Nindey fut emporté par le dragon qui le soigna à coups d'houblon et d'orge.\nC'est durant ces années passées avec Skarlath que Nindey développa une fascination profonde pour les runes draconiques. Le dragon lui enseigna les secrets des runes liées à la foudre, lui permettant d'enchanter ses haches. Lorsque la foudre les parcourt, il se sent littéralement invincible… et parfois oublie complètement d'élaborer un plan.\nDe retour au Mont RockDur, Nindey devint un forgeron reconnu pour ses enchantements électriques et une sorte de légende locale. Expert dans le maniement de ses deux haches, il fonce toujours tête la première dans le combat, guidé par l'adrénaline, la foudre… et parfois l'alcool.\nTimide au naturel, il devient étonnamment sociable après quelques pintes et raconte volontiers ses aventures, son dégoût pour les elfes (sans raison particulière — c'est juste qu'il est nain) et sa bière préférée, brassée selon une recette secrète qu'il ne révélerait pour rien au monde.\nAujourd'hui, Nindey parcourt le monde à la recherche de nouveaux matériaux, de runes oubliées, de combats glorieux… et de tavernes. Et si une tempête éclate dans le ciel, il sourit : peut-être que Skarlath veille encore, quelque part.",
     "createdAt": "2026-07-13T19:43:52.851Z",

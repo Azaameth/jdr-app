@@ -36,19 +36,11 @@ export interface CharacterGift {
   name: string
   description: string
   manaCost?: number
+  manaNote?: string
+  damageDice?: string
+  damageBonus?: number
   cooldown?: string
   source?: 'race' | 'class' | 'story' | 'item'
-}
-
-export type InventoryItemType = 'weapon' | 'armor' | 'consumable' | 'tool' | 'quest' | 'other'
-
-export interface InventoryItem {
-  id: string
-  name: string
-  quantity: number
-  type: InventoryItemType
-  description?: string
-  isEquipped?: boolean
 }
 
 export interface CharacterProfile {

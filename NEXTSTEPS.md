@@ -4,7 +4,7 @@ Increment ledger for specs that cross CLAUDE.md's high-complexity threshold (~4+
 
 ## Locked contracts (Phase 2.2)
 
-These are locked now, ahead of the features that consume them, per CLAUDE.md's high-complexity-spec policy. Cite from the Vitruve sheet, inventory, negotiation, and theme specs below instead of re-deriving.
+These are locked now, ahead of the features that consume them, per CLAUDE.md's high-complexity-spec policy. Cite from the Vitruve sheet, negotiation, and theme specs below instead of re-deriving (the inventory schema itself shipped as `inventory-slots-dons-01KXRF5M` — see its entry below).
 
 ### Per-campaign scoping convention
 
@@ -14,27 +14,7 @@ These are locked now, ahead of the features that consume them, per CLAUDE.md's h
 
 ### Typed inventory schema
 
-Two distinct pieces currently conflated under "inventory" — model them separately:
-
-1. **Backpack category slots** (`nourriture`, `munitions`, `bivouac`, `soins`, `potions`, `quete`, `speciaux`, `docs`, `gemmes`, `butin`) — simple name+quantity items, hard slot-capped per category. `category` enum + a code-level max-slots lookup table (not per-doc placeholder documents; empty slots computed client-side as `maxSlots - filledCount`):
-   ```
-   nourriture: 1, munitions: 2, quete: 7, speciaux: 7, docs: 9, gemmes: 9,
-   bivouac: 15, soins: 15, potions: 15, butin: 16
-   ```
-   (Verified against `legacy-reference/index.html:3176-3186` — the plan's original count omitted `soins: 15`.)
-2. **Weapons/armor** (`armes`/`armures`) — NOT slot-capped in legacy (list grows freely; UI just pads to a minimum of 3 empty slots). Legacy's `(...)` stat annotation is **not** a clean parseable DSL — real character data (`legacy-reference/index.html:1912-1916`) includes entries like `(RD2 vs proj. magiques)`, `(vs proj. magiques)` with no number at all, and `(Armure impossible — Oracle)` as a whole placeholder. A strict `damageDie` enum + numeric `armorRating` would silently drop these. Use a hybrid: structured optional fields for the common case, plus a freeform fallback:
-   ```ts
-   interface WeaponArmorItem {
-     name: string
-     damageDie?: 'D4' | 'D6' | 'D8' | 'D10' | 'D12' | 'D20'
-     damageBonus?: number   // the "+4"/"−1" part
-     armorRating?: number   // the "RD2" part
-     statNote?: string      // anything that doesn't reduce to the above,
-                             // e.g. "vs proj. magiques", "Armure impossible — Oracle"
-   }
-   ```
-   A parser attempts the structured fields first and falls back to `statNote` — never throws away data.
-- Cleanup while implementing this: `src/models/types/Character.ts` already declares an `InventoryItem`/`InventoryItemType` that's unused anywhere in `src/` (confirmed via grep) and duplicates-by-name the real, wired `InventoryItem` in `src/models/types/Inventory.ts` (the one `InventoryRepository.ts` actually uses). Retire the dead one so there's a single `InventoryItem` type.
+**Implemented** — see `src/models/types/Inventory.ts` (`InventoryCategory`, `InventoryItem`, `WeaponArmorItem`, `CharacterInventory`, `BACKPACK_MAX_SLOTS`), shipped via spec-kitty mission `inventory-slots-dons-01KXRF5M`. The two pieces once conflated under "inventory" — capped backpack category slots and the uncapped weapons/armor lists with their hybrid structured/freeform stat fields — are both real types there now; the legacy-string parser (including the `WeaponArmorItem.statNote` fallback for annotations like `(RD2 vs proj. magiques)` and `(Armure impossible — Oracle)`) lives in `src/utils/inventoryText.ts`. Cite that code in future specs instead of re-deriving the schema here. The dead `InventoryItem`/`InventoryItemType` that used to duplicate this by name in `src/models/types/Character.ts` has been retired — `Inventory.ts` is the single source now.
 
 ### Alt-form/transformation data model
 
