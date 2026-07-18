@@ -1,8 +1,8 @@
 // One-shot, idempotent migrator for the typed inventory/dons schema (WP01, T006).
 //
-// Plain Node, no Firebase dependency — pure JSON in/out. Re-implements (rather
-// than imports) the parsing rules from src/utils/inventoryText.ts, since this
-// is a standalone .mjs script; keep the two in sync if either changes.
+// Plain Node, no Firebase dependency — pure JSON in/out. The inventory
+// classification rules live in scripts/lib/classifyInventory.mjs (shared with
+// seedAll.mjs and migrateLiveInventoriesAdmin.mjs).
 //
 //   node scripts/migrateInventoryFixtures.mjs
 //
@@ -13,144 +13,10 @@
 import fs from 'fs'
 import path from 'path'
 
+import { migrateInventoryDoc, normalizeMinus } from './lib/classifyInventory.mjs'
+
 const INVENTORIES_PATH = path.resolve(process.cwd(), 'scripts', 'data', 'inventories.json')
 const CHARACTERS_PATH = path.resolve(process.cwd(), 'scripts', 'data', 'characters.json')
-
-// ---------------------------------------------------------------------------
-// Shared text helpers (mirror src/utils/inventoryText.ts)
-// ---------------------------------------------------------------------------
-
-function normalizeMinus(text) {
-  return text.replace(/−/g, '-')
-}
-
-const DAMAGE_DIE_PATTERN = /^(D4|D6|D8|D10|D12|D20)(?:\/([+-]?\d+))?$/
-
-// ---------------------------------------------------------------------------
-// Inventories: split `items` into categorized backpack items + weapons/armor
-// ---------------------------------------------------------------------------
-
-// Explicit name → category map for every real backpack item name in the
-// fixtures (audited by hand against legacy-reference/index.html:3176-3186's
-// category list). Unknown names default to 'butin' with a console warning —
-// never guessed silently.
-const BACKPACK_CATEGORY_MAP = {
-  Rations: 'nourriture',
-  'Kit médical': 'soins',
-  Bandages: 'soins',
-  'Potion vie D6': 'potions',
-  'Potion PV D10': 'potions',
-  'Boussole magique': 'bivouac',
-  'Corde 11m': 'bivouac',
-  'Corde 10m': 'bivouac',
-  Lanterne: 'bivouac',
-  'Sac enchanté': 'speciaux',
-  'Kit crochetage': 'speciaux',
-  'Parchemin démon': 'docs',
-  'Livre Orc': 'docs',
-  'Livre de Magie': 'docs',
-  Balles: 'munitions',
-  'Rune Majeur Feu (50k PO)': 'butin',
-}
-
-// Name substrings that mark an item as armor even when it carries no
-// parseable RD/damage stats (e.g. bare magic rings): "Anneau du Dieu du
-// Vent" (dy), "Anneau de Mana" (mwassa), "Anneau du Dieu du Feu (vs proj.
-// magiques)" (azarius, once its unstructured annotation falls through).
-const ARMOR_NAME_HINTS = ['Anneau']
-
-function backpackItem(raw, name, quantity) {
-  const category = BACKPACK_CATEGORY_MAP[name]
-  if (!category) {
-    console.warn(
-      `[migrateInventoryFixtures] Unknown backpack item "${name}" (itemId=${raw.itemId}) — defaulting to category "butin". Add an explicit BACKPACK_CATEGORY_MAP entry if this is wrong.`,
-    )
-  }
-  return { itemId: raw.itemId, name, quantity, category: category ?? 'butin' }
-}
-
-function classifyItem(raw) {
-  const name = String(raw.name ?? '').trim()
-  const quantity = typeof raw.quantity === 'number' ? raw.quantity : 1
-
-  // Case A: the whole string is a parenthesized placeholder with no leading
-  // name, e.g. "(Armure impossible — Oracle)" (mwassa) — keep it verbatim.
-  const wholeParen = name.match(/^\(([^)]*)\)$/)
-  if (wholeParen) {
-    return { kind: 'armor', item: { itemId: raw.itemId, name } }
-  }
-
-  // Case B: "<name> (<annotation>)" — try structured damage/armor extraction.
-  const annotated = name.match(/^(.+?)\s*\(([^)]*)\)\s*$/)
-  if (annotated) {
-    const baseName = annotated[1].trim()
-    const annotation = normalizeMinus(annotated[2].trim())
-
-    const damageMatch = annotation.match(DAMAGE_DIE_PATTERN)
-    if (damageMatch) {
-      const item = { itemId: raw.itemId, name: baseName, damageDie: damageMatch[1] }
-      if (damageMatch[2] !== undefined) item.damageBonus = Number.parseInt(damageMatch[2], 10)
-      return { kind: 'weapon', item }
-    }
-
-    const armorMatch = annotation.match(/^RD(\d+)(?:\s+(.*))?$/)
-    if (armorMatch) {
-      const item = { itemId: raw.itemId, name: baseName, armorRating: Number.parseInt(armorMatch[1], 10) }
-      if (armorMatch[2]) item.statNote = armorMatch[2].trim()
-      return { kind: 'armor', item }
-    }
-
-    if (ARMOR_NAME_HINTS.some((hint) => baseName.includes(hint))) {
-      return { kind: 'armor', item: { itemId: raw.itemId, name: baseName, statNote: annotation } }
-    }
-
-    // The annotation carries non-gear info (a price tag, flavor text, …) —
-    // keep it as a normal backpack item; the annotation stays in the name.
-    return { kind: 'item', item: backpackItem(raw, name, quantity) }
-  }
-
-  // Case C: bare "<name> RD<n>" suffix with no parens, e.g. "Anneau
-  // anti-magie RD1" (nindey).
-  const bareArmor = name.match(/^(.*\S)\s+RD(\d+)$/)
-  if (bareArmor) {
-    return {
-      kind: 'armor',
-      item: { itemId: raw.itemId, name: bareArmor[1], armorRating: Number.parseInt(bareArmor[2], 10) },
-    }
-  }
-
-  // Case D: no annotation, no RD suffix — armor if it's a known gear-name
-  // hint (a ring with no stats yet), else a plain backpack item.
-  if (ARMOR_NAME_HINTS.some((hint) => name.includes(hint))) {
-    return { kind: 'armor', item: { itemId: raw.itemId, name } }
-  }
-
-  return { kind: 'item', item: backpackItem(raw, name, quantity) }
-}
-
-function migrateInventoryDoc(doc) {
-  const weapons = Array.isArray(doc.weapons) ? [...doc.weapons] : []
-  const armor = Array.isArray(doc.armor) ? [...doc.armor] : []
-  const items = []
-
-  for (const raw of doc.items ?? []) {
-    const { kind, item } = classifyItem(raw)
-    if (kind === 'weapon') weapons.push(item)
-    else if (kind === 'armor') armor.push(item)
-    else items.push(item)
-  }
-
-  return {
-    uid: doc.uid,
-    campaignId: doc.campaignId,
-    characterId: doc.characterId,
-    items,
-    weapons,
-    armor,
-    createdAt: doc.createdAt,
-    updatedAt: doc.updatedAt,
-  }
-}
 
 // ---------------------------------------------------------------------------
 // Gifts: split legacy "name — mana / dice" strings, merge legacy DONS_DATA
@@ -325,6 +191,24 @@ const DONS_DATA = {
       desc: "Invoque l'alliance sacrée des 12 divinités pour un effet puissant.",
     },
   },
+  // Transcribed from the committed scripts/data/characters.json furmiaou seed
+  // (vitruve-character-sheet mission) so re-running this migrator does not
+  // strip the child character's gift stats.
+  furmiaou: {
+    Morsure: { mana: 0, des: 'D8', bonus: 3, desc: 'Attaque principale, ignore 1 RD.' },
+    Griffes: { mana: 0, des: 'D6', bonus: 2, desc: '2 attaques simultanées.' },
+    'Bond félin': { mana: 4, des: '—', bonus: 0, desc: 'Saut 8m + attaque en atterrissant.' },
+    Rugissement: { mana: 3, des: '—', bonus: 0, desc: 'Terreur, −20% ennemis proches.' },
+    'Sens affûtés': {
+      mana: 0,
+      des: '—',
+      bonus: 0,
+      desc: 'Passif — +30% perception, détecte embuscades.',
+    },
+    Régénération: { mana: 0, des: '—', bonus: 0, desc: '1 PV/tour en milieu naturel.' },
+    'Armure naturelle': { mana: 0, des: '—', bonus: 0, desc: 'RD2 fourrure — RD4 vs projectiles.' },
+    Lacération: { mana: 0, des: '—', bonus: 0, desc: 'Saignement : −1 PV/tour pendant 3 tours.' },
+  },
   nindey: {
     'Armes Foudroyante': {
       mana: 3,
@@ -459,7 +343,7 @@ function writeJson(filePath, value) {
 
 function main() {
   const inventories = JSON.parse(fs.readFileSync(INVENTORIES_PATH, 'utf8'))
-  const migratedInventories = inventories.map(migrateInventoryDoc)
+  const migratedInventories = inventories.map((doc) => migrateInventoryDoc(doc))
   writeJson(INVENTORIES_PATH, migratedInventories)
   console.log(`Migrated ${migratedInventories.length} inventories -> ${INVENTORIES_PATH}`)
 

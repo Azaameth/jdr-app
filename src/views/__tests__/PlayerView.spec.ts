@@ -535,6 +535,18 @@ describe('PlayerView — vitruve tab host (T010/T013)', () => {
     expect(wrapper.find('.gift-card, .dons-empty').exists()).toBe(false)
   })
 
+  it('falls back to the raw raceId/classId when they resolve to no campaign doc', async () => {
+    mountAsOwner()
+
+    const wrapper = mount(PlayerView, { props: { campaignId: 'campaign-1', characterId: 'char-1' } })
+    await flushPromises()
+
+    // listRacesByCampaign/listClassesByCampaign are mocked empty, so nothing
+    // resolves — the legacy behavior is to show the stored ids as-is.
+    expect(wrapper.findComponent(VitruveSheet).props('raceName')).toBe('r1')
+    expect(wrapper.findComponent(FicheTab).props('raceName')).toBe('r1')
+  })
+
   it('switching to the Dons tab shows the relocated DonList unchanged', async () => {
     mountAsOwner()
     currentCharacter = makeCharacter({

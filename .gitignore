@@ -87,3 +87,6 @@ kitty-ops/ops-index.jsonl
 
 # Timestamped snapshot from `spec-kitty charter lint` — regenerates on every run
 .kittify/lint-report.json
+
+# Live-migration backups (production data snapshots)
+scripts/backups/

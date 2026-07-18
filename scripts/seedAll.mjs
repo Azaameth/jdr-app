@@ -13,6 +13,8 @@ import path from 'path'
 import { cert, initializeApp } from 'firebase-admin/app'
 import { FieldValue, getFirestore } from 'firebase-admin/firestore'
 
+import { migrateInventoryDoc } from './lib/classifyInventory.mjs'
+
 // ---------------------------------------------------------------------------
 // Bootstrap
 // ---------------------------------------------------------------------------
@@ -256,14 +258,19 @@ function mapCharacter(characterId, raw, campaignId, ownerUid = characterId) {
     updatedAt: now,
   }
 
-  const inventory = {
-    uid: ownerUid,
-    campaignId,
-    characterId,
-    items: parseSessionInventory(raw),
-    createdAt: now,
-    updatedAt: now,
-  }
+  // parseSessionInventory yields the legacy flat list; split it into the
+  // typed schema (categorized items + weapons/armor) the app reads.
+  const inventory = migrateInventoryDoc(
+    {
+      uid: ownerUid,
+      campaignId,
+      characterId,
+      items: parseSessionInventory(raw),
+      createdAt: now,
+      updatedAt: now,
+    },
+    { warnTag: 'seedAll' },
+  )
 
   return {
     profile: cleanUndefined(profile),

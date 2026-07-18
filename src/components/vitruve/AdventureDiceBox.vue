@@ -111,6 +111,7 @@ function adjust(die: 'aventure' | 'mesaventure', delta: number) {
 }
 .adv-dice-row {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
   justify-content: space-between;
 }
@@ -118,7 +119,8 @@ function adjust(die: 'aventure' | 'mesaventure', delta: number) {
   display: flex;
   align-items: center;
   gap: 6px;
-  flex: 1;
+  flex: 1 1 auto;
+  min-width: 0;
   justify-content: center;
   padding: 6px 8px;
   border-radius: 8px;
@@ -166,7 +168,9 @@ function adjust(die: 'aventure' | 'mesaventure', delta: number) {
 }
 .adv-dice-footer {
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
+  gap: 2px 8px;
   margin-top: 8px;
 }
 .adv-dice-summary {

@@ -292,6 +292,11 @@ const selectedClass = computed(() => {
   )
 })
 
+// The legacy sheet displayed the raw stored raceId/classId strings; keep that
+// behavior when the id doesn't resolve against the campaign collections.
+const raceDisplayName = computed(() => selectedRace.value?.n ?? character.value?.raceId)
+const classDisplayName = computed(() => selectedClass.value?.n ?? character.value?.classId)
+
 function clampSessionValue(resource: 'hp' | 'mana', value: number, max: number) {
   const boundedMax = Math.max(0, max)
   if (resource === 'hp') {
@@ -673,8 +678,8 @@ onBeforeUnmount(() => {
       <VitruveSheet
         :character="character"
         :participant="participant"
-        :race-name="selectedRace?.n"
-        :class-name="selectedClass?.n"
+        :race-name="raceDisplayName"
+        :class-name="classDisplayName"
         :can-edit-session="canEditSession"
         :session-loading="sessionLoading"
         :session-error="sessionError"
@@ -728,7 +733,7 @@ onBeforeUnmount(() => {
             <p v-if="ficheError" class="error">{{ ficheError }}</p>
             <FicheTab
               :character="character"
-              :race-name="selectedRace?.n"
+              :race-name="raceDisplayName"
               :can-edit="canEditCharacter"
               @save-histoire="handleSaveHistoire"
             />
