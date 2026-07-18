@@ -27,6 +27,9 @@ create_intent:
 - src/components/vitruve/FicheTab.vue
 - src/components/vitruve/CaracTab.vue
 - src/components/vitruve/tickState.ts
+- src/components/vitruve/__tests__/FicheTab.spec.ts
+- src/components/vitruve/__tests__/CaracTab.spec.ts
+- src/components/vitruve/__tests__/tickState.spec.ts
 execution_mode: code_change
 model: claude-sonnet-5
 owned_files:

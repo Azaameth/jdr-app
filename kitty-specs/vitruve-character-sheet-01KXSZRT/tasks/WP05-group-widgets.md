@@ -24,6 +24,8 @@ authoritative_surface: src/components/vitruve/
 create_intent:
 - src/components/vitruve/PartyStatus.vue
 - src/components/vitruve/AdventureDiceBox.vue
+- src/components/vitruve/__tests__/PartyStatus.spec.ts
+- src/components/vitruve/__tests__/AdventureDiceBox.spec.ts
 execution_mode: code_change
 model: claude-sonnet-5
 owned_files:

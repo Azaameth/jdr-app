@@ -26,6 +26,9 @@ create_intent:
 - src/components/vitruve/jetFormula.ts
 - src/components/vitruve/JetCalculator.vue
 - src/components/vitruve/AdvantageToggles.vue
+- src/components/vitruve/__tests__/jetFormula.spec.ts
+- src/components/vitruve/__tests__/JetCalculator.spec.ts
+- src/components/vitruve/__tests__/AdvantageToggles.spec.ts
 execution_mode: code_change
 model: claude-sonnet-5
 owned_files:

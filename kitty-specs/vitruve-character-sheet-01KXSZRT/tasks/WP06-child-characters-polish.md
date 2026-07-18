@@ -26,6 +26,8 @@ create_intent:
 - src/components/vitruve/ChildSheetTab.vue
 - src/components/vitruve/RawCharacterEditor.vue
 - e2e/vitruve.spec.ts
+- src/components/vitruve/__tests__/ChildSheetTab.spec.ts
+- src/components/vitruve/__tests__/RawCharacterEditor.spec.ts
 execution_mode: code_change
 model: claude-sonnet-5
 owned_files:
