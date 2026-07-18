@@ -5,6 +5,10 @@ wp_id: WP06
 verdict: rejected
 reviewer_agent: reviewer-renata
 reviewed_at: '2026-07-18T18:40:00Z'
+review_artifact_override_at: "2026-07-18T16:35:53Z"
+review_artifact_override_actor: "operator"
+review_artifact_override_wp_id: "WP06"
+review_artifact_override_reason: "Review passed (cycle 2): FR-016 coverage added; new test mounts PlayerView, gives Furmiaou genuinely distinct attributes/injuries from the parent fixture, and asserts JetCalculator's attributes/injuries/contextKey props switch atomically to the child's on tab activation (with explicit .not.toEqual guards) and restore on switching back. Fix commit 66170f4 is test-only (59 lines, PlayerView.spec.ts only); type-check, lint, and unit (377/377) all green; production files unchanged since 706665d. Cycle-1 rejection (review-cycle-1.md) is superseded — this override records the cycle-2 approval."
 ---
 
 # WP06 review — cycle 1

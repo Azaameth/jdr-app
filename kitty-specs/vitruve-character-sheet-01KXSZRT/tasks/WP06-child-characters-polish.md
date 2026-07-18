@@ -18,7 +18,7 @@ subtasks:
 - T030
 - T031
 agent: "claude:sonnet:reviewer-renata:reviewer"
-shell_pid: "53685"
+shell_pid: "69063"
 history:
 - 2026-07-18T07:12:04Z — created by /spec-kitty.tasks
 agent_profile: frontend-freddy
@@ -140,3 +140,7 @@ spec-kitty agent action implement WP06 --agent claude
 - 2026-07-18T12:47:06Z – claude:sonnet:frontend-freddy:implementer – shell_pid=47651 – Ready for review: T027-T031 implemented. ChildSheetTab.vue (child mini-sheet, extracted CaracCategoryBlock.vue reused from CaracTab), RawCharacterEditor.vue (MJ-only atomic JSON editor), PlayerView.vue integration (child tabs, active-context switch for calculator FR-016, stale-tab fallback, raw-editor trigger), e2e/vitruve.spec.ts smoke, NEXTSTEPS.md ledger closed. Full local gate green: type-check, lint, 376 unit tests, build, e2e chromium 5/5 (vitruve spec re-run 3x clean). Webkit CI-only per known environment gotcha. Out-of-map edits (sanctioned, documented in code comments): CaracCategoryBlock.vue extraction touching CaracTab.vue; PlayerView.vue + PlayerView.spec.ts integration edits.
 - 2026-07-18T12:47:43Z – claude:sonnet:reviewer-renata:reviewer – shell_pid=53685 – Started review via action command
 - 2026-07-18T16:29:32Z – user – shell_pid=53685 – Moved to planned
+- 2026-07-18T16:30:49Z – claude:sonnet:frontend-freddy:implementer – shell_pid=68088 – Started implementation via action command
+- 2026-07-18T16:33:31Z – claude:sonnet:frontend-freddy:implementer – shell_pid=68088 – Cycle 2: FR-016 test coverage added per review feedback; all suites green
+- 2026-07-18T16:34:04Z – claude:sonnet:reviewer-renata:reviewer – shell_pid=69063 – Started review via action command
+- 2026-07-18T16:35:53Z – user – shell_pid=69063 – Review passed (cycle 2): FR-016 coverage added; new test mounts PlayerView, gives Furmiaou genuinely distinct attributes/injuries from the parent fixture, and asserts JetCalculator's attributes/injuries/contextKey props switch atomically to the child's on tab activation (with explicit .not.toEqual guards) and restore on switching back. Fix commit 66170f4 is test-only (59 lines, PlayerView.spec.ts only); type-check, lint, and unit (377/377) all green; production files unchanged since 706665d. Cycle-1 rejection (review-cycle-1.md) is superseded — this override records the cycle-2 approval.
