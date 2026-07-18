@@ -146,11 +146,11 @@ Delivery shape (decision `01KXT0MDBTHK7AMPR1T7SC17KZ`): **six sequential work pa
 
 **Independent test**: quickstart.md walkthrough steps 5–7 pass; smoke e2e green on all configured browsers; full local CI green.
 
-- [x] T027 ChildSheetTab.vue mini-sheet (WP06)
-- [x] T028 Child-tab integration + calculator context (WP06)
-- [x] T029 RawCharacterEditor.vue (WP06)
-- [x] T030 Vitruve smoke e2e (WP06)
-- [x] T031 Final sweep + NEXTSTEPS.md closure (WP06)
+- [ ] T027 ChildSheetTab.vue mini-sheet (WP06)
+- [ ] T028 Child-tab integration + calculator context (WP06)
+- [ ] T029 RawCharacterEditor.vue (WP06)
+- [ ] T030 Vitruve smoke e2e (WP06)
+- [ ] T031 Final sweep + NEXTSTEPS.md closure (WP06)
 
 **Risks**: reusing carac-block rendering without duplication; atomic validated raw-editor writes; webkit e2e flakiness (keep the spec browser-agnostic).
 

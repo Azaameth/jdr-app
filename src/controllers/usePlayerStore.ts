@@ -4,16 +4,31 @@ import {
   getParticipant,
   getParticipantByCharacterId,
   setParticipantSessionByCharacterId,
+  subscribeParticipantsByCampaign,
+  updateChildSession,
+  updateSessionFields,
 } from '../models/repositories/ParticipantRepository'
 import {
   getParticipantNote,
   setParticipantNote,
 } from '../models/repositories/ParticipantNoteRepository'
-import type { Participant, Posture } from '../models/types/Participant'
+import type { CharacterProfile } from '../models/types/Character'
+import type {
+  CharacterSessionState,
+  Participant,
+  Posture,
+  SecondaryAttributeName,
+} from '../models/types/Participant'
 
 // Cache: campaignId → characterId for the current user
 const cache = ref<Record<string, string>>({})
 const error = ref<string | null>(null)
+
+// "État du groupe" (party) live state — populated by subscribeParty.
+const partyCampaignId = ref<string | null>(null)
+const partyParticipants = ref<Participant[]>([])
+const partyCharacters = ref<CharacterProfile[]>([])
+let unsubscribeParticipants: (() => void) | null = null
 
 export function usePlayerStore() {
   async function setSessionResource(
@@ -123,6 +138,141 @@ export function usePlayerStore() {
     }
   }
 
+  async function setInjury(
+    characterId: string,
+    attr: SecondaryAttributeName,
+    state: 'jaune' | 'rouge' | null,
+  ): Promise<void> {
+    error.value = null
+
+    try {
+      if (!partyCampaignId.value) return
+      const participant = await getParticipantByCharacterId(characterId, partyCampaignId.value)
+      if (!participant) return
+
+      const nextInjuries = { ...participant.session.injuries }
+      if (state === null) {
+        delete nextInjuries[attr]
+      } else {
+        nextInjuries[attr] = state
+      }
+
+      await updateSessionFields(participant.id, { injuries: nextInjuries })
+    } catch (err) {
+      error.value =
+        err instanceof Error ? err.message : "Impossible de mettre à jour l'état de session."
+    }
+  }
+
+  async function setAdvantage(characterId: string, value: boolean): Promise<void> {
+    error.value = null
+
+    try {
+      if (!partyCampaignId.value) return
+      const participant = await getParticipantByCharacterId(characterId, partyCampaignId.value)
+      if (!participant) return
+
+      await updateSessionFields(participant.id, { advantage: value })
+    } catch (err) {
+      error.value =
+        err instanceof Error ? err.message : "Impossible de mettre à jour l'état de session."
+    }
+  }
+
+  async function setDisadvantage(characterId: string, value: boolean): Promise<void> {
+    error.value = null
+
+    try {
+      if (!partyCampaignId.value) return
+      const participant = await getParticipantByCharacterId(characterId, partyCampaignId.value)
+      if (!participant) return
+
+      await updateSessionFields(participant.id, { disadvantage: value })
+    } catch (err) {
+      error.value =
+        err instanceof Error ? err.message : "Impossible de mettre à jour l'état de session."
+    }
+  }
+
+  async function setChildVitals(
+    parentCharacterId: string,
+    childCharacterId: string,
+    fields: Partial<CharacterSessionState>,
+  ): Promise<void> {
+    error.value = null
+
+    try {
+      if (!partyCampaignId.value) return
+      const participant = await getParticipantByCharacterId(
+        parentCharacterId,
+        partyCampaignId.value,
+      )
+      if (!participant) return
+
+      await updateChildSession(participant.id, childCharacterId, fields)
+    } catch (err) {
+      error.value =
+        err instanceof Error ? err.message : "Impossible de mettre à jour l'état de session."
+    }
+  }
+
+  /**
+   * Idempotent attach to a campaign's live participant roster (état du groupe).
+   * Re-calling with the same campaignId is a no-op; a different campaignId
+   * detaches the previous listener first so subscriptions never stack.
+   */
+  function subscribeParty(campaignId: string): void {
+    if (partyCampaignId.value === campaignId && unsubscribeParticipants) {
+      return
+    }
+
+    if (unsubscribeParticipants) {
+      unsubscribeParticipants()
+      unsubscribeParticipants = null
+    }
+
+    partyCampaignId.value = campaignId
+    error.value = null
+
+    listCharactersByCampaign(campaignId)
+      .then((list) => {
+        partyCharacters.value = list
+      })
+      .catch((err) => {
+        error.value =
+          err instanceof Error ? err.message : 'Erreur lors du chargement des personnages.'
+      })
+
+    unsubscribeParticipants = subscribeParticipantsByCampaign(campaignId, (list) => {
+      partyParticipants.value = list
+    })
+  }
+
+  function unsubscribeParty(): void {
+    if (unsubscribeParticipants) {
+      unsubscribeParticipants()
+      unsubscribeParticipants = null
+    }
+    partyCampaignId.value = null
+    partyParticipants.value = []
+    partyCharacters.value = []
+  }
+
+  const party = computed(() => {
+    const charactersById = new Map(partyCharacters.value.map((c) => [c.id, c]))
+    const entries: Array<{ character: CharacterProfile; session: CharacterSessionState }> = []
+
+    for (const participant of partyParticipants.value) {
+      if (participant.status !== 'approved') continue
+      const character = charactersById.get(participant.characterId)
+      if (!character) continue
+      if (character.parentCharacterId) continue // I-C2: children excluded from rosters
+      entries.push({ character, session: participant.session })
+    }
+
+    return entries
+  })
+
   return {
     resolveCharacterId,
     setSessionResource,
@@ -130,6 +280,13 @@ export function usePlayerStore() {
     resolveParticipant,
     getPersonalNote,
     setPersonalNote,
+    setInjury,
+    setAdvantage,
+    setDisadvantage,
+    setChildVitals,
+    subscribeParty,
+    unsubscribeParty,
+    party,
     cache: computed(() => cache.value),
     error: computed(() => error.value),
   }

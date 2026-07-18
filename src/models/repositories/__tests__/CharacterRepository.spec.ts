@@ -6,6 +6,7 @@ const firestoreMocks = vi.hoisted(() => ({
   getDoc: vi.fn<(...args: unknown[]) => Promise<unknown>>(),
   getDocs: vi.fn<(...args: unknown[]) => Promise<unknown>>(),
   query: vi.fn<(...args: unknown[]) => unknown>(() => 'query-ref'),
+  updateDoc: vi.fn<(...args: unknown[]) => Promise<unknown>>(),
   where: vi.fn<(...args: unknown[]) => unknown>(),
 }))
 
@@ -27,9 +28,12 @@ describe('CharacterRepository', () => {
 
       expect(await repo.listCharactersByCampaign('camp-1')).toEqual([])
       expect(await repo.getCharacterById('char-1')).toBeNull()
+      expect(await repo.listChildrenOf('camp-1', 'firm')).toEqual([])
+      expect(await repo.updateCharacter('char-1', { backstory: 'x' })).toBeUndefined()
 
       expect(firestoreMocks.getDocs).not.toHaveBeenCalled()
       expect(firestoreMocks.getDoc).not.toHaveBeenCalled()
+      expect(firestoreMocks.updateDoc).not.toHaveBeenCalled()
     })
   })
 
@@ -74,6 +78,37 @@ describe('CharacterRepository', () => {
       const result = await repo.getCharacterById('char-1')
 
       expect(result).toEqual({ id: 'char-1', campaignId: 'camp-1', name: 'Hero', level: 3 })
+    })
+
+    it('listChildrenOf maps docs to { id, ...data } with no field defaulting', async () => {
+      firestoreMocks.getDocs.mockResolvedValue({
+        docs: [
+          {
+            id: 'furmiaou',
+            data: () => ({ campaignId: 'camp-1', name: 'Furmiaou', parentCharacterId: 'firm' }),
+          },
+        ],
+      })
+
+      const repo = await import('../CharacterRepository')
+      const result = await repo.listChildrenOf('camp-1', 'firm')
+
+      expect(result).toEqual([
+        { id: 'furmiaou', campaignId: 'camp-1', name: 'Furmiaou', parentCharacterId: 'firm' },
+      ])
+    })
+
+    it('updateCharacter strips id and merge-writes the remaining fields plus updatedAt', async () => {
+      firestoreMocks.updateDoc.mockResolvedValue(undefined)
+
+      const repo = await import('../CharacterRepository')
+      await repo.updateCharacter('char-1', { id: 'char-1', backstory: 'Nouvelle histoire' })
+
+      expect(firestoreMocks.updateDoc).toHaveBeenCalledTimes(1)
+      const [, payload] = firestoreMocks.updateDoc.mock.calls[0] as [unknown, Record<string, unknown>]
+      expect(payload.id).toBeUndefined()
+      expect(payload.backstory).toBe('Nouvelle histoire')
+      expect(typeof payload.updatedAt).toBe('string')
     })
   })
 })

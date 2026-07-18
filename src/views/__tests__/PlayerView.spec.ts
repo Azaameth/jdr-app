@@ -3,6 +3,7 @@ import { computed, ref } from 'vue'
 import { flushPromises, mount } from '@vue/test-utils'
 import type { CharacterProfile } from '../../models/types/Character'
 import type { CharacterInventory } from '../../models/types/Inventory'
+import type { Participant } from '../../models/types/Participant'
 import type { User } from '../../models/types/User'
 
 vi.mock('vue-router', async () => {
@@ -25,10 +26,31 @@ vi.mock('../../controllers/useInventoryStore', () => ({
 
 vi.mock('../../models/repositories/CharacterRepository', () => ({
   getCharacterById: vi.fn<() => Promise<CharacterProfile | null>>(async () => currentCharacter),
+  updateCharacter: vi.fn<() => Promise<void>>(async () => {}),
+  // WP03: usePlayerStore().subscribeParty (needed for setInjury to have a
+  // campaign context) calls listCharactersByCampaign internally.
+  listCharactersByCampaign: vi.fn<() => Promise<CharacterProfile[]>>(async () => []),
+  // WP06: loadCharacter() now also fetches the displayed character's children
+  // (Furmiaou-style transformations) alongside it — default to none so every
+  // pre-existing test in this file (none of which are about children) keeps
+  // seeing exactly the four base tabs.
+  listChildrenOf: vi.fn<() => Promise<CharacterProfile[]>>(async () => currentChildren),
+}))
+// WP06: updateChildSession backs usePlayerStore().setChildVitals — hoisted
+// (vi.mock factories run before top-level const declarations, per Vitest's
+// hoisting rules — see usePlayerStore.spec.ts for the same pattern) so
+// child-tab tests can assert the childId/fields it was called with.
+const { mockUpdateChildSession } = vi.hoisted(() => ({
+  mockUpdateChildSession: vi.fn<() => Promise<void>>(async () => {}),
 }))
 vi.mock('../../models/repositories/ParticipantRepository', () => ({
-  getParticipantByCharacterId: vi.fn<() => Promise<null>>(async () => null),
+  getParticipantByCharacterId: vi.fn<() => Promise<Participant | null>>(
+    async () => currentParticipant,
+  ),
   setParticipantSessionByCharacterId: vi.fn<() => Promise<null>>(async () => null),
+  // WP03: usePlayerStore().subscribeParty attaches this live listener too.
+  subscribeParticipantsByCampaign: vi.fn<() => () => void>(() => () => {}),
+  updateChildSession: mockUpdateChildSession,
 }))
 vi.mock('../../models/repositories/ClassRepository', () => ({
   listClassesByCampaign: vi.fn<() => Promise<unknown[]>>(async () => []),
@@ -38,6 +60,12 @@ vi.mock('../../models/repositories/RaceRepository', () => ({
 }))
 
 import PlayerView from '../PlayerView.vue'
+import CaracTab from '../../components/vitruve/CaracTab.vue'
+import ChildSheetTab from '../../components/vitruve/ChildSheetTab.vue'
+import FicheTab from '../../components/vitruve/FicheTab.vue'
+import JetCalculator from '../../components/vitruve/JetCalculator.vue'
+import RawCharacterEditor from '../../components/vitruve/RawCharacterEditor.vue'
+import VitruveSheet from '../../components/vitruve/VitruveSheet.vue'
 
 function makeAuthStore(user: User | null) {
   return {
@@ -117,11 +145,41 @@ function makeInventory(overrides: Partial<CharacterInventory> = {}): CharacterIn
 
 // The mocked CharacterRepository reads this module-level fixture.
 let currentCharacter: CharacterProfile | null = null
+// WP06: children of `currentCharacter`, read by the mocked listChildrenOf.
+let currentChildren: CharacterProfile[] = []
+// WP06: the parent participant doc, read by the mocked getParticipantByCharacterId
+// — carries `childSessions` for the child-tab tests. Defaults to null, same as
+// the hardcoded stub every pre-WP06 test in this file already relied on.
+let currentParticipant: Participant | null = null
+
+function makeParticipant(overrides: Partial<Participant> = {}): Participant {
+  return {
+    id: 'participant-1',
+    uid: 'owner-uid',
+    campaignId: 'campaign-1',
+    characterId: 'char-1',
+    status: 'approved',
+    session: { hp: 10, maxHp: 10, mana: 5, maxMana: 5, posture: 'FOCUS' },
+    ...overrides,
+  }
+}
+
+// Dons/Inventaire now live behind the vitruve tab host (WP02) instead of
+// always-rendered sections — tests that assert on their content must select
+// the tab first, exactly as a real user would click it.
+async function selectTab(wrapper: ReturnType<typeof mount>, label: string) {
+  const tab = wrapper.findAll('.pchar-tab').find((candidate) => candidate.text() === label)
+  if (!tab) throw new Error(`tab "${label}" not found`)
+  await tab.trigger('click')
+  await flushPromises()
+}
 
 describe('PlayerView — inventory slot editing permissions (T015/T017)', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     currentCharacter = makeCharacter()
+    currentChildren = []
+    currentParticipant = null
   })
 
   it('grants edit affordances to the inventory owner (joueur, own character)', async () => {
@@ -134,6 +192,7 @@ describe('PlayerView — inventory slot editing permissions (T015/T017)', () => 
     await flushPromises()
 
     expect(wrapper.find('.error').exists()).toBe(false)
+    await selectTab(wrapper, 'Inventaire')
     // BackpackGrid/WeaponArmorList receive editable=true → slots render as real buttons.
     const slotButtons = wrapper.findAll('.backpack-grid .slot')
     expect(slotButtons.length).toBeGreaterThan(0)
@@ -150,6 +209,7 @@ describe('PlayerView — inventory slot editing permissions (T015/T017)', () => 
 
     const wrapper = mount(PlayerView, { props: { campaignId: 'campaign-1', characterId: 'char-1' } })
     await flushPromises()
+    await selectTab(wrapper, 'Inventaire')
 
     const slotButtons = wrapper.findAll('.backpack-grid .slot')
     expect(slotButtons.length).toBeGreaterThan(0)
@@ -169,6 +229,7 @@ describe('PlayerView — inventory slot editing permissions (T015/T017)', () => 
 
     const wrapper = mount(PlayerView, { props: { campaignId: 'campaign-1', characterId: 'char-1' } })
     await flushPromises()
+    await selectTab(wrapper, 'Inventaire')
 
     const slotElements = wrapper.findAll('.backpack-grid .slot')
     expect(slotElements.length).toBeGreaterThan(0)
@@ -199,6 +260,7 @@ describe('PlayerView — inventory slot editing permissions (T015/T017)', () => 
 
     const wrapper = mount(PlayerView, { props: { campaignId: 'campaign-1', characterId: 'char-1' } })
     await flushPromises()
+    await selectTab(wrapper, 'Inventaire')
 
     const slotElements = wrapper.findAll('.backpack-grid .slot')
     expect(slotElements.length).toBeGreaterThan(0)
@@ -219,6 +281,8 @@ describe('PlayerView — inventory slot save/delete store integration (T016, rev
   beforeEach(() => {
     vi.clearAllMocks()
     currentCharacter = makeCharacter()
+    currentChildren = []
+    currentParticipant = null
   })
 
   function mountAsOwner() {
@@ -256,6 +320,7 @@ describe('PlayerView — inventory slot save/delete store integration (T016, rev
 
     const wrapper = mount(PlayerView, { props: { campaignId: 'campaign-1', characterId: 'char-1' } })
     await flushPromises()
+    await selectTab(wrapper, 'Inventaire')
 
     // Munitions (max 2 slots) has an empty slot to click for "add" while items is [].
     const munitionsSlot = firstSlot(findCategorySection(wrapper, 'Munitions'))
@@ -284,6 +349,7 @@ describe('PlayerView — inventory slot save/delete store integration (T016, rev
 
     const wrapper = mount(PlayerView, { props: { campaignId: 'campaign-1', characterId: 'char-1' } })
     await flushPromises()
+    await selectTab(wrapper, 'Inventaire')
 
     const weaponSlot = firstSlot(findWeaponArmorList(wrapper, 'Armes'))
     await weaponSlot.trigger('click')
@@ -315,6 +381,7 @@ describe('PlayerView — inventory slot save/delete store integration (T016, rev
 
     const wrapper = mount(PlayerView, { props: { campaignId: 'campaign-1', characterId: 'char-1' } })
     await flushPromises()
+    await selectTab(wrapper, 'Inventaire')
 
     const nourritureSlot = firstSlot(findCategorySection(wrapper, 'Nourriture'))
     await nourritureSlot.trigger('click')
@@ -337,6 +404,7 @@ describe('PlayerView — inventory slot save/delete store integration (T016, rev
 
     const wrapper = mount(PlayerView, { props: { campaignId: 'campaign-1', characterId: 'char-1' } })
     await flushPromises()
+    await selectTab(wrapper, 'Inventaire')
 
     const armorSlot = firstSlot(findWeaponArmorList(wrapper, 'Armures & Protections'))
     await armorSlot.trigger('click')
@@ -365,6 +433,7 @@ describe('PlayerView — inventory slot save/delete store integration (T016, rev
 
     const wrapper = mount(PlayerView, { props: { campaignId: 'campaign-1', characterId: 'char-1' } })
     await flushPromises()
+    await selectTab(wrapper, 'Inventaire')
 
     const munitionsSlot = firstSlot(findCategorySection(wrapper, 'Munitions'))
     await munitionsSlot.trigger('click')
@@ -379,5 +448,338 @@ describe('PlayerView — inventory slot save/delete store integration (T016, rev
     // French store error is visible via the `errorMessage` prop.
     expect(wrapper.find('.inventory-slot-form').exists()).toBe(true)
     expect(wrapper.find('.inventory-slot-error').text()).toBe(capMessage)
+  })
+})
+
+// WP02: PlayerView now hosts the vitruve two-column layout (left VitruveSheet
+// + right tabbed panel) instead of always-rendered sections. These cases
+// cover the integration (VitruveSheet is actually mounted), the tab host
+// itself (default tab, switching, reset-on-character-change), and confirm
+// Dons/Inventaire remain reachable — just behind a tab click now.
+describe('PlayerView — vitruve tab host (T010/T013)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    currentCharacter = makeCharacter()
+    currentChildren = []
+    currentParticipant = null
+  })
+
+  function mountAsOwner() {
+    mockAuthState.mockReturnValue(
+      makeAuthStore({ uid: 'owner-uid', displayName: 'J', email: '', photoURL: '', role: 'joueur' }),
+    )
+    mockInventoryState.mockReturnValue(makeInventoryStore(makeInventory({ uid: 'owner-uid' })))
+  }
+
+  it('renders VitruveSheet in the left column and defaults to the Fiche tab', async () => {
+    mountAsOwner()
+
+    const wrapper = mount(PlayerView, { props: { campaignId: 'campaign-1', characterId: 'char-1' } })
+    await flushPromises()
+
+    expect(wrapper.findComponent(VitruveSheet).exists()).toBe(true)
+
+    const tabs = wrapper.findAll('.pchar-tab')
+    expect(tabs.map((tab) => tab.text())).toEqual(['Fiche', 'Caractéristiques', 'Dons', 'Inventaire'])
+    expect(tabs[0]?.classes()).toContain('active')
+    expect(tabs[0]?.attributes('aria-selected')).toBe('true')
+    // WP03 replaced the Fiche placeholder with FicheTab's real content.
+    expect(wrapper.findComponent(FicheTab).exists()).toBe(true)
+    expect(wrapper.find('.vcard-lbl').exists()).toBe(true)
+    // Dons/Inventaire content isn't rendered until their tab is active.
+    expect(wrapper.find('.backpack-grid').exists()).toBe(false)
+    expect(wrapper.find('.gift-card, .dons-empty').exists()).toBe(false)
+  })
+
+  it('switching to the Dons tab shows the relocated DonList unchanged', async () => {
+    mountAsOwner()
+    currentCharacter = makeCharacter({
+      gifts: [{ id: 'g-1', name: 'Lame de Foudre', description: 'Une lame crépitante.' }],
+    })
+
+    const wrapper = mount(PlayerView, { props: { campaignId: 'campaign-1', characterId: 'char-1' } })
+    await flushPromises()
+    await selectTab(wrapper, 'Dons')
+
+    expect(wrapper.find('.gift-card').exists()).toBe(true)
+    expect(wrapper.findComponent(FicheTab).exists()).toBe(false)
+  })
+
+  it('switching to the Caractéristiques tab shows CaracTab', async () => {
+    mountAsOwner()
+
+    const wrapper = mount(PlayerView, { props: { campaignId: 'campaign-1', characterId: 'char-1' } })
+    await flushPromises()
+    await selectTab(wrapper, 'Caractéristiques')
+
+    expect(wrapper.findComponent(CaracTab).exists()).toBe(true)
+    expect(wrapper.findComponent(FicheTab).exists()).toBe(false)
+  })
+
+  it('switching to the Inventaire tab shows the relocated inventory grids unchanged', async () => {
+    mountAsOwner()
+
+    const wrapper = mount(PlayerView, { props: { campaignId: 'campaign-1', characterId: 'char-1' } })
+    await flushPromises()
+    await selectTab(wrapper, 'Inventaire')
+
+    expect(wrapper.find('.backpack-grid').exists()).toBe(true)
+    expect(wrapper.findAll('.weapon-armor-list')).toHaveLength(2)
+    expect(wrapper.findComponent(FicheTab).exists()).toBe(false)
+  })
+
+  it('resets the active tab to Fiche when characterId changes', async () => {
+    mountAsOwner()
+
+    const wrapper = mount(PlayerView, { props: { campaignId: 'campaign-1', characterId: 'char-1' } })
+    await flushPromises()
+    await selectTab(wrapper, 'Inventaire')
+    expect(wrapper.find('.backpack-grid').exists()).toBe(true)
+
+    await wrapper.setProps({ characterId: 'char-2' })
+    await flushPromises()
+
+    const tabs = wrapper.findAll('.pchar-tab')
+    expect(tabs[0]?.classes()).toContain('active')
+    expect(wrapper.findComponent(FicheTab).exists()).toBe(true)
+    expect(wrapper.find('.backpack-grid').exists()).toBe(false)
+  })
+})
+
+// WP06: child-character tabs (FR-011/FR-015) and the MJ-only raw-data editor
+// (FR-004) are wired into PlayerView here — these cases confirm both are
+// actually reachable through the real component tree (not just unit-tested
+// in isolation), per the WP06 task's "Integration check".
+describe('PlayerView — child character tabs & raw editor (WP06)', () => {
+  // Review cycle 1 (FR-016): this fixture previously shared the exact same
+  // all-1s attributes as `makeCharacter()`'s default, so a test asserting
+  // prop equality against it would pass even if PlayerView silently fed the
+  // parent's attributes to the child tab. `attributes` (primary AND
+  // secondary) are now genuinely distinct from the parent's, so the new
+  // "calculator context follows the active tab" test below is a real
+  // regression guard, not a tautology.
+  const furmiaou = makeCharacter({
+    id: 'furmiaou',
+    name: 'Furmiaou',
+    parentCharacterId: 'char-1',
+    elements: ['Nature', 'Transmutation'],
+    attributes: {
+      primary: { force: 3, social: 4, mental: 5 },
+      secondary: { puissance: 6, finesse: 7, aura: 8, relation: 2, instinct: 9, savoir: 3 },
+    },
+  })
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    currentCharacter = makeCharacter()
+    currentChildren = []
+    currentParticipant = null
+  })
+
+  function mountAsOwner() {
+    mockAuthState.mockReturnValue(
+      makeAuthStore({ uid: 'owner-uid', displayName: 'J', email: '', photoURL: '', role: 'joueur' }),
+    )
+    mockInventoryState.mockReturnValue(makeInventoryStore(makeInventory({ uid: 'owner-uid' })))
+  }
+
+  function mountAsMj() {
+    mockAuthState.mockReturnValue(
+      makeAuthStore({ uid: 'mj-uid', displayName: 'MJ', email: '', photoURL: '', role: 'mj' }),
+    )
+    mockInventoryState.mockReturnValue(makeInventoryStore(makeInventory({ uid: 'owner-uid' })))
+  }
+
+  it('adds one tab per child, labeled with the child name', async () => {
+    mountAsOwner()
+    currentChildren = [furmiaou]
+
+    const wrapper = mount(PlayerView, { props: { campaignId: 'campaign-1', characterId: 'char-1' } })
+    await flushPromises()
+
+    const tabs = wrapper.findAll('.pchar-tab')
+    expect(tabs.map((tab) => tab.text())).toEqual([
+      'Fiche',
+      'Caractéristiques',
+      'Dons',
+      'Inventaire',
+      'Furmiaou',
+    ])
+  })
+
+  it('switching to a child tab renders ChildSheetTab with the child and its childSessions entry', async () => {
+    mountAsOwner()
+    currentChildren = [furmiaou]
+    currentParticipant = makeParticipant({
+      childSessions: {
+        furmiaou: { hp: 40, maxHp: 48, mana: 0, maxMana: 0, posture: 'FOCUS' },
+      },
+    })
+
+    const wrapper = mount(PlayerView, { props: { campaignId: 'campaign-1', characterId: 'char-1' } })
+    await flushPromises()
+    await selectTab(wrapper, 'Furmiaou')
+
+    const childTab = wrapper.findComponent(ChildSheetTab)
+    expect(childTab.exists()).toBe(true)
+    expect(childTab.props('child').id).toBe('furmiaou')
+    expect(childTab.props('childSession')).toEqual({
+      hp: 40,
+      maxHp: 48,
+      mana: 0,
+      maxMana: 0,
+      posture: 'FOCUS',
+    })
+    expect(wrapper.findComponent(FicheTab).exists()).toBe(false)
+  })
+
+  it('falls back to a zeroed session when the child has no childSessions entry yet, and PV + persists via setChildVitals', async () => {
+    mountAsOwner()
+    currentChildren = [furmiaou]
+    currentParticipant = makeParticipant() // no childSessions.furmiaou entry yet
+
+    const wrapper = mount(PlayerView, { props: { campaignId: 'campaign-1', characterId: 'char-1' } })
+    await flushPromises()
+    await selectTab(wrapper, 'Furmiaou')
+
+    expect(wrapper.findComponent(ChildSheetTab).props('childSession')).toBeNull()
+    // Fallback session is all-zero (PV / 0), never NaN.
+    expect(wrapper.text()).toContain('PV / 0')
+
+    // PlayerView.vue's clampSessionValue clamps hp to [-maxHp, maxHp]; with
+    // maxHp 0 the '+' stepper is disabled by ChildSheetTab's hpPlusDisabled
+    // (session.hp >= session.maxHp, 0 >= 0) — this documents that a child
+    // with no bootstrapped session has no usable PV stepper until an MJ
+    // raw-edits a real childSessions entry (or seed data provides one, as
+    // it does for the real Furmiaou fixture).
+    // Scoped to ChildSheetTab: VitruveSheet's own PV+ button carries the
+    // exact same aria-label for the PARENT's vitals, so an unscoped query
+    // would silently match the wrong button.
+    const plusButton = wrapper.findComponent(ChildSheetTab).find('[aria-label="Augmenter les PV"]')
+    expect(plusButton.attributes('disabled')).toBeDefined()
+  })
+
+  it('adjusting a bootstrapped child PV calls setChildVitals (updateChildSession) with the parent participant id', async () => {
+    mountAsOwner()
+    currentChildren = [furmiaou]
+    currentParticipant = makeParticipant({
+      childSessions: {
+        furmiaou: { hp: 40, maxHp: 48, mana: 0, maxMana: 0, posture: 'FOCUS' },
+      },
+    })
+
+    const wrapper = mount(PlayerView, { props: { campaignId: 'campaign-1', characterId: 'char-1' } })
+    await flushPromises()
+    await selectTab(wrapper, 'Furmiaou')
+
+    // Scoped to ChildSheetTab — see the aria-label collision note above.
+    await wrapper
+      .findComponent(ChildSheetTab)
+      .find('[aria-label="Augmenter les PV"]')
+      .trigger('click')
+    await flushPromises()
+
+    expect(mockUpdateChildSession).toHaveBeenCalledWith('participant-1', 'furmiaou', { hp: 41 })
+  })
+
+  it('falls back to the Fiche tab when the active child tab disappears on the SAME character (spec edge case)', async () => {
+    // mj (not just the owner) so the raw-editor trigger/save round trip used
+    // below to drive a same-character reload is actually reachable.
+    mountAsMj()
+    currentChildren = [furmiaou]
+
+    const wrapper = mount(PlayerView, { props: { campaignId: 'campaign-1', characterId: 'char-1' } })
+    await flushPromises()
+    await selectTab(wrapper, 'Furmiaou')
+    expect(wrapper.findComponent(ChildSheetTab).exists()).toBe(true)
+
+    // Simulate the MJ raw-editing Furmiaou's parentCharacterId away (or
+    // deleting the relationship): the next fetch of the SAME character's
+    // children comes back empty. Drive this through the real refresh path
+    // (RawCharacterEditor's `saved` emit → handleRawEditorSaved →
+    // loadCharacter()) rather than changing `characterId`, which would
+    // trigger the OTHER reset path (the characterId watcher) and not
+    // exercise this one.
+    currentChildren = []
+    await wrapper.findComponent(RawCharacterEditor).vm.$emit('saved')
+    await flushPromises()
+
+    const tabs = wrapper.findAll('.pchar-tab')
+    expect(tabs.map((tab) => tab.text())).toEqual(['Fiche', 'Caractéristiques', 'Dons', 'Inventaire'])
+    expect(tabs[0]?.classes()).toContain('active')
+    expect(wrapper.findComponent(FicheTab).exists()).toBe(true)
+  })
+
+  it('shows the raw-editor trigger for an mj and opens RawCharacterEditor on click', async () => {
+    mountAsMj()
+
+    const wrapper = mount(PlayerView, { props: { campaignId: 'campaign-1', characterId: 'char-1' } })
+    await flushPromises()
+
+    const trigger = wrapper.find('.raw-editor-trigger')
+    expect(trigger.exists()).toBe(true)
+    expect(wrapper.find('.raw-editor-textarea').exists()).toBe(false)
+
+    await trigger.trigger('click')
+    await flushPromises()
+
+    expect(wrapper.findComponent(RawCharacterEditor).props('open')).toBe(true)
+    expect(wrapper.find('.raw-editor-textarea').exists()).toBe(true)
+  })
+
+  it('hides the raw-editor trigger for a joueur, even the character owner', async () => {
+    mountAsOwner()
+
+    const wrapper = mount(PlayerView, { props: { campaignId: 'campaign-1', characterId: 'char-1' } })
+    await flushPromises()
+
+    expect(wrapper.find('.raw-editor-trigger').exists()).toBe(false)
+  })
+
+  // Review cycle 1 (FR-016, blocking finding): the active-context computed
+  // feeding JetCalculator was implemented correctly but had zero test
+  // assertions anywhere in the diff. This kills the "half-switched context"
+  // regression class the WP06 reviewer guidance calls out by name — child
+  // attributes paired with parent injuries (or vice versa) would compute a
+  // plausible-looking but wrong total, and only a props-level assertion on
+  // JetCalculator itself (not just ChildSheetTab) can catch that.
+  it('feeds the jet calculator the active tab context — parent on a base tab, child on the child tab, parent again after switching back (FR-016)', async () => {
+    mountAsOwner()
+    const parentInjuries = { puissance: 'jaune' as const }
+    const childInjuries = { finesse: 'rouge' as const }
+    currentChildren = [furmiaou]
+    currentParticipant = makeParticipant({
+      session: { hp: 10, maxHp: 10, mana: 5, maxMana: 5, posture: 'FOCUS', injuries: parentInjuries },
+      childSessions: {
+        furmiaou: { hp: 40, maxHp: 48, mana: 0, maxMana: 0, posture: 'FOCUS', injuries: childInjuries },
+      },
+    })
+
+    const wrapper = mount(PlayerView, { props: { campaignId: 'campaign-1', characterId: 'char-1' } })
+    await flushPromises()
+
+    // Default tab (Fiche) is a base tab: calculator must carry the parent's
+    // attributes/injuries/contextKey.
+    const calculator = () => wrapper.findComponent(JetCalculator)
+    expect(calculator().props('attributes')).toEqual(currentCharacter?.attributes)
+    expect(calculator().props('injuries')).toEqual(parentInjuries)
+    expect(calculator().props('contextKey')).toBe('char-1')
+
+    // Switch to the child tab: attributes AND injuries must switch together,
+    // to the CHILD's values, with a changed contextKey.
+    await selectTab(wrapper, 'Furmiaou')
+    expect(calculator().props('attributes')).toEqual(furmiaou.attributes)
+    expect(calculator().props('injuries')).toEqual(childInjuries)
+    expect(calculator().props('contextKey')).toBe('furmiaou')
+    // Guard against the exact half-switched bug: child attributes must never
+    // be paired with the parent's injuries, or vice versa.
+    expect(calculator().props('injuries')).not.toEqual(parentInjuries)
+    expect(calculator().props('attributes')).not.toEqual(currentCharacter?.attributes)
+
+    // Switch back to a base tab: parent context is restored in full.
+    await selectTab(wrapper, 'Caractéristiques')
+    expect(calculator().props('attributes')).toEqual(currentCharacter?.attributes)
+    expect(calculator().props('injuries')).toEqual(parentInjuries)
+    expect(calculator().props('contextKey')).toBe('char-1')
   })
 })

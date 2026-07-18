@@ -4,7 +4,7 @@ Increment ledger for specs that cross CLAUDE.md's high-complexity threshold (~4+
 
 ## Locked contracts (Phase 2.2)
 
-These are locked now, ahead of the features that consume them, per CLAUDE.md's high-complexity-spec policy. Cite from the Vitruve sheet, negotiation, and theme specs below instead of re-deriving (the inventory schema itself shipped as `inventory-slots-dons-01KXRF5M` — see its entry below).
+These are locked now, ahead of the features that consume them, per CLAUDE.md's high-complexity-spec policy. Cite from the negotiation and theme specs (not yet started) instead of re-deriving. The inventory schema and the vitruve sheet's alt-form/child-character model, both once sketched here, have since shipped — see their entries below for what's actually implemented.
 
 ### Per-campaign scoping convention
 
@@ -16,9 +16,12 @@ These are locked now, ahead of the features that consume them, per CLAUDE.md's h
 
 **Implemented** — see `src/models/types/Inventory.ts` (`InventoryCategory`, `InventoryItem`, `WeaponArmorItem`, `CharacterInventory`, `BACKPACK_MAX_SLOTS`), shipped via spec-kitty mission `inventory-slots-dons-01KXRF5M`. The two pieces once conflated under "inventory" — capped backpack category slots and the uncapped weapons/armor lists with their hybrid structured/freeform stat fields — are both real types there now; the legacy-string parser (including the `WeaponArmorItem.statNote` fallback for annotations like `(RD2 vs proj. magiques)` and `(Armure impossible — Oracle)`) lives in `src/utils/inventoryText.ts`. Cite that code in future specs instead of re-deriving the schema here. The dead `InventoryItem`/`InventoryItemType` that used to duplicate this by name in `src/models/types/Character.ts` has been retired — `Inventory.ts` is the single source now.
 
-### Alt-form/transformation data model
+### Alt-form/transformation data model — superseded, see "Vitruve character sheet" below
 
-Generalizes legacy's hardcoded "Furmiaou" tab (`legacy-reference/index.html:3494-3616`, the one real data point). Split static definition from live session state, mirroring how the base character sheet already splits `characters` (static) from `participants.session` (live hp/mana) — this is the actual fix for legacy's bug, where the alt-form's HP (`_furmPV`) was a page-load-only JS variable, never persisted:
+**Superseded during `vitruve-character-sheet-01KXSZRT`'s spec phase.** The discovery interview (spec.md, 2026-07-18) confirmed the project owner wanted alt-forms modeled as **full child characters** (`CharacterProfile` with `parentCharacterId`, live vitals in the parent participant's `childSessions[childId]`) rather than the `AltFormDefinition` nested-object scheme originally sketched below — a child needed the *entire* character shape (skills, gifts, languages), not a stripped-down stat block, and the parent/child relationship generalizes better to "multiple children" than a single `altForm` field would. See `kitty-specs/vitruve-character-sheet-01KXSZRT/data-model.md` (I-C1/I-C2/I-C3) for the locked contract actually implemented, and `src/components/vitruve/ChildSheetTab.vue` for the renderer. The original sketch is kept below only as a historical record of the road not taken:
+
+<details>
+<summary>Original sketch (not implemented)</summary>
 
 - **Static**, on the character doc: `characters/{characterId}.altForm: AltFormDefinition | null` — a nested object, not a separate collection (1:1 with a character, never queried independently across characters).
   ```ts
@@ -40,32 +43,28 @@ Generalizes legacy's hardcoded "Furmiaou" tab (`legacy-reference/index.html:3494
 - The per-sub jaune/rouge state cycling (legacy's `_caracStates`, keyed `furm_<cat>_<idx>` vs `<charName>_<cat>_<idx>`) is reused as-is once Phase 3.3(b) introduces it for the main sheet — the alt-form stat block uses the same keying scheme, not a bespoke one.
 - Deliberately not modeled (no second data point to generalize from yet): multiple alt-forms per character, a structured mana-cost field per ability (legacy embeds cost in the description text inconsistently — don't force-extract it).
 
-## Inventory slots & dons system (spec-kitty mission `inventory-slots-dons-01KXRF5M`)
+</details>
 
-Status: **WP03 approved** (2026-07-17) — WP04/WP05 pending. Branch: `feat/inventory-slots-dons`; WP code lives on lane branches (`...lane-a`/`-b`/`-c` for WP01/02/03) until `spec-kitty merge` after WP05. Mission artifacts (spec/plan/contracts/tasks/analysis) in `kitty-specs/inventory-slots-dons-01KXRF5M/`.
+## Vitruve character sheet (interactive layer) — spec-kitty mission `vitruve-character-sheet-01KXSZRT`
 
-The "Typed inventory schema" contract below is now **implemented** in WP01 (`src/models/types/Inventory.ts`, plus `src/utils/inventoryText.ts` parser, `InventoryRepository` writes, `useInventoryStore`, migrated fixtures) — future specs cite the code, not the prose. Two contract addenda from implementation: `CharacterInventory.id` (Firestore doc id, analysis finding U1) and `WeaponArmorItem.itemId` were added; `equipped` is vestigial and omitted from regenerated fixtures (U2). WP02 adds read-only display (`src/components/BackpackGrid.vue`, `src/components/WeaponArmorList.vue`, `PlayerView.vue` integration) — the old "équipé" badge is gone per U2.
+Status: **WP01–WP06 implemented**, WP06 in review as of 2026-07-18. Branch: `feat/vitruve-character-sheet`; WP code lives on lane branches (`...lane-a` through `...lane-f`) until `spec-kitty accept` + `spec-kitty merge`, then a PR to `main`. Mission artifacts in `kitty-specs/vitruve-character-sheet-01KXSZRT/`. Delete this section once merged (per this file's convention above).
 
-**Increments** (resume with `spec-kitty next --agent claude --mission inventory-slots-dons-01KXRF5M`):
+Replaces `PlayerView.vue`'s read-mostly display with the full interactive gameplay surface from legacy's "Layout vitruve JDR" (`legacy-reference/index.html:2361-3350`), plus child-character tabs generalizing legacy's hardcoded "Furmiaou" tab (see the superseded-sketch note above for why the data model changed from the original plan).
 
-- [x] WP01 — Data layer: types, parser, repository writes, store, fixture migration (approved cycle 1, 120 unit tests)
-- [x] WP02 — Backpack & equipment display (approved cycle 1, 139 unit tests)
-- [x] WP03 — Slot editing modals & permissions (approved cycle 2 — cycle 1 rejected for missing save/delete integration tests, fixed; 172 unit tests). `AppModal.vue` is now the reusable modal base (generic, a11y: role=dialog/Escape/backdrop); WP04's DonDetailModal must reuse it unmodified.
-- [ ] WP04 — Dons cards & detail modal
-- [ ] WP05 — E2E smoke, docs updates, final gates → then `spec-kitty accept` + `spec-kitty merge`, PR to `main`
+**Increments** (resume with `spec-kitty next --agent claude --mission vitruve-character-sheet-01KXSZRT`):
 
-## Vitruve character sheet (interactive layer)
+- [x] WP01 — Contract & data access: `CharacterSessionState.injuries/advantage/disadvantage`, `Participant.childSessions`, `CharacterProfile.parentCharacterId`, repository extensions (`updateSessionFields`, `updateChildSession`, `listChildrenOf`), `CampaignSessionRepository`, `firestore.rules` additions.
+- [x] WP02 — Two-column layout skeleton: `VitruveSheet.vue` (left sheet: header, PV/Mana pills, portrait) + tabbed right panel host in `PlayerView.vue`, Dons/Inventaire relocated unchanged.
+- [x] WP03 — `FicheTab.vue` + `CaracTab.vue`: histoire editor, Physique/Social/Mental category blocks with persisted injury-state squares, posture selector.
+- [x] WP04 — `JetCalculator.vue` + `jetFormula.ts` (pure, isolated formula module — category base, ticked-compétences sum, ±5% manual mod, 5–95% clamp) + `AdvantageToggles.vue`.
+- [x] WP05 — `PartyStatus.vue` ("État du groupe", live, children excluded per I-C2) + `AdventureDiceBox.vue` (Dés d'Aventure counters, mj/admin ± only) + `useCampaignSessionStore.ts`.
+- [x] WP06 — `ChildSheetTab.vue` (child mini-sheet: PV ±, Mana/"Aucune magie", element badges, carac blocks reusing the extracted `CaracCategoryBlock.vue`) + `PlayerView.vue` child-tab integration (calculator context switches attributes+injuries together, FR-016) + `RawCharacterEditor.vue` (MJ-only atomic JSON editor, FR-004) + `e2e/vitruve.spec.ts` smoke + this ledger closure.
 
-Status: **not started** — schema/naming contract locked above.
+**Known follow-ups** (not blockers for merge, but real gaps — see also README.md's "Known follow-ups"):
 
-Replaces `PlayerView.vue`'s read-mostly display with the full interactive gameplay surface from legacy's "Layout vitruve JDR" (`legacy-reference/index.html:2361-3350`), plus the generalized alt-form/transformation sub-sheet above (generalizing legacy's hardcoded "Furmiaou" tab).
-
-**Increments** (each merged and green before the next, `/clear` between):
-
-- [ ] (a) Dice-roll calculator as a pure, isolated function — Physique/Social/Mental categories, skill-check bonuses, ±5% modifiers, 5–95% clamp, Avantage/Désavantage. No UI dependency, highest testability — do this first.
-- [ ] (b) Body-zone SVG nav + tabbed panel shell (Fiche/Caractéristiques/Dons/Inventaire/alt-form). UI-only, no new Firestore writes. Accessible/keyboard-operable regions (not legacy's click-only zones).
-- [ ] (c) Firestore-synced PV/Mana pill buttons + live "État du groupe" party status. Extends `usePlayerStore.ts` / `ParticipantRepository.ts` — needs the Phase 2.1 characterization tests in place first.
-- [ ] (d) Alt-form/transformation tab, built against the locked data model from above.
+- `firestore.rules`: the additions this mission needs (`campaignSessions` collection, the tightened `characters` update rule) already exist on this feature branch, but `.github/workflows/deploy.yml` only redeploys rules on push to `main` — so they take effect in production only after this mission merges. Until then, production Firestore is still running the pre-mission ruleset.
+- The full "Dés d'Aventure" feature (dice-pool mechanics, a dedicated page) remains unported and out of scope per spec.md's explicit exclusion — this mission only ships the shared counters, their display, and mj/admin ± adjustment (WP05).
+- Manual verification: quickstart.md steps 1–6 (live two-client <2s sync for injuries/toggles/child PV; MJ raw-editor smoke against real seeded data) need a live Firebase project and two authenticated browser sessions, which this environment cannot produce — see the WP06 handoff note for the exact list of what's automated vs. what's left for a human pass. Step 7 ("demo build renders read-only") is worth a re-read against current behavior: with no Firebase secrets, the `requiresAuth` route guard redirects to campaign-list rather than rendering PlayerView in a degraded read-only mode — that's pre-existing behavior (not introduced by this mission) confirmed by `e2e/vitruve.spec.ts` and `e2e/inventory.spec.ts`, but it means step 7 as literally written doesn't match what actually happens today.
 
 ## (template for the next high-complexity spec)
 

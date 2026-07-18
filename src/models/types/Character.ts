@@ -62,4 +62,11 @@ export interface CharacterProfile {
   backstory: string
   createdAt?: string
   updatedAt?: string
+  /**
+   * Present iff this character is a child (transformation, e.g. Furmiaou).
+   * Children are full profiles in the same `characters` collection;
+   * depth is 1 (children have no children of their own — enforced by
+   * seed tooling and raw-editor validation, not by types).
+   */
+  parentCharacterId?: string
 }
