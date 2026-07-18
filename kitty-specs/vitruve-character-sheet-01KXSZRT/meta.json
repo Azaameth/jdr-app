@@ -7,6 +7,7 @@
   "mission_number": null,
   "mission_slug": "vitruve-character-sheet-01KXSZRT",
   "mission_type": "software-dev",
+  "pr_bound": true,
   "purpose_context": "Les joueurs et le MJ consultent aujourd'hui les fiches de personnage dans une vue partielle qui ne couvre que les dons et l'inventaire. Cette mission restructure la page personnage selon le layout « vitruve » de référence : colonne gauche avec vitals, portrait, calculateur de jet, avantages/désavantages, état du groupe en temps réel et rappel des dés d'aventure ; colonne droite à onglets (Fiche, Caractéristiques, Dons, Inventaire). Les transformations (ex. Furmiaou) deviennent des personnages enfants data-driven au lieu d'un onglet codé en dur, et les états de blessure sont persistés et synchronisés pour tous.",
   "purpose_tldr": "Porter la fiche de personnage « vitruve » du monolithe legacy vers l'app Vue : layout deux colonnes, calculateur de jet, état du groupe et personnages enfants data-driven.",
   "slug": "vitruve-character-sheet-01KXSZRT",
