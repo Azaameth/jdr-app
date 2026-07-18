@@ -129,10 +129,10 @@ Delivery shape (decision `01KXT0MDBTHK7AMPR1T7SC17KZ`): **six sequential work pa
 
 **Independent test**: party list updates without reload when a session doc changes; missing `campaignSessions` doc renders 0/0; ± controls visible only to MJ/admin; listeners detach on unmount.
 
-- [ ] T023 PartyStatus.vue (WP05)
-- [ ] T024 AdventureDiceBox.vue (WP05)
-- [ ] T025 Integration + listener lifecycle (WP05)
-- [ ] T026 Tests: exclusion, defaults, gating (WP05)
+- [x] T023 PartyStatus.vue (WP05)
+- [x] T024 AdventureDiceBox.vue (WP05)
+- [x] T025 Integration + listener lifecycle (WP05)
+- [x] T026 Tests: exclusion, defaults, gating (WP05)
 
 **Risks**: listener leaks on route change; child exclusion requires participant↔character join.
 
