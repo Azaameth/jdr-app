@@ -47,6 +47,16 @@
       "posture": "FOCUS",
       "updatedAt": "2026-07-13T19:43:52.850Z"
     },
+    "childSessions": {
+      "furmiaou": {
+        "hp": 48,
+        "maxHp": 48,
+        "mana": 0,
+        "maxMana": 0,
+        "posture": "FOCUS",
+        "updatedAt": "2026-07-18T00:00:00.000Z"
+      }
+    },
     "createdAt": "2026-07-13T19:43:52.850Z",
     "updatedAt": "2026-07-13T19:43:52.850Z"
   },

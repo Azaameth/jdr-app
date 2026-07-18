@@ -83,7 +83,18 @@ service cloud.firestore {
       allow read: if isSignedIn();
       allow create: if isSignedIn()
         && (request.resource.data.ownerUid == request.auth.uid || isMjOrAdmin());
-      allow update, delete: if isSignedIn()
+      // Owners may only edit their character's `backstory` (histoire editor,
+      // FR-012) — full attribute/skill/gift edits stay mj/admin-only via the
+      // raw editor. mj/admin keep unrestricted write access as before.
+      allow update: if isSignedIn()
+        && (
+          isMjOrAdmin()
+          || (
+            resource.data.ownerUid == request.auth.uid
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['backstory', 'updatedAt'])
+          )
+        );
+      allow delete: if isSignedIn()
         && (resource.data.ownerUid == request.auth.uid || isMjOrAdmin());
     }
 
@@ -114,6 +125,17 @@ service cloud.firestore {
           || ownsCharacter(get(/databases/$(database)/documents/participants/$(participantId)).data.characterId)
           || isMjOrAdmin()
         );
+    }
+
+    // Table-wide session state (dés d'aventure/mésaventure). Readable by any
+    // signed-in campaign member; writable by mj/admin only, doc id ==
+    // campaignId. Counters must never go negative (I-S3).
+    match /campaignSessions/{campaignId} {
+      allow read: if isSignedIn();
+      allow create, update: if isMjOrAdmin()
+        && request.resource.data.adventureDice.aventure >= 0
+        && request.resource.data.adventureDice.mesaventure >= 0;
+      allow delete: if isMjOrAdmin();
     }
 
     // Character inventory extracted from participant session state.

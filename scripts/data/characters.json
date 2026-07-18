@@ -571,5 +571,101 @@
     "backstory": "Nindey naquit au cœur des mines profondes du royaume du Mont RockDur, là où les marteaux résonnent jour et nuit et où l'odeur de la bière est presque aussi omniprésente que celle du métal chaud. Comme tout bon nain, il grandit entre pierres, trésors, jurons crépitants et pintes bien remplies. Mais son destin prit une tournure aussi improbable qu'un elfe qui apprécierait une bonne bière : il se lia d'amitié avec un jeune dragon nommé Skarlath, être farouche, étincelant comme une tempête et légèrement pyromane doublé d'un certain attrait pour l'alcool.\nUn jour, alors que Nindey s'aventurait dans la forêt au-delà de la mine, il tomba dans une embuscade de créatures hostiles. Juste avant de finir réduit en compote nainesque, Skarlath fondit du ciel, balayant les ennemis dans une explosion d'éclairs et de flammes. Gravement blessé, Nindey fut emporté par le dragon qui le soigna à coups d'houblon et d'orge.\nC'est durant ces années passées avec Skarlath que Nindey développa une fascination profonde pour les runes draconiques. Le dragon lui enseigna les secrets des runes liées à la foudre, lui permettant d'enchanter ses haches. Lorsque la foudre les parcourt, il se sent littéralement invincible… et parfois oublie complètement d'élaborer un plan.\nDe retour au Mont RockDur, Nindey devint un forgeron reconnu pour ses enchantements électriques et une sorte de légende locale. Expert dans le maniement de ses deux haches, il fonce toujours tête la première dans le combat, guidé par l'adrénaline, la foudre… et parfois l'alcool.\nTimide au naturel, il devient étonnamment sociable après quelques pintes et raconte volontiers ses aventures, son dégoût pour les elfes (sans raison particulière — c'est juste qu'il est nain) et sa bière préférée, brassée selon une recette secrète qu'il ne révélerait pour rien au monde.\nAujourd'hui, Nindey parcourt le monde à la recherche de nouveaux matériaux, de runes oubliées, de combats glorieux… et de tavernes. Et si une tempête éclate dans le ciel, il sourit : peut-être que Skarlath veille encore, quelque part.",
     "createdAt": "2026-07-13T19:43:52.851Z",
     "updatedAt": "2026-07-13T19:43:52.851Z"
+  },
+  {
+    "id": "furmiaou",
+    "campaignId": "8mEHIVueGKuwUr9DuBH3",
+    "ownerUid": "xxx",
+    "parentCharacterId": "firm",
+    "name": "Furmiaou",
+    "raceId": "swamninyx",
+    "classId": "gardien",
+    "gender": "Autre",
+    "elements": [
+      "Nature",
+      "Transmutation"
+    ],
+    "level": 1,
+    "attributes": {
+      "primary": {
+        "force": 65,
+        "social": 50,
+        "mental": 55
+      },
+      "secondary": {
+        "puissance": 5,
+        "finesse": 2,
+        "aura": 3,
+        "relation": 2,
+        "instinct": 5,
+        "savoir": 1
+      }
+    },
+    "skills": [],
+    "gifts": [
+      {
+        "id": "gift-1-morsure",
+        "name": "Morsure",
+        "description": "Attaque principale, ignore 1 RD.",
+        "source": "class",
+        "damageDice": "D8",
+        "damageBonus": 3
+      },
+      {
+        "id": "gift-2-griffes",
+        "name": "Griffes",
+        "description": "2 attaques simultanées.",
+        "source": "class",
+        "damageDice": "D6",
+        "damageBonus": 2
+      },
+      {
+        "id": "gift-3-bond-felin",
+        "name": "Bond félin",
+        "description": "Saut 8m + attaque en atterrissant.",
+        "source": "class",
+        "manaCost": 4
+      },
+      {
+        "id": "gift-4-rugissement",
+        "name": "Rugissement",
+        "description": "Terreur, −20% ennemis proches.",
+        "source": "class",
+        "manaCost": 3
+      },
+      {
+        "id": "gift-5-sens-affutes",
+        "name": "Sens affûtés",
+        "description": "Passif — +30% perception, détecte embuscades.",
+        "source": "class"
+      },
+      {
+        "id": "gift-6-regeneration",
+        "name": "Régénération",
+        "description": "1 PV/tour en milieu naturel.",
+        "source": "class"
+      },
+      {
+        "id": "gift-7-armure-naturelle",
+        "name": "Armure naturelle",
+        "description": "RD2 fourrure — RD4 vs projectiles.",
+        "source": "class"
+      },
+      {
+        "id": "gift-8-laceration",
+        "name": "Lacération",
+        "description": "Saignement : −1 PV/tour pendant 3 tours.",
+        "source": "class"
+      }
+    ],
+    "languages": [
+      "Commun",
+      "Swamninyx",
+      "Léonide"
+    ],
+    "img": "/images/portraits/furmiaou.jpg",
+    "backstory": "Forme bestiale de Firm Bintaggle, obtenue par la maîtrise de la transmutation druidesque : les PV maximum doublent et le mana tombe à 0 tant que la transformation dure.",
+    "createdAt": "2026-07-18T00:00:00.000Z",
+    "updatedAt": "2026-07-18T00:00:00.000Z"
   }
 ]

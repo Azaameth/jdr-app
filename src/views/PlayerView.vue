@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import BackpackGrid from '../components/BackpackGrid.vue'
 import DonDetailModal from '../components/DonDetailModal.vue'
@@ -9,18 +9,39 @@ import InventorySlotModal, {
   type InventorySlotDeletePayload,
   type InventorySlotSavePayload,
 } from '../components/InventorySlotModal.vue'
+import AdvantageToggles from '../components/vitruve/AdvantageToggles.vue'
+import AdventureDiceBox from '../components/vitruve/AdventureDiceBox.vue'
+import CaracTab from '../components/vitruve/CaracTab.vue'
+import ChildSheetTab from '../components/vitruve/ChildSheetTab.vue'
+import FicheTab from '../components/vitruve/FicheTab.vue'
+import JetCalculator from '../components/vitruve/JetCalculator.vue'
+import PartyStatus from '../components/vitruve/PartyStatus.vue'
+import RawCharacterEditor from '../components/vitruve/RawCharacterEditor.vue'
+import { useTickState } from '../components/vitruve/tickState'
+import VitruveSheet from '../components/vitruve/VitruveSheet.vue'
 import WeaponArmorList from '../components/WeaponArmorList.vue'
 import { useAuthStore } from '../controllers/useAuthStore'
+import { useCampaignSessionStore } from '../controllers/useCampaignSessionStore'
 import { useInventoryStore } from '../controllers/useInventoryStore'
 import { usePlayerStore } from '../controllers/usePlayerStore'
-import { getCharacterById } from '../models/repositories/CharacterRepository'
+import {
+  getCharacterById,
+  listChildrenOf,
+  updateCharacter,
+} from '../models/repositories/CharacterRepository'
 import { listClassesByCampaign } from '../models/repositories/ClassRepository'
 import { getParticipantByCharacterId } from '../models/repositories/ParticipantRepository'
 import { listRacesByCampaign } from '../models/repositories/RaceRepository'
-import type { CharacterGift, CharacterProfile } from '../models/types/Character'
+import type { CharacterAttributes, CharacterGift, CharacterProfile } from '../models/types/Character'
 import type { Class } from '../models/types/Class'
 import type { InventoryCategory, InventoryItem, WeaponArmorItem } from '../models/types/Inventory'
-import type { Participant, Posture } from '../models/types/Participant'
+import type {
+  CharacterSessionState,
+  InjuryState,
+  Participant,
+  Posture,
+  SecondaryAttributeName,
+} from '../models/types/Participant'
 import type { Race } from '../models/types/Race'
 
 const props = withDefaults(
@@ -37,6 +58,7 @@ const props = withDefaults(
 const route = useRoute()
 const authStore = useAuthStore()
 const playerStore = usePlayerStore()
+const campaignSessionStore = useCampaignSessionStore()
 const inventoryStore = useInventoryStore()
 const campaignId = computed(() => props.campaignId ?? (route.params.id as string))
 const characterId = computed(() => props.characterId ?? (route.params.characterId as string))
@@ -65,6 +87,122 @@ const canEditInventory = computed(() => {
   if (!inv || !currentUser) return false
   return inv.uid === currentUser.uid || authStore.isMj.value || authStore.isAdmin.value
 })
+
+// The session (PV/Mana) steppers were previously unconditionally enabled
+// whenever a participant session existed (the page-level forbidden guard
+// already restricts viewers to the character's owner or an mj/admin).
+// canEditSession mirrors that: true exactly when the session box would have
+// rendered before this restructure, so VitruveSheet's steppers keep the
+// same visibility as pre-WP02 — no permission regression.
+const canEditSession = computed(() => Boolean(participant.value?.session))
+
+// Owner or mj/admin may edit the Fiche's histoire and cycle Caractéristiques
+// injury squares — same predicate shape as canEditInventory above, mirrored
+// per WP03's instruction rather than inventing a new helper shape.
+const canEditCharacter = computed(() => {
+  const char = character.value
+  const currentUser = authStore.user.value
+  if (!char || !currentUser) return false
+  return char.ownerUid === currentUser.uid || authStore.isMj.value || authStore.isAdmin.value
+})
+
+// Dés d'Aventure (FR-010): only mj/admin may adjust the shared counters —
+// every other role sees a read-only readout (AdventureDiceBox renders no
+// buttons at all when this is false, not merely disabled ones).
+const canAdjustAdventureDice = computed(() => authStore.isMj.value || authStore.isAdmin.value)
+
+// WP06: MJ-only raw-data editor trigger (FR-004). Kept as its own named
+// predicate rather than reusing canAdjustAdventureDice — the two happen to
+// share the same mj/admin rule today but gate unrelated features, and
+// collapsing them into one name would make a future divergence (e.g. an
+// admin-only raw editor) a silent behavior change instead of a one-line diff.
+const canEditRawData = computed(() => authStore.isMj.value || authStore.isAdmin.value)
+
+const tickState = useTickState()
+const ficheError = ref('')
+const caracError = ref('')
+const advDisError = ref('')
+const childError = ref('')
+
+// Child characters (transformations, e.g. Furmiaou — FR-011/FR-015) of the
+// currently displayed character, fetched alongside it in loadCharacter().
+// Excluded from every roster surface (I-C2) but shown here as extra tabs.
+const children = ref<CharacterProfile[]>([])
+
+type VitruveTabKey = 'fiche' | 'carac' | 'dons' | 'inv' | string
+const BASE_TAB_KEYS: VitruveTabKey[] = ['fiche', 'carac', 'dons', 'inv']
+const activeTab = ref<VitruveTabKey>('fiche')
+const vitruveTabs = computed<Array<{ key: VitruveTabKey; label: string }>>(() => [
+  { key: 'fiche', label: 'Fiche' },
+  { key: 'carac', label: 'Caractéristiques' },
+  { key: 'dons', label: 'Dons' },
+  { key: 'inv', label: 'Inventaire' },
+  // One tab per child, labeled with the child's name (FR-011). No children
+  // ⇒ no extra tabs (SC-004) — this spread is simply empty.
+  ...children.value.map((child) => ({ key: child.id, label: child.name })),
+])
+
+// The child (if any) whose tab is currently active — null for the four base
+// tabs. Drives both the ChildSheetTab render and the calculator context
+// below; a single source of truth so the two can't drift into a "half
+// switched" state (child attributes + parent injuries, the FR-016 bug the
+// WP06 reviewer guidance calls out explicitly).
+const activeChild = computed<CharacterProfile | null>(() => {
+  if (BASE_TAB_KEYS.includes(activeTab.value)) return null
+  return children.value.find((child) => child.id === activeTab.value) ?? null
+})
+
+const EMPTY_ATTRIBUTES: CharacterAttributes = {
+  primary: { force: 0, social: 0, mental: 0 },
+  secondary: { puissance: 0, finesse: 0, aura: 0, relation: 0, instinct: 0, savoir: 0 },
+}
+
+// Active-context for the jet calculator (FR-016): parent's attributes +
+// injuries when a base tab is active, the active child's when a child tab is
+// active — attributes AND injuries always switch together. `contextKey`
+// changes whenever this switches (character OR tab), which JetCalculator
+// uses to reset its local manual-mod/category state, and which the watcher
+// below uses to reset the ticked-compétences sum.
+const activeContext = computed(() => {
+  const child = activeChild.value
+  if (child) {
+    return {
+      attributes: child.attributes,
+      injuries: participant.value?.childSessions?.[child.id]?.injuries,
+      contextKey: child.id,
+    }
+  }
+  return {
+    attributes: character.value?.attributes ?? EMPTY_ATTRIBUTES,
+    injuries: participant.value?.session.injuries,
+    contextKey: characterId.value,
+  }
+})
+
+watch(characterId, () => {
+  activeTab.value = 'fiche'
+})
+
+// Stale child-tab fallback (spec edge case): if the character switched (or
+// reloaded) and the active tab referenced a child that no longer exists in
+// the freshly-fetched `children` list, fall back to Fiche rather than
+// rendering nothing / a dead tab.
+watch(children, (list) => {
+  if (BASE_TAB_KEYS.includes(activeTab.value)) return
+  if (!list.some((child) => child.id === activeTab.value)) {
+    activeTab.value = 'fiche'
+  }
+})
+
+// Ticks are ephemeral (research D-04): never leak between characters OR
+// across a parent/child context switch (WP06 extends this from the
+// character-only reset above to any contextKey change).
+watch(
+  () => activeContext.value.contextKey,
+  () => {
+    tickState.reset()
+  },
+)
 
 const slotModalOpen = ref(false)
 const slotModalContext = ref<InventorySlotContext | null>(null)
@@ -123,69 +261,14 @@ async function handleSlotDelete(payload: InventorySlotDeletePayload) {
   }
 }
 
+// Posture (Focus/Offensif/Défensif) options, passed down to CaracTab so it
+// doesn't duplicate this list; selecting one emits 'set-posture', handled
+// below by the existing changePosture persistence.
 const postureOptions: Array<{ value: Posture; label: string; tone: string }> = [
   { value: 'DEFENSIF', label: 'Défensif', tone: 'def' },
   { value: 'OFFENSIF', label: 'Offensif', tone: 'off' },
   { value: 'FOCUS', label: 'Focus', tone: 'focus' },
 ]
-
-function clamp(value: number, min: number, max: number) {
-  return Math.max(min, Math.min(value, max))
-}
-
-const hpVisual = computed(() => {
-  const session = participant.value?.session
-  const max = Math.max(0, session?.maxHp ?? 0)
-  const c1 = '#dd3c35'
-  const c2 = '#5a120f'
-  const c3 = '#17120d'
-
-  if (max <= 0) {
-    return {
-      fillPercent: 0,
-      fillColor: c1,
-      fillOpacity: 1,
-      trackColor: c2,
-    }
-  }
-
-  const hp = clamp(session?.hp ?? 0, -max, max)
-  if (hp >= 0) {
-    return {
-      fillPercent: Math.round((hp / max) * 100),
-      fillColor: c1,
-      fillOpacity: 1,
-      trackColor: c2,
-    }
-  }
-
-  return {
-    // In negative phase, c2 shrinks and reveals c3 underneath.
-    fillPercent: Math.round((1 - Math.abs(hp) / max) * 100),
-    fillColor: c2,
-    fillOpacity: 1,
-    trackColor: c3,
-  }
-})
-
-const manaVisual = computed(() => {
-  const session = participant.value?.session
-  const max = Math.max(0, session?.maxMana ?? 0)
-  if (max <= 0) {
-    return {
-      fillPercent: 0,
-      fillColor: '#2d7ff7',
-      trackColor: '#10263f',
-    }
-  }
-
-  const mana = clamp(session?.mana ?? 0, 0, max)
-  return {
-    fillPercent: Math.round((mana / max) * 100),
-    fillColor: '#2d7ff7',
-    trackColor: '#10263f',
-  }
-})
 
 const selectedRace = computed(() => {
   const raceId = character.value?.raceId
@@ -208,19 +291,6 @@ const selectedClass = computed(() => {
     null
   )
 })
-
-function imageUrl(path: string) {
-  if (!path) return ''
-  if (/^https?:\/\//.test(path)) return path
-  const clean = path.replace(/^\//, '')
-  return `${import.meta.env.BASE_URL}${clean}`
-}
-
-function handlePortraitError(event: Event) {
-  const img = event.target as HTMLImageElement | null
-  if (!img) return
-  img.style.display = 'none'
-}
 
 function clampSessionValue(resource: 'hp' | 'mana', value: number, max: number) {
   const boundedMax = Math.max(0, max)
@@ -308,16 +378,200 @@ async function changePosture(posture: Posture) {
   }
 }
 
+// Cycles a Caractéristiques injury square (saine → jaune → rouge → saine).
+// Optimistic-update + revert-on-error, matching changeSessionResource /
+// changePosture above. usePlayerStore().setInjury requires subscribeParty
+// to have attached a campaign context first (enforced by the store itself,
+// see usePlayerStore.spec.ts's "does nothing when subscribeParty has not
+// been called" case) — loadCharacter below calls it for that reason.
+async function handleSetInjury(attr: SecondaryAttributeName, state: InjuryState | null) {
+  if (!participant.value || !campaignId.value || !characterId.value) return
+
+  const previous = participant.value
+  const nextInjuries = { ...previous.session.injuries }
+  if (state === null) {
+    delete nextInjuries[attr]
+  } else {
+    nextInjuries[attr] = state
+  }
+  participant.value = {
+    ...previous,
+    session: { ...previous.session, injuries: nextInjuries },
+  }
+  caracError.value = ''
+
+  await playerStore.setInjury(characterId.value, attr, state)
+  if (playerStore.error.value) {
+    participant.value = previous
+    caracError.value = playerStore.error.value ?? ''
+  }
+}
+
+// A child with no childSessions entry yet has no vitals to read (CharacterProfile
+// itself carries none — see ChildSheetTab.vue's FALLBACK_SESSION comment for why).
+// This all-zero base is what the FIRST ± bootstraps from, so `base.hp + delta` is
+// always a real number, never NaN.
+const EMPTY_CHILD_SESSION: CharacterSessionState = {
+  hp: 0,
+  maxHp: 0,
+  mana: 0,
+  maxMana: 0,
+  posture: 'FOCUS',
+}
+
+// PV ± on a child tab (FR-015): same optimistic-update + revert-on-error shape
+// as changeSessionResource, but writes to the PARENT participant's
+// childSessions.<childId>.* (setChildVitals), never a participant doc of its
+// own (children have none — I-C2).
+async function adjustChildHp(childId: string, delta: number) {
+  if (!participant.value || !characterId.value) return
+
+  const previous = participant.value
+  const base = previous.childSessions?.[childId] ?? EMPTY_CHILD_SESSION
+  const next = clampSessionValue('hp', base.hp + delta, base.maxHp)
+  if (next === base.hp && previous.childSessions?.[childId]) return
+
+  participant.value = {
+    ...previous,
+    childSessions: { ...previous.childSessions, [childId]: { ...base, hp: next } },
+  }
+  childError.value = ''
+
+  await playerStore.setChildVitals(characterId.value, childId, { hp: next })
+  if (playerStore.error.value) {
+    participant.value = previous
+    childError.value = playerStore.error.value ?? ''
+  }
+}
+
+// Cycles a child's Caractéristiques injury square — same replace-map
+// semantics (whole `injuries` object rewritten) as handleSetInjury, but
+// scoped to childSessions.<childId>.injuries.
+async function handleSetChildInjury(
+  childId: string,
+  attr: SecondaryAttributeName,
+  state: InjuryState | null,
+) {
+  if (!participant.value || !characterId.value) return
+
+  const previous = participant.value
+  const base = previous.childSessions?.[childId] ?? EMPTY_CHILD_SESSION
+  const nextInjuries = { ...base.injuries }
+  if (state === null) {
+    delete nextInjuries[attr]
+  } else {
+    nextInjuries[attr] = state
+  }
+
+  participant.value = {
+    ...previous,
+    childSessions: {
+      ...previous.childSessions,
+      [childId]: { ...base, injuries: nextInjuries },
+    },
+  }
+  childError.value = ''
+
+  await playerStore.setChildVitals(characterId.value, childId, { injuries: nextInjuries })
+  if (playerStore.error.value) {
+    participant.value = previous
+    childError.value = playerStore.error.value ?? ''
+  }
+}
+
+// Thin template-facing wrappers: ChildSheetTab's emits carry no childId (it
+// only knows about the one child it renders), so these close over
+// `activeChild` here rather than requiring the template to reference
+// `activeChild.id` directly inside an inline handler expression (which
+// vue-tsc can't narrow past the surrounding v-else-if's null check).
+function handleChildAdjustHp(delta: number) {
+  const child = activeChild.value
+  if (!child) return
+  adjustChildHp(child.id, delta)
+}
+
+function handleChildSetInjury(attr: SecondaryAttributeName, state: InjuryState | null) {
+  const child = activeChild.value
+  if (!child) return
+  handleSetChildInjury(child.id, attr, state)
+}
+
+// Avantage/Désavantage toggles (FR-008): same optimistic-update + revert
+// shape as handleSetInjury above — advantage/disadvantage live on the same
+// CharacterSessionState, so they're gated by canEditSession (the predicate
+// already governing every other field of that state, e.g. the PV/Mana
+// steppers) rather than a new predicate. Out-of-map edit, sanctioned by
+// WP04: AdvantageToggles/JetCalculator mount from VitruveSheet's `widgets`
+// slot, wired here since PlayerView already owns the session mutation flow.
+async function handleSetAdvantage(value: boolean) {
+  if (!participant.value || !characterId.value) return
+
+  const previous = participant.value
+  participant.value = {
+    ...previous,
+    session: { ...previous.session, advantage: value },
+  }
+  advDisError.value = ''
+
+  await playerStore.setAdvantage(characterId.value, value)
+  if (playerStore.error.value) {
+    participant.value = previous
+    advDisError.value = playerStore.error.value ?? ''
+  }
+}
+
+async function handleSetDisadvantage(value: boolean) {
+  if (!participant.value || !characterId.value) return
+
+  const previous = participant.value
+  participant.value = {
+    ...previous,
+    session: { ...previous.session, disadvantage: value },
+  }
+  advDisError.value = ''
+
+  await playerStore.setDisadvantage(characterId.value, value)
+  if (playerStore.error.value) {
+    participant.value = previous
+    advDisError.value = playerStore.error.value ?? ''
+  }
+}
+
+// Histoire save (FicheTab's save-histoire emit): owners may only write
+// `backstory` per firestore.rules — updateCharacter(id, { backstory }) never
+// sends extra fields, so this exercises that rule cleanly.
+async function handleSaveHistoire(text: string) {
+  if (!character.value || !characterId.value) return
+  const previous = character.value
+  character.value = { ...previous, backstory: text }
+  ficheError.value = ''
+
+  try {
+    await updateCharacter(characterId.value, { backstory: text })
+  } catch (err) {
+    character.value = previous
+    ficheError.value =
+      err instanceof Error ? err.message : "Erreur lors de l'enregistrement de l'histoire."
+  }
+}
+
 async function loadCharacter() {
   if (!campaignId.value || !characterId.value) {
     character.value = null
     participant.value = null
     races.value = []
     classes.value = []
+    children.value = []
     error.value = ''
     forbidden.value = false
     sessionError.value = ''
     sessionLoading.value = null
+    ficheError.value = ''
+    caracError.value = ''
+    advDisError.value = ''
+    childError.value = ''
+    playerStore.unsubscribeParty()
+    campaignSessionStore.unsubscribe()
     loading.value = false
     return
   }
@@ -326,19 +580,31 @@ async function loadCharacter() {
   error.value = ''
   forbidden.value = false
   sessionError.value = ''
+  ficheError.value = ''
+  caracError.value = ''
+  advDisError.value = ''
+  childError.value = ''
+  playerStore.subscribeParty(campaignId.value)
+  campaignSessionStore.subscribe(campaignId.value)
 
   try {
-    const [char, participantRow, , raceList, classList] = await Promise.all([
+    const [char, participantRow, , raceList, classList, childList] = await Promise.all([
       getCharacterById(characterId.value),
       getParticipantByCharacterId(characterId.value, campaignId.value),
       inventoryStore.loadInventory(characterId.value, campaignId.value),
       listRacesByCampaign(campaignId.value),
       listClassesByCampaign(campaignId.value),
+      listChildrenOf(campaignId.value, characterId.value),
     ])
     character.value = char
-    participant.value = participantRow
+    // Prefer the live snapshot row if the party subscription already delivered
+    // one — the one-shot fetch may resolve after a fresher snapshot.
+    participant.value =
+      playerStore.partyParticipants.value.find((p) => p.characterId === characterId.value) ??
+      participantRow
     races.value = raceList
     classes.value = classList
+    children.value = childList
 
     // Guard : un joueur ne peut voir que son propre personnage
     const user = authStore.user.value
@@ -356,6 +622,45 @@ async function loadCharacter() {
 watch([campaignId, characterId, () => authStore.user.value?.uid], loadCharacter, {
   immediate: true,
 })
+
+// The displayed sheet (vitals pills, injuries, avantage/désavantage, child
+// sessions) must stay live for remote viewers too, not just État du groupe:
+// feed `participant` from the party subscription snapshot already attached by
+// loadCharacter — no extra listener involved.
+watch(
+  () => playerStore.partyParticipants.value,
+  (list) => {
+    if (forbidden.value) return
+    const live = list.find((p) => p.characterId === characterId.value)
+    if (live) participant.value = live
+  },
+)
+
+// MJ/admin raw-data editor (FR-004): trigger lives in VitruveSheet's widgets
+// slot (see template), gated by canEditRawData. On a successful save,
+// loadCharacter() re-runs in full — the MJ may have just edited
+// parentCharacterId (adding/removing a child relationship) or any other
+// field, so a full reload keeps `character` AND `children` consistent
+// instead of patching just one of them.
+const rawEditorOpen = ref(false)
+
+function openRawEditor() {
+  rawEditorOpen.value = true
+}
+
+function closeRawEditor() {
+  rawEditorOpen.value = false
+}
+
+async function handleRawEditorSaved() {
+  rawEditorOpen.value = false
+  await loadCharacter()
+}
+
+onBeforeUnmount(() => {
+  playerStore.unsubscribeParty()
+  campaignSessionStore.unsubscribe()
+})
 </script>
 
 <template>
@@ -364,256 +669,140 @@ watch([campaignId, characterId, () => authStore.user.value?.uid], loadCharacter,
     <p v-else-if="forbidden" class="error">Accès refusé.</p>
     <p v-else-if="error" class="error">{{ error }}</p>
 
-    <template v-else-if="character">
-      <!-- Identité -->
-      <section class="card identity-card">
-        <div class="identity-head">
-          <img
-            v-if="character.img"
-            class="portrait"
-            :src="imageUrl(character.img)"
-            :alt="`Portrait de ${character.name}`"
-            @error="handlePortraitError"
+    <div v-else-if="character" class="vitruve-layout">
+      <VitruveSheet
+        :character="character"
+        :participant="participant"
+        :race-name="selectedRace?.n"
+        :class-name="selectedClass?.n"
+        :can-edit-session="canEditSession"
+        :session-loading="sessionLoading"
+        :session-error="sessionError"
+        @adjust-hp="(delta) => changeSessionResource('hp', delta)"
+        @adjust-mana="(delta) => changeSessionResource('mana', delta)"
+      >
+        <template #widgets>
+          <JetCalculator
+            :attributes="activeContext.attributes"
+            :injuries="activeContext.injuries"
+            :context-key="activeContext.contextKey"
           />
-
-          <div class="identity-main">
-            <h1>{{ character.name }}</h1>
-
-            <div v-if="participant?.session" class="session-box">
-              <div class="session-row">
-                <div class="session-labels">
-                  <span>Vie</span>
-                  <b>{{ participant.session.hp }} / {{ participant.session.maxHp }}</b>
-                </div>
-                <div
-                  class="session-bar"
-                  role="progressbar"
-                  aria-label="Points de vie"
-                  :style="{ background: hpVisual.trackColor }"
-                >
-                  <span
-                    class="session-fill"
-                    :style="{
-                      width: `${hpVisual.fillPercent}%`,
-                      background: hpVisual.fillColor,
-                      opacity: hpVisual.fillOpacity,
-                    }"
-                  />
-                </div>
-                <div class="session-actions">
-                  <button
-                    type="button"
-                    class="delta-btn"
-                    :disabled="
-                      sessionLoading !== null ||
-                      participant.session.hp <= -participant.session.maxHp
-                    "
-                    @click="changeSessionResource('hp', -1)"
-                  >
-                    -
-                  </button>
-                  <button
-                    type="button"
-                    class="delta-btn"
-                    :disabled="
-                      sessionLoading !== null || participant.session.hp >= participant.session.maxHp
-                    "
-                    @click="changeSessionResource('hp', 1)"
-                  >
-                    +
-                  </button>
-                </div>
-              </div>
-
-              <div class="session-row">
-                <div class="session-labels">
-                  <span>Mana</span>
-                  <b>{{ participant.session.mana }} / {{ participant.session.maxMana }}</b>
-                </div>
-                <div
-                  class="session-bar"
-                  role="progressbar"
-                  aria-label="Points de mana"
-                  :style="{ background: manaVisual.trackColor }"
-                >
-                  <span
-                    class="session-fill"
-                    :style="{
-                      width: `${manaVisual.fillPercent}%`,
-                      background: manaVisual.fillColor,
-                    }"
-                  />
-                </div>
-                <div class="session-actions">
-                  <button
-                    type="button"
-                    class="delta-btn"
-                    :disabled="sessionLoading !== null || participant.session.mana <= 0"
-                    @click="changeSessionResource('mana', -1)"
-                  >
-                    -
-                  </button>
-                  <button
-                    type="button"
-                    class="delta-btn"
-                    :disabled="
-                      sessionLoading !== null ||
-                      participant.session.mana >= participant.session.maxMana
-                    "
-                    @click="changeSessionResource('mana', 1)"
-                  >
-                    +
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            <p v-if="sessionError" class="error session-error">{{ sessionError }}</p>
-
-            <div class="grid-2 identity-details">
-              <span><b>Race :</b> {{ character.raceId }}</span>
-              <span><b>Classe :</b> {{ character.classId }}</span>
-              <span><b>Genre :</b> {{ character.gender }}</span>
-              <span><b>Niveau :</b> {{ character.level }}</span>
-              <span v-if="character.xp !== undefined"><b>XP :</b> {{ character.xp }}</span>
-              <span><b>Éléments :</b> {{ character.elements.join(', ') || '—' }}</span>
-              <span><b>Langues :</b> {{ character.languages.join(', ') || '—' }}</span>
-            </div>
-          </div>
-
-          <aside v-if="participant?.session" class="position-panel">
-            <p class="position-title">Position</p>
-            <div class="position-grid">
-              <button
-                v-for="option in postureOptions"
-                :key="option.value"
-                type="button"
-                class="position-chip"
-                :class="[
-                  `position-${option.tone}`,
-                  participant.session.posture === option.value ? 'position-active' : '',
-                ]"
-                :disabled="sessionLoading !== null"
-                @click="changePosture(option.value)"
-              >
-                {{ option.label }}
-              </button>
-            </div>
-          </aside>
-        </div>
-      </section>
-
-      <section class="card" v-if="selectedRace || selectedClass">
-        <h2>Bonus d'origine</h2>
-        <div class="grid-2 bonus-grid">
-          <div class="bonus-block" v-if="selectedRace">
-            <h3>Race · {{ selectedRace.n }}</h3>
-            <template v-if="selectedRace.bon.length">
-              <p class="bonus-label">Bonus</p>
-              <ul class="bonus-list">
-                <li v-for="(item, index) in selectedRace.bon" :key="`race-bon-${index}`">
-                  {{ item }}
-                </li>
-              </ul>
-            </template>
-            <template v-if="selectedRace.mal.length">
-              <p class="bonus-label">Malus</p>
-              <ul class="bonus-list malus-list">
-                <li v-for="(item, index) in selectedRace.mal" :key="`race-mal-${index}`">
-                  {{ item }}
-                </li>
-              </ul>
-            </template>
-          </div>
-
-          <div class="bonus-block" v-if="selectedClass">
-            <h3>Classe · {{ selectedClass.n }}</h3>
-            <div class="class-stats">
-              <span><b>PV :</b> {{ selectedClass.pv }}</span>
-              <span><b>Mana :</b> {{ selectedClass.mana }}</span>
-              <span><b>Armure :</b> {{ selectedClass.arm }}</span>
-            </div>
-            <template v-if="selectedClass.caps.length">
-              <p class="bonus-label">Capacités</p>
-              <ul class="bonus-list">
-                <li v-for="(item, index) in selectedClass.caps" :key="`class-cap-${index}`">
-                  {{ item }}
-                </li>
-              </ul>
-            </template>
-          </div>
-        </div>
-      </section>
-
-      <!-- Attributs -->
-      <section class="card">
-        <h2>Attributs principaux</h2>
-        <div class="grid-3">
-          <div class="attr" v-for="(val, key) in character.attributes.primary" :key="key">
-            <span class="label">{{ key }}</span>
-            <span class="val">{{ val }}</span>
-          </div>
-        </div>
-        <h2>Attributs secondaires</h2>
-        <div class="grid-3">
-          <div class="attr" v-for="(val, key) in character.attributes.secondary" :key="key">
-            <span class="label">{{ key }}</span>
-            <span class="val">{{ val }}</span>
-          </div>
-        </div>
-      </section>
-
-      <!-- Compétences -->
-      <section class="card" v-if="character.skills.length">
-        <h2>Compétences</h2>
-        <div class="grid-2">
-          <div v-for="skill in character.skills" :key="skill.id" class="skill-row">
-            <span>{{ skill.name }}</span>
-            <span class="badge">{{ skill.domain }}</span>
-            <span class="val">{{ skill.rank }}</span>
-          </div>
-        </div>
-      </section>
-
-      <!-- Dons -->
-      <section class="card">
-        <h2>Dons</h2>
-        <DonList :gifts="character.gifts" @open="openDonModal" />
-      </section>
-
-      <!-- Histoire -->
-      <section class="card" v-if="character.backstory">
-        <h2>Histoire</h2>
-        <p class="lore">{{ character.backstory }}</p>
-      </section>
-
-      <section class="card">
-        <h2>Armes & Armures</h2>
-        <div class="grid-2 weapon-armor-grid">
-          <WeaponArmorList
-            title="Armes"
-            kind="weapons"
-            :items="weapons"
-            :editable="canEditInventory"
-            @slot-click="openEquipmentSlot"
+          <p v-if="advDisError" class="error">{{ advDisError }}</p>
+          <AdvantageToggles
+            :session="participant?.session ?? null"
+            :can-edit="canEditSession"
+            @set-advantage="handleSetAdvantage"
+            @set-disadvantage="handleSetDisadvantage"
           />
-          <WeaponArmorList
-            title="Armures & Protections"
-            kind="armor"
-            :items="armor"
-            :editable="canEditInventory"
-            @slot-click="openEquipmentSlot"
-          />
-        </div>
-      </section>
+          <PartyStatus :highlight-character-id="characterId" />
+          <AdventureDiceBox :can-adjust="canAdjustAdventureDice" />
+          <button
+            v-if="canEditRawData"
+            type="button"
+            class="raw-editor-trigger"
+            @click="openRawEditor"
+          >
+            Éditer les données brutes
+          </button>
+        </template>
+      </VitruveSheet>
 
-      <section class="card">
-        <h2>Sac à dos</h2>
-        <BackpackGrid :items="backpackItems" :editable="canEditInventory" @slot-click="openBackpackSlot" />
-      </section>
-    </template>
+      <div class="vpanel">
+        <div class="pchar-tabs" role="tablist">
+          <button
+            v-for="tab in vitruveTabs"
+            :key="tab.key"
+            type="button"
+            role="tab"
+            class="pchar-tab"
+            :class="{ active: activeTab === tab.key }"
+            :aria-selected="activeTab === tab.key"
+            @click="activeTab = tab.key"
+          >
+            {{ tab.label }}
+          </button>
+        </div>
+
+        <div class="vpanel-content">
+          <section v-if="activeTab === 'fiche'" class="tab-pane">
+            <p v-if="ficheError" class="error">{{ ficheError }}</p>
+            <FicheTab
+              :character="character"
+              :race-name="selectedRace?.n"
+              :can-edit="canEditCharacter"
+              @save-histoire="handleSaveHistoire"
+            />
+          </section>
+
+          <section v-else-if="activeTab === 'carac'" class="tab-pane">
+            <p v-if="caracError" class="error">{{ caracError }}</p>
+            <CaracTab
+              :character="character"
+              :session="participant?.session ?? null"
+              :can-edit="canEditCharacter"
+              :race="selectedRace"
+              :posture-options="postureOptions"
+              :session-loading="sessionLoading"
+              @set-injury="handleSetInjury"
+              @set-posture="changePosture"
+            />
+          </section>
+
+          <section v-else-if="activeTab === 'dons'" class="tab-pane">
+            <h2>Dons</h2>
+            <DonList :gifts="character.gifts" @open="openDonModal" />
+          </section>
+
+          <section v-else-if="activeTab === 'inv'" class="tab-pane">
+            <h2>Armes & Armures</h2>
+            <div class="grid-2 weapon-armor-grid">
+              <WeaponArmorList
+                title="Armes"
+                kind="weapons"
+                :items="weapons"
+                :editable="canEditInventory"
+                @slot-click="openEquipmentSlot"
+              />
+              <WeaponArmorList
+                title="Armures & Protections"
+                kind="armor"
+                :items="armor"
+                :editable="canEditInventory"
+                @slot-click="openEquipmentSlot"
+              />
+            </div>
+
+            <h2>Sac à dos</h2>
+            <BackpackGrid
+              :items="backpackItems"
+              :editable="canEditInventory"
+              @slot-click="openBackpackSlot"
+            />
+          </section>
+
+          <section v-else-if="activeChild" class="tab-pane">
+            <p v-if="childError" class="error">{{ childError }}</p>
+            <ChildSheetTab
+              :child="activeChild"
+              :child-session="participant?.childSessions?.[activeChild.id] ?? null"
+              :can-edit="canEditCharacter"
+              @adjust-hp="handleChildAdjustHp"
+              @set-injury="handleChildSetInjury"
+            />
+          </section>
+        </div>
+      </div>
+    </div>
 
     <p v-else>Personnage introuvable.</p>
+
+    <RawCharacterEditor
+      v-if="character"
+      :character="character"
+      :open="rawEditorOpen"
+      @close="closeRawEditor"
+      @saved="handleRawEditorSaved"
+    />
 
     <InventorySlotModal
       v-if="slotModalContext"
@@ -633,281 +822,98 @@ watch([campaignId, characterId, () => authStore.user.value?.uid], loadCharacter,
 .player-view {
   padding: 1.25rem;
   color: #f2e6cc;
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  max-width: 860px;
 }
-.card {
-  background: #1a1208;
-  border: 1px solid #5c4a2a;
-  border-radius: 6px;
-  padding: 1rem 1.25rem;
+.error {
+  color: #ffb0b0;
 }
-.identity-card {
-  padding-top: 1.1rem;
+.raw-editor-trigger {
+  width: 100%;
+  margin-top: 4px;
+  padding: 0.5rem 0.75rem;
+  border-radius: 8px;
+  border: 1px dashed rgba(212, 168, 67, 0.35);
+  background: none;
+  color: #a89a7c;
+  font-size: 0.82rem;
+  cursor: pointer;
 }
-.identity-head {
+.raw-editor-trigger:hover {
+  color: #f0c96a;
+  border-color: #d4a843;
+}
+
+/* Two-column vitruve layout (FR-001): fixed left sheet + flexible right
+   tabbed panel. `min-width: 0` on both grid children stops long content
+   (e.g. inventory grids) from blowing out the track — legacy does this for
+   the same reason (see legacy-reference/index.html's `.vitruve-layout > *`). */
+.vitruve-layout {
   display: grid;
-  grid-template-columns: auto 1fr auto;
-  gap: 1rem;
+  grid-template-columns: 300px 1fr;
+  gap: 20px;
   align-items: start;
-}
-.identity-main {
   min-width: 0;
 }
-.portrait {
-  width: 110px;
-  height: 110px;
-  object-fit: cover;
+.vitruve-layout > * {
+  min-width: 0;
+}
+
+.vpanel {
+  background: linear-gradient(160deg, rgba(35, 25, 10, 0.98), rgba(22, 16, 8, 0.99));
+  border: 1px solid rgba(212, 168, 67, 0.18);
   border-radius: 8px;
-  border: 1px solid #5c4a2a;
-}
-h1 {
-  font-size: 1.5rem;
-  color: #f0c96a;
-  margin: 0 0 0.75rem;
-}
-.identity-details {
-  margin-top: 0.7rem;
-}
-.session-box {
+  padding: 1.1rem;
+  min-height: 420px;
   display: flex;
   flex-direction: column;
-  gap: 0.4rem;
-  padding: 0.6rem;
-  border: 1px solid #6e5733;
-  border-radius: 8px;
-  background: #20160b;
 }
-.session-row {
-  display: grid;
-  grid-template-columns: 110px 1fr auto;
-  align-items: center;
-  gap: 0.55rem;
-}
-.session-labels {
+.pchar-tabs {
   display: flex;
-  flex-direction: column;
-  gap: 0.08rem;
-  font-size: 0.82rem;
+  gap: 4px;
+  border-bottom: 1px solid rgba(212, 168, 67, 0.18);
+  margin-bottom: 14px;
+  flex-wrap: wrap;
 }
-.session-labels b {
+.pchar-tab {
+  padding: 0.5rem 0.9rem;
+  cursor: pointer;
+  font-size: 0.95rem;
+  letter-spacing: 0.03em;
+  color: #a09070;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  transition: color 0.15s;
+}
+.pchar-tab:hover {
   color: #f2e6cc;
-  font-size: 0.86rem;
 }
-.session-bar {
-  position: relative;
-  width: 100%;
-  height: 12px;
-  border-radius: 999px;
-  overflow: hidden;
-  border: 1px solid #443118;
-  background: #150f08;
-}
-.session-fill {
-  position: absolute;
-  right: 0;
-  top: 0;
-  bottom: 0;
-  border-radius: inherit;
-  transition:
-    width 0.2s ease,
-    background-color 0.2s ease,
-    opacity 0.2s ease;
-}
-.session-actions {
-  display: flex;
-  gap: 0.25rem;
-}
-.delta-btn {
-  width: 1.9rem;
-  height: 1.55rem;
-  border: 1px solid #6e5733;
-  border-radius: 4px;
-  background: #2c1f0f;
+.pchar-tab.active {
   color: #f0c96a;
-  font-weight: 700;
-  cursor: pointer;
+  border-bottom-color: #f0c96a;
 }
-.delta-btn:hover:not(:disabled) {
-  background: #3a2914;
+.vpanel-content {
+  flex: 1;
 }
-.delta-btn:disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
-}
-.session-error {
-  margin: 0.5rem 0 0;
-}
-.position-panel {
-  min-width: 170px;
-  border: 1px solid #6e5733;
-  border-radius: 8px;
-  padding: 0.5rem;
-  background: #20160b;
-}
-.position-title {
-  margin: 0 0 0.45rem;
-  color: #c9a84c;
-  font-size: 0.82rem;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-.position-grid {
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
-}
-.position-chip {
-  border: 1px solid transparent;
-  border-radius: 6px;
-  padding: 0.32rem 0.45rem;
-  text-align: center;
-  font-size: 0.8rem;
-  color: rgba(255, 255, 255, 0.7);
-  cursor: pointer;
-}
-.position-chip:hover:not(:disabled) {
-  filter: brightness(1.1);
-}
-.position-chip:disabled {
-  opacity: 0.65;
-  cursor: not-allowed;
-}
-.position-def {
-  background: #0f5d26;
-}
-.position-off {
-  background: #812516;
-}
-.position-focus {
-  background: #174f94;
-}
-.position-active {
-  border-color: #f0c96a;
-  box-shadow: inset 0 0 0 1px rgba(240, 201, 106, 0.3);
-  color: #fff5de;
-  font-weight: 700;
-}
-h2 {
+.tab-pane h2 {
   font-size: 1rem;
   color: #f0c96a;
   margin: 0.75rem 0 0.5rem;
 }
-h3 {
-  font-size: 0.9rem;
-  color: #c9a84c;
-  margin: 0.5rem 0 0.25rem;
+.tab-pane h2:first-child {
+  margin-top: 0;
 }
 .grid-2 {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 0.3rem 1rem;
 }
-.grid-3 {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 0.3rem;
-}
-.attr {
-  display: flex;
-  justify-content: space-between;
-  background: #2a1f0e;
-  padding: 0.25rem 0.5rem;
-  border-radius: 4px;
-}
-.label {
-  text-transform: capitalize;
-  font-size: 0.85rem;
-}
-.val {
-  font-weight: 700;
-  color: #f0c96a;
-}
-.skill-row {
-  display: flex;
-  gap: 0.5rem;
-  align-items: center;
-  font-size: 0.85rem;
-}
-.badge {
-  font-size: 0.7rem;
-  background: #3a2e1a;
-  border: 1px solid #5c4a2a;
-  border-radius: 3px;
-  padding: 0 4px;
-  color: #c9a84c;
-}
-.lore {
-  font-size: 0.9rem;
-  line-height: 1.6;
-  color: #d4c49a;
-  white-space: pre-wrap;
-}
 .weapon-armor-grid {
   align-items: start;
 }
-.error {
-  color: #ffb0b0;
-}
-.bonus-grid {
-  align-items: start;
-}
-.bonus-block {
-  background: #2a1f0e;
-  border: 1px solid #5c4a2a;
-  border-radius: 6px;
-  padding: 0.6rem 0.7rem;
-}
-.bonus-label {
-  margin: 0.45rem 0 0.2rem;
-  color: #c9a84c;
-  font-size: 0.82rem;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-.bonus-list {
-  margin: 0;
-  padding-left: 1rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.2rem;
-  font-size: 0.9rem;
-}
-.malus-list {
-  color: #e0b9a1;
-}
-.class-stats {
-  display: flex;
-  flex-direction: column;
-  gap: 0.2rem;
-  font-size: 0.9rem;
-}
-@media (max-width: 780px) {
-  .identity-head {
+
+@media (max-width: 767px) {
+  .vitruve-layout {
     grid-template-columns: 1fr;
-  }
-
-  .portrait {
-    margin: 0 auto;
-  }
-
-  .position-panel {
-    min-width: 0;
-  }
-
-  .position-grid {
-    flex-direction: row;
-  }
-
-  .session-row {
-    grid-template-columns: 1fr;
-    gap: 0.35rem;
-  }
-
-  .session-actions {
-    justify-content: flex-end;
   }
 
   .weapon-armor-grid {
