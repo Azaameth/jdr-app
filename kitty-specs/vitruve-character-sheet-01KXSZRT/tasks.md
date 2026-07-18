@@ -112,10 +112,10 @@ Delivery shape (decision `01KXT0MDBTHK7AMPR1T7SC17KZ`): **six sequential work pa
 
 **Independent test**: NFR-005 unit tests cover the 9-combination injury space, pin-at-5 rule, clamp bounds, and modifier limits; UI never writes to Firestore; toggles persist and sync.
 
-- [ ] T019 jetFormula.ts + state-space tests (WP04)
-- [ ] T020 JetCalculator.vue (WP04)
-- [ ] T021 AdvantageToggles.vue (WP04)
-- [ ] T022 Wiring + reset behavior + component tests (WP04)
+- [x] T019 jetFormula.ts + state-space tests (WP04)
+- [x] T020 JetCalculator.vue (WP04)
+- [x] T021 AdvantageToggles.vue (WP04)
+- [x] T022 Wiring + reset behavior + component tests (WP04)
 
 **Risks**: formula order of operations (adjust → sum → clamp); tick-state leakage across character switches.
 
