@@ -17,7 +17,8 @@ subtasks:
 - T020
 - T021
 - T022
-agent: claude
+agent: "claude:sonnet:reviewer-renata:reviewer"
+shell_pid: "42249"
 history:
 - 2026-07-18T07:12:04Z — created by /spec-kitty.tasks
 agent_profile: frontend-freddy
@@ -139,3 +140,10 @@ spec-kitty agent action implement WP04 --agent claude
 - Clamp order matters: adjust (floor 5 / pin 5) happens **before** summing ticks/mod, and the final clamp happens **after**; a single combined clamp is wrong (e.g. base 5 pinned + mod +20 must give 25, not 5).
 - Confirm `JET_CATEGORY_META` is imported by CaracTab or shares the mapping source — two divergent mappings would be a silent cross-WP bug.
 - Toggles: check no local optimistic state shadows the session value (they must reflect remote changes).
+
+## Activity Log
+
+- 2026-07-18T11:55:19Z – claude:sonnet:frontend-freddy:implementer – shell_pid=39461 – Assigned agent via action command
+- 2026-07-18T12:03:10Z – claude:sonnet:frontend-freddy:implementer – shell_pid=39461 – Ready for review: jetFormula.ts (pure, NFR-005 exhaustive tests), JetCalculator.vue (display-only, tested with zero store/repo calls asserted), AdvantageToggles.vue (reflects session directly, no optimistic shadow state), wired into PlayerView.vue's VitruveSheet widgets slot. type-check/lint/test:unit all green (328/328 tests pass).
+- 2026-07-18T12:03:37Z – claude:sonnet:reviewer-renata:reviewer – shell_pid=42249 – Started review via action command
+- 2026-07-18T12:07:46Z – user – shell_pid=42249 – Moved to planned
