@@ -6,10 +6,12 @@ import { mount } from '@vue/test-utils'
 // composable — no data props, only the `canAdjust` role gate). Mock the
 // store module the same way PartyStatus.spec.ts mocks usePlayerStore.
 const mockDice = ref<{ aventure: number; mesaventure: number }>({ aventure: 0, mesaventure: 0 })
+const mockError = ref<string | null>(null)
 const mockAdjust = vi.fn<(die: 'aventure' | 'mesaventure', delta: number) => void>()
 vi.mock('../../../controllers/useCampaignSessionStore', () => ({
   useCampaignSessionStore: () => ({
     adventureDice: computed(() => mockDice.value),
+    error: computed(() => mockError.value),
     adjust: mockAdjust,
   }),
 }))
@@ -20,6 +22,19 @@ describe('AdventureDiceBox', () => {
   beforeEach(() => {
     mockAdjust.mockClear()
     mockDice.value = { aventure: 0, mesaventure: 0 }
+    mockError.value = null
+  })
+
+  it("affiche l'erreur du store quand un ajustement échoue", async () => {
+    const wrapper = mount(AdventureDiceBox, { props: { canAdjust: true } })
+    expect(wrapper.find('.adv-dice-error').exists()).toBe(false)
+
+    mockError.value = "Impossible de mettre à jour les dés d'aventure."
+    await wrapper.vm.$nextTick()
+
+    expect(wrapper.find('.adv-dice-error').text()).toBe(
+      "Impossible de mettre à jour les dés d'aventure.",
+    )
   })
 
   it('renders the Aventure / Mésaventure counters', () => {

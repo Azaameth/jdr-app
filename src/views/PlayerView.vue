@@ -597,7 +597,11 @@ async function loadCharacter() {
       listChildrenOf(campaignId.value, characterId.value),
     ])
     character.value = char
-    participant.value = participantRow
+    // Prefer the live snapshot row if the party subscription already delivered
+    // one — the one-shot fetch may resolve after a fresher snapshot.
+    participant.value =
+      playerStore.partyParticipants.value.find((p) => p.characterId === characterId.value) ??
+      participantRow
     races.value = raceList
     classes.value = classList
     children.value = childList
@@ -618,6 +622,19 @@ async function loadCharacter() {
 watch([campaignId, characterId, () => authStore.user.value?.uid], loadCharacter, {
   immediate: true,
 })
+
+// The displayed sheet (vitals pills, injuries, avantage/désavantage, child
+// sessions) must stay live for remote viewers too, not just État du groupe:
+// feed `participant` from the party subscription snapshot already attached by
+// loadCharacter — no extra listener involved.
+watch(
+  () => playerStore.partyParticipants.value,
+  (list) => {
+    if (forbidden.value) return
+    const live = list.find((p) => p.characterId === characterId.value)
+    if (live) participant.value = live
+  },
+)
 
 // MJ/admin raw-data editor (FR-004): trigger lives in VitruveSheet's widgets
 // slot (see template), gated by canEditRawData. On a successful save,

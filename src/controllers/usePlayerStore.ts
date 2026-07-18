@@ -287,6 +287,10 @@ export function usePlayerStore() {
     subscribeParty,
     unsubscribeParty,
     party,
+    // Raw subscribed participant docs (all statuses, children included) so the
+    // character sheet can keep its own displayed participant live from the same
+    // snapshot that feeds `party` — mission-review DRIFT-1 follow-up.
+    partyParticipants: computed(() => partyParticipants.value),
     cache: computed(() => cache.value),
     error: computed(() => error.value),
   }

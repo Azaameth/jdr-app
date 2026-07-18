@@ -40,8 +40,11 @@ vi.mock('../../models/repositories/CharacterRepository', () => ({
 // (vi.mock factories run before top-level const declarations, per Vitest's
 // hoisting rules — see usePlayerStore.spec.ts for the same pattern) so
 // child-tab tests can assert the childId/fields it was called with.
-const { mockUpdateChildSession } = vi.hoisted(() => ({
+const { mockUpdateChildSession, partySnapshot } = vi.hoisted(() => ({
   mockUpdateChildSession: vi.fn<() => Promise<void>>(async () => {}),
+  // DRIFT-1 fix (mission review): capture the live-subscription callback so
+  // tests can push participant snapshots the way Firestore would.
+  partySnapshot: { deliver: undefined as ((list: Participant[]) => void) | undefined },
 }))
 vi.mock('../../models/repositories/ParticipantRepository', () => ({
   getParticipantByCharacterId: vi.fn<() => Promise<Participant | null>>(
@@ -49,7 +52,12 @@ vi.mock('../../models/repositories/ParticipantRepository', () => ({
   ),
   setParticipantSessionByCharacterId: vi.fn<() => Promise<null>>(async () => null),
   // WP03: usePlayerStore().subscribeParty attaches this live listener too.
-  subscribeParticipantsByCampaign: vi.fn<() => () => void>(() => () => {}),
+  subscribeParticipantsByCampaign: vi.fn<
+    (campaignId: string, onChange: (list: Participant[]) => void) => () => void
+  >((_campaignId, onChange) => {
+    partySnapshot.deliver = onChange
+    return () => {}
+  }),
   updateChildSession: mockUpdateChildSession,
 }))
 vi.mock('../../models/repositories/ClassRepository', () => ({
@@ -470,6 +478,42 @@ describe('PlayerView — vitruve tab host (T010/T013)', () => {
     )
     mockInventoryState.mockReturnValue(makeInventoryStore(makeInventory({ uid: 'owner-uid' })))
   }
+
+  it('met à jour la fiche affichée quand la souscription du groupe livre une nouvelle session (DRIFT-1)', async () => {
+    currentParticipant = makeParticipant()
+    mountAsOwner()
+
+    const wrapper = mount(PlayerView, { props: { campaignId: 'campaign-1', characterId: 'char-1' } })
+    await flushPromises()
+
+    expect(wrapper.findComponent(VitruveSheet).props('participant')?.session.hp).toBe(10)
+
+    // A remote viewer's change arrives through the snapshot listener: the
+    // displayed sheet (pills, injuries) must follow without a reload.
+    partySnapshot.deliver?.([
+      makeParticipant({
+        session: {
+          hp: 3,
+          maxHp: 10,
+          mana: 5,
+          maxMana: 5,
+          posture: 'FOCUS',
+          injuries: { puissance: 'rouge' },
+        },
+      }),
+    ])
+    await flushPromises()
+
+    expect(wrapper.findComponent(VitruveSheet).props('participant')?.session.hp).toBe(3)
+    await selectTab(wrapper, 'Caractéristiques')
+    expect(wrapper.findComponent(CaracTab).props('session')?.injuries).toEqual({
+      puissance: 'rouge',
+    })
+
+    // Reset the singleton store's snapshot so later tests fall back to their
+    // own one-shot fixtures.
+    partySnapshot.deliver?.([])
+  })
 
   it('renders VitruveSheet in the left column and defaults to the Fiche tab', async () => {
     mountAsOwner()

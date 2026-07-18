@@ -112,8 +112,8 @@ No `catch → return ""/null` patterns outside the sanctioned `!db` convention w
 All 18 FRs trace to shipped code with adequate tests except the real-time reach of FR-002/008/014 (DRIFT-1, MEDIUM — the sync exists and is user-visible in État du groupe, but the viewed sheet itself is not live for remote viewers). No locked decision was violated, no non-goal invaded, the two rejection cycles resolved cleanly with independent re-review, all applicable quality gates pass locally and in CI (PR #3), and the two clean-up risks are LOW. Nothing blocks release.
 
 ### Open items (non-blocking)
-1. **DRIFT-1**: wire `participant` to the live party snapshot (small change, big UX honesty win for FR-014).
-2. **RISK-2**: render `campaignSessionStore.error` in `AdventureDiceBox`.
+1. **DRIFT-1**: ~~wire `participant` to the live party snapshot~~ — **FIXED post-review** (same branch): `usePlayerStore` now exposes `partyParticipants`; `PlayerView` watches it and prefers the live row on load. Covered by a new test delivering a snapshot with changed hp + injuries and asserting the sheet follows without reload.
+2. **RISK-2**: ~~render `campaignSessionStore.error` in `AdventureDiceBox`~~ — **FIXED post-review**: the widget now renders the store error (tested).
 3. **RISK-1**: first caller for `getCampaignSession` in the future Dés d'Aventure mission, or drop it there.
 4. Human steps from `NEXTSTEPS.md`: live-Firebase quickstart walkthrough, `seed:defaultchars:admin`, firestore.rules deployment.
 

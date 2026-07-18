@@ -16,6 +16,7 @@ const campaignSessionStore = useCampaignSessionStore()
 
 const aventure = computed(() => campaignSessionStore.adventureDice.value.aventure)
 const mesaventure = computed(() => campaignSessionStore.adventureDice.value.mesaventure)
+const error = computed(() => campaignSessionStore.error.value)
 
 function adjust(die: 'aventure' | 'mesaventure', delta: number) {
   if (!props.canAdjust) return
@@ -85,6 +86,8 @@ function adjust(die: 'aventure' | 'mesaventure', delta: number) {
         <i class="ti ti-circle-filled" aria-hidden="true"></i>Mésaventure : <strong>{{ mesaventure }}</strong>
       </span>
     </div>
+
+    <p v-if="error" class="adv-dice-error">{{ error }}</p>
   </div>
 </template>
 
@@ -185,5 +188,11 @@ function adjust(die: 'aventure' | 'mesaventure', delta: number) {
 .adv-dice-summary i {
   font-size: 9px;
   margin-right: 3px;
+}
+.adv-dice-error {
+  margin-top: 8px;
+  font-size: 11px;
+  font-style: italic;
+  color: #d06050;
 }
 </style>
