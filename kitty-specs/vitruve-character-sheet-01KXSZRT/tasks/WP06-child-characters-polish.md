@@ -17,7 +17,8 @@ subtasks:
 - T029
 - T030
 - T031
-agent: claude
+agent: "claude:sonnet:reviewer-renata:reviewer"
+shell_pid: "53685"
 history:
 - 2026-07-18T07:12:04Z — created by /spec-kitty.tasks
 agent_profile: frontend-freddy
@@ -132,3 +133,10 @@ spec-kitty agent action implement WP06 --agent claude
 - Raw editor: attempt a payload containing `"id": "other-doc"` and `"role"`-like junk — confirm stripping/ignoring; this is an MJ-trust surface but shouldn't corrupt doc identity.
 - e2e: run it 3× locally on webkit before approving (known flake surface).
 - NEXTSTEPS.md must reflect reality — reject a "all done" ledger if any gate step was skipped.
+
+## Activity Log
+
+- 2026-07-18T12:25:18Z – claude:sonnet:frontend-freddy:implementer – shell_pid=47651 – Assigned agent via action command
+- 2026-07-18T12:47:06Z – claude:sonnet:frontend-freddy:implementer – shell_pid=47651 – Ready for review: T027-T031 implemented. ChildSheetTab.vue (child mini-sheet, extracted CaracCategoryBlock.vue reused from CaracTab), RawCharacterEditor.vue (MJ-only atomic JSON editor), PlayerView.vue integration (child tabs, active-context switch for calculator FR-016, stale-tab fallback, raw-editor trigger), e2e/vitruve.spec.ts smoke, NEXTSTEPS.md ledger closed. Full local gate green: type-check, lint, 376 unit tests, build, e2e chromium 5/5 (vitruve spec re-run 3x clean). Webkit CI-only per known environment gotcha. Out-of-map edits (sanctioned, documented in code comments): CaracCategoryBlock.vue extraction touching CaracTab.vue; PlayerView.vue + PlayerView.spec.ts integration edits.
+- 2026-07-18T12:47:43Z – claude:sonnet:reviewer-renata:reviewer – shell_pid=53685 – Started review via action command
+- 2026-07-18T16:29:32Z – user – shell_pid=53685 – Moved to planned
