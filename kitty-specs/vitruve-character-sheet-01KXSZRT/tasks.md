@@ -94,11 +94,11 @@ Delivery shape (decision `01KXT0MDBTHK7AMPR1T7SC17KZ`): **six sequential work pa
 
 **Independent test**: injury click cycles saine→jaune→rouge→saine, adjusts category % per formula, survives reload; ticks reset on character switch; histoire edit gated to owner/MJ.
 
-- [ ] T014 FicheTab.vue (WP03)
-- [ ] T015 Histoire editing persisted (WP03)
-- [ ] T016 CaracTab.vue category blocks + injury squares (WP03)
-- [ ] T017 Compétences/bonus checkbox lists + tick-state module (WP03)
-- [ ] T018 Summary cards + posture; tab unit tests (WP03)
+- [x] T014 FicheTab.vue (WP03)
+- [x] T015 Histoire editing persisted (WP03)
+- [x] T016 CaracTab.vue category blocks + injury squares (WP03)
+- [x] T017 Compétences/bonus checkbox lists + tick-state module (WP03)
+- [x] T018 Summary cards + posture; tab unit tests (WP03)
 
 **Risks**: category mapping fidelity (force/social/mental ↔ sub pairs); permission gating on histoire.
 
