@@ -12,5 +12,7 @@
   "purpose_tldr": "Porter la fiche de personnage « vitruve » du monolithe legacy vers l'app Vue : layout deux colonnes, calculateur de jet, état du groupe et personnages enfants data-driven.",
   "slug": "vitruve-character-sheet-01KXSZRT",
   "target_branch": "feat/vitruve-character-sheet",
-  "topology": "coord"
+  "topology": "coord",
+  "vcs": "git",
+  "vcs_locked_at": "2026-07-18T07:23:09.906224+00:00"
 }

@@ -19,7 +19,8 @@ subtasks:
 - T006
 - T007
 - T008
-agent: claude
+agent: "claude:sonnet:reviewer-renata:reviewer"
+shell_pid: "29310"
 history:
 - 2026-07-18T07:12:04Z — created by /spec-kitty.tasks
 agent_profile: implementer-ivan
@@ -210,3 +211,10 @@ spec-kitty agent action implement WP01 --agent claude
 - Check the rules diff line-by-line for accidental loosening (especially the owner backstory-only character write: it must not grant owners writes to attributes/skills).
 - Verify `subscribeParty` cannot leak: repeated calls with the same campaign must not stack listeners.
 - Confirm store catches keep the committed French-error shape.
+
+## Activity Log
+
+- 2026-07-18T07:23:10Z – claude:sonnet:implementer-ivan:implementer – shell_pid=14087 – Assigned agent via action command
+- 2026-07-18T07:38:59Z – claude:sonnet:implementer-ivan:implementer – shell_pid=14087 – Ready for review: type-check/lint/test:unit all green (232 tests, 22 files). All contract signatures match session-state-api.md verbatim. Furmiaou seeded in characters.json (parentCharacterId=firm) + childSessions in participants.json. firestore.rules extended: campaignSessions (mj/admin write, non-negative), characters owner-write restricted to backstory-only via diff().affectedKeys(). No UI files touched.
+- 2026-07-18T11:10:10Z – claude:sonnet:reviewer-renata:reviewer – shell_pid=29310 – Started review via action command
+- 2026-07-18T11:15:52Z – user – shell_pid=29310 – Review passed: all contract signatures (types, ParticipantRepository, CharacterRepository, CampaignSessionRepository, usePlayerStore, useCampaignSessionStore) match contracts/session-state-api.md verbatim; firestore.rules diff reviewed line-by-line (campaignSessions mj/admin-only + non-negative clamp, characters owner write restricted to backstory+updatedAt only via diff().affectedKeys(), participants left untouched/unrestricted as instructed); subscribeParty/subscribe idempotence verified by tests (same-id no-op, different-id detach-then-reattach); French error-fallback shape preserved on every catch; !db fallback covered by unit tests for every new repo fn; Furmiaou seed verified byte-for-byte against FR-018 stat block with parentCharacterId=firm and childSessions on Firm's participant (no separate participant doc); zero UI diff (only owned_files touched). type-check/lint/test:unit all green (232/232 tests, 22 files) in the worktree.
