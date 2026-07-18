@@ -76,11 +76,11 @@ Delivery shape (decision `01KXT0MDBTHK7AMPR1T7SC17KZ`): **six sequential work pa
 
 **Independent test**: existing unit + e2e suites green; page shows left sheet (header, vitals, portrait) and tabs; Dons/Inventaire behave byte-for-byte as before (modals, permissions, read-only fallback).
 
-- [ ] T009 VitruveSheet.vue left-column shell (WP02)
-- [ ] T010 PlayerView two-column restructure + tab host (WP02)
-- [ ] T011 Relocate Dons & Inventaire tabs unchanged (WP02)
-- [ ] T012 Responsive stacking + legacy French labels (WP02)
-- [ ] T013 Test/selector updates; e2e green (WP02)
+- [x] T009 VitruveSheet.vue left-column shell (WP02)
+- [x] T010 PlayerView two-column restructure + tab host (WP02)
+- [x] T011 Relocate Dons & Inventaire tabs unchanged (WP02)
+- [x] T012 Responsive stacking + legacy French labels (WP02)
+- [x] T013 Test/selector updates; e2e green (WP02)
 
 **Risks**: silent regression of inventory wiring (C-005) — the biggest non-regression surface of the mission; e2e selectors.
 
