@@ -55,14 +55,14 @@ Delivery shape (decision `01KXT0MDBTHK7AMPR1T7SC17KZ`): **six sequential work pa
 
 **Independent test**: `npm run type-check && npm run lint && npm run test:unit` pass; new repository/store functions covered by unit tests including `!db` fallbacks; `git diff` shows no component/view changes.
 
-- [ ] T001 Extend Character/Participant types; add CampaignSession type module (WP01)
-- [ ] T002 ParticipantRepository: subscribe + session/childSessions writes (WP01)
-- [ ] T003 CharacterRepository: listChildrenOf + updateCharacter write (WP01)
-- [ ] T004 CampaignSessionRepository: get/subscribe/adjustAdventureDice (WP01)
-- [ ] T005 usePlayerStore extensions (WP01)
-- [ ] T006 useCampaignSessionStore (WP01)
-- [ ] T007 firestore.rules updates (WP01)
-- [ ] T008 Seeds, unit tests, CLAUDE.md note (WP01)
+- [x] T001 Extend Character/Participant types; add CampaignSession type module (WP01)
+- [x] T002 ParticipantRepository: subscribe + session/childSessions writes (WP01)
+- [x] T003 CharacterRepository: listChildrenOf + updateCharacter write (WP01)
+- [x] T004 CampaignSessionRepository: get/subscribe/adjustAdventureDice (WP01)
+- [x] T005 usePlayerStore extensions (WP01)
+- [x] T006 useCampaignSessionStore (WP01)
+- [x] T007 firestore.rules updates (WP01)
+- [x] T008 Seeds, unit tests, CLAUDE.md note (WP01)
 
 **Risks**: field-name drift vs locked contract (reviewer must diff against `contracts/session-state-api.md`); rules regressions on existing participant writes.
 
