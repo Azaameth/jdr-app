@@ -16,7 +16,8 @@ subtasks:
 - T024
 - T025
 - T026
-agent: claude
+agent: "claude:sonnet:reviewer-renata:reviewer"
+shell_pid: "46734"
 history:
 - 2026-07-18T07:12:04Z — created by /spec-kitty.tasks
 agent_profile: frontend-freddy
@@ -111,3 +112,10 @@ spec-kitty agent action implement WP05 --agent claude
 - Check the `mesaventure` spelling in every identifier and string — a typo here becomes a silent Firestore field fork.
 - Confirm buttons are *absent* (not disabled) for non-MJ — spec FR-010 says read-only for other roles.
 - Verify no direct Firestore imports leaked into the components (data flows only through stores).
+
+## Activity Log
+
+- 2026-07-18T12:14:28Z – claude:sonnet:frontend-freddy:implementer – shell_pid=44686 – Assigned agent via action command
+- 2026-07-18T12:20:24Z – claude:sonnet:frontend-freddy:implementer – shell_pid=44686 – Ready for review: PartyStatus.vue (FR-009) + AdventureDiceBox.vue (FR-010) implemented, wired into PlayerView widgets slot in legacy order (calculateur→avantages→état du groupe→dés d'aventure), subscribeParty + campaignSessionStore lifecycle mirrored (subscribe on load/campaignId change, unsubscribe on unmount and on empty campaignId/characterId). type-check/lint/test:unit all green (343 tests, 31 files). Extended WP01 party-exclusion test with real Firm Bintaggle/Furmiaou fixture for FR-017.
+- 2026-07-18T12:20:45Z – claude:sonnet:reviewer-renata:reviewer – shell_pid=46734 – Started review via action command
+- 2026-07-18T12:24:22Z – user – shell_pid=46734 – Review passed: listener lifecycle correctly mirrors playerStore.subscribeParty (subscribe/unsubscribe on load, campaignId-empty early return, and onBeforeUnmount); campaignSessionStore.subscribe verified idempotent (re-attach same campaignId no-ops, store-level test toHaveBeenCalledTimes(1) confirms). mesaventure spelling consistent across component, store, tests (repo-wide grep clean). FR-010 role gating uses v-if (buttons absent from DOM, not disabled) for non-MJ, verified by test asserting 0 buttons. No Firestore imports in PartyStatus.vue/AdventureDiceBox.vue. PartyStatus renders exactly what party provides (no re-filtering), FR-017 test extended with real Firm Bintaggle/Furmiaou fixture names, low-PV <=25% red tint confirmed, French empty state present, never blank. AdventureDiceBox defaults 0/0, minus disabled at 0 independently per counter. Widget order JetCalculator->AdvantageToggles->PartyStatus->AdventureDiceBox matches legacy. PlayerView.vue edit is a minimal 14-line out-of-map addition with rationale in commit message and activity log. type-check/lint/test:unit all exit 0 (343 tests, 31 files, zero lint findings). Diff scope matches owned_files exactly plus the pre-authorized PlayerView.vue integration edit.
