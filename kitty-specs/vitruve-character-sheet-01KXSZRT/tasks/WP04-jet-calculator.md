@@ -18,7 +18,7 @@ subtasks:
 - T021
 - T022
 agent: "claude:sonnet:reviewer-renata:reviewer"
-shell_pid: "42249"
+shell_pid: "43849"
 history:
 - 2026-07-18T07:12:04Z — created by /spec-kitty.tasks
 agent_profile: frontend-freddy
@@ -147,3 +147,7 @@ spec-kitty agent action implement WP04 --agent claude
 - 2026-07-18T12:03:10Z – claude:sonnet:frontend-freddy:implementer – shell_pid=39461 – Ready for review: jetFormula.ts (pure, NFR-005 exhaustive tests), JetCalculator.vue (display-only, tested with zero store/repo calls asserted), AdvantageToggles.vue (reflects session directly, no optimistic shadow state), wired into PlayerView.vue's VitruveSheet widgets slot. type-check/lint/test:unit all green (328/328 tests pass).
 - 2026-07-18T12:03:37Z – claude:sonnet:reviewer-renata:reviewer – shell_pid=42249 – Started review via action command
 - 2026-07-18T12:07:46Z – user – shell_pid=42249 – Moved to planned
+- 2026-07-18T12:08:40Z – claude:sonnet:frontend-freddy:implementer – shell_pid=43034 – Started implementation via action command
+- 2026-07-18T12:10:32Z – claude:sonnet:frontend-freddy:implementer – shell_pid=43034 – Cycle 2: mapping deduplicated per review feedback; all suites green
+- 2026-07-18T12:11:05Z – claude:sonnet:reviewer-renata:reviewer – shell_pid=43849 – Started review via action command
+- 2026-07-18T12:13:32Z – user – shell_pid=43849 – Review passed (cycle 2): mapping consolidated; CaracTab.vue now imports JET_CATEGORY_META/JetCategory from jetFormula.ts (grep confirms zero independent mapping literals remain; SUB_LABELS is acceptable local presentation data). be82def touches only CaracTab.vue (+33/-32). jetFormula.ts and its tests byte-identical to 2f044a4 (empty diff). type-check/lint/test:unit all exit 0, 328/328 tests pass, working tree clean after lint --fix. Rendering order (physique/social/mental) and labels unchanged.
