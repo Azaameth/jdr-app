@@ -1,0 +1,189 @@
+{
+  "mission_slug": "vitruve-character-sheet-01KXSZRT",
+  "mission_number": "",
+  "mission_type": "software-dev",
+  "overall_verdict": "pass",
+  "criteria": [
+    {
+      "criterion_id": "FR-001",
+      "description": "PlayerView restructured into the vitruve two-column layout (fixed left sheet, flexible right tabbed panel), stacking below 768px.",
+      "proof_type": "automated_test",
+      "evidence": "src/views/__tests__/PlayerView.spec.ts — VitruveSheet integration + tab-host cases (WP02); .vitruve-layout grid 300px/1fr with @media (max-width: 767px) single-column in PlayerView.vue",
+      "pass_fail": "pass",
+      "verified_by": "claude:sonnet:reviewer-renata",
+      "verified_at": "2026-07-18T16:38:54Z",
+      "notes": "WP02 review re-ran unit suite (245/245 at that point) and chromium e2e"
+    },
+    {
+      "criterion_id": "FR-002",
+      "description": "Left sheet header (name + race · classe · Niv.N · éléments) and PV/Mana pills with ± steppers persisting to the participant session, synced live.",
+      "proof_type": "automated_test",
+      "evidence": "src/components/vitruve/__tests__/VitruveSheet.spec.ts — header/subtitle/vitals rendering, adjust-hp/adjust-mana emits, steppers hidden when canEditSession false; persistence path is the pre-existing session update logic preserved through the restructure (WP02 review verified as a move, not rewrite)",
+      "pass_fail": "pass",
+      "verified_by": "claude:sonnet:reviewer-renata",
+      "verified_at": "2026-07-18T16:38:54Z",
+      "notes": "Live sync uses subscribeParticipantsByCampaign (WP01), unit-tested for idempotent attach"
+    },
+    {
+      "criterion_id": "FR-003",
+      "description": "Portrait block with image or class-icon fallback.",
+      "proof_type": "automated_test",
+      "evidence": "src/components/vitruve/__tests__/VitruveSheet.spec.ts — portrait image vs fallback vs @error-triggered fallback cases",
+      "pass_fail": "pass",
+      "verified_by": "claude:sonnet:reviewer-renata",
+      "verified_at": "2026-07-18T16:38:54Z",
+      "notes": null
+    },
+    {
+      "criterion_id": "FR-004",
+      "description": "MJ/admin-only raw data editor; invalid JSON rejected with French error and zero writes; id/campaignId stripped from valid payloads.",
+      "proof_type": "automated_test",
+      "evidence": "src/components/vitruve/__tests__/RawCharacterEditor.spec.ts — invalid JSON → in-modal error + zero updateCharacter calls; valid JSON → called without id/campaignId (junk-payload case included); cancel writes nothing. Trigger gating (isMj || isAdmin) tested in PlayerView.spec.ts",
+      "pass_fail": "pass",
+      "verified_by": "claude:sonnet:reviewer-renata",
+      "verified_at": "2026-07-18T16:38:54Z",
+      "notes": "Atomicity (parse fully before any write) verified in WP06 review cycles 1 and 2"
+    },
+    {
+      "criterion_id": "FR-005",
+      "description": "Jet calculator category selector with adjusted base %: max(5, base − 10×jaune − 20×rouge), pinned to 5 when both sous-caractéristiques are rouge.",
+      "proof_type": "automated_test",
+      "evidence": "src/components/vitruve/__tests__/tickState.spec.ts + jetFormula.spec.ts — all 9 injury combinations at base 60, floor case (base 20, 2×jaune → 5), pin case; WP04 reviewer re-derived the table independently before checking fixtures",
+      "pass_fail": "pass",
+      "verified_by": "claude:sonnet:reviewer-renata",
+      "verified_at": "2026-07-18T16:38:54Z",
+      "notes": "NFR-005's full state space requirement satisfied by the same suites"
+    },
+    {
+      "criterion_id": "FR-006",
+      "description": "Checkable compétences (rank × 10%) and bonus/malus de race entries feeding a 'Compétences : ±X%' calculator line (hidden at 0); ticks per-viewer ephemeral.",
+      "proof_type": "automated_test",
+      "evidence": "src/components/vitruve/__tests__/CaracTab.spec.ts (checkbox lists, six-name exclusion incl. 'savoir (xxx)' variants) + JetCalculator.spec.ts (ticked sum display/sign, hidden at 0); tickState.ts imports no repository/store — ticks provably never persisted",
+      "pass_fail": "pass",
+      "verified_by": "claude:sonnet:reviewer-renata",
+      "verified_at": "2026-07-18T16:38:54Z",
+      "notes": "Reset-on-character-switch wired via watch(characterId) → useTickState().reset(), verified in WP03 and WP04 reviews"
+    },
+    {
+      "criterion_id": "FR-007",
+      "description": "Manual ±5% modifier in [−100, +100] with reset; total = clamp(base + ticks + manual, 5, 95), tone-colored (≥60 / 35–59 / <35), min/max hints; no dice roll ever triggered.",
+      "proof_type": "automated_test",
+      "evidence": "src/components/vitruve/__tests__/jetFormula.spec.ts — clamp edges (4→5, 96→95, pass-through), tone boundaries (34/35/59/60), clampManualMod(±105)→±100, clamp-order regression case (pinned base 5 + mod 20 = 25); JetCalculator.spec.ts asserts zero store/repository calls across a full interaction (display-only proof)",
+      "pass_fail": "pass",
+      "verified_by": "claude:sonnet:reviewer-renata",
+      "verified_at": "2026-07-18T16:38:54Z",
+      "notes": null
+    },
+    {
+      "criterion_id": "FR-008",
+      "description": "Avantage/Désavantage toggles persisted on the participant session, synced live, both can be active simultaneously.",
+      "proof_type": "automated_test",
+      "evidence": "src/components/vitruve/__tests__/AdvantageToggles.spec.ts — reflects session values (no shadow state), both-active case, absent-field-as-false, emits, inert when !canEdit; persistence via usePlayerStore.setAdvantage/setDisadvantage (WP01 unit tests)",
+      "pass_fail": "pass",
+      "verified_by": "claude:sonnet:reviewer-renata",
+      "verified_at": "2026-07-18T16:38:54Z",
+      "notes": null
+    },
+    {
+      "criterion_id": "FR-009",
+      "description": "État du groupe lists every approved participant character with live PV/Mana, always visible; children excluded.",
+      "proof_type": "automated_test",
+      "evidence": "src/components/vitruve/__tests__/PartyStatus.spec.ts — renders party rows, low-PV (≤25%) warning class, French empty state; src/controllers/__tests__/usePlayerStore.spec.ts — party excludes parentCharacterId holders (generic + real Firm/Furmiaou fixture)",
+      "pass_fail": "pass",
+      "verified_by": "claude:sonnet:reviewer-renata",
+      "verified_at": "2026-07-18T16:38:54Z",
+      "notes": "Live updates via subscribeParticipantsByCampaign onSnapshot; <2s multi-client check (NFR-001) remains a manual quickstart step (see NEXTSTEPS.md)"
+    },
+    {
+      "criterion_id": "FR-010",
+      "description": "Dés d'Aventure shared counters, real-time; MJ/admin adjust via ±; other roles read-only (buttons absent); missing doc renders 0/0.",
+      "proof_type": "automated_test",
+      "evidence": "src/components/vitruve/__tests__/AdventureDiceBox.spec.ts — buttons absent from DOM when !canAdjust, adjust('aventure'|'mesaventure', ±1) args, − disabled at 0, 0/0 defaults; store clamp ≥0 tested in useCampaignSessionStore tests; firestore.rules restricts writes to mj/admin with non-negative validation",
+      "pass_fail": "pass",
+      "verified_by": "claude:sonnet:reviewer-renata",
+      "verified_at": "2026-07-18T16:38:54Z",
+      "notes": "Repo-wide grep during WP05 review confirmed consistent 'mesaventure' spelling"
+    },
+    {
+      "criterion_id": "FR-011",
+      "description": "Right panel tabs Fiche/Caractéristiques/Dons/Inventaire plus one tab per child; Dons and Inventaire reused with no functional regression.",
+      "proof_type": "automated_test",
+      "evidence": "src/views/__tests__/PlayerView.spec.ts — tab switching, default tab, child tabs appear only with children; WP02 review verified the Dons/Inventaire relocation as a byte-level move (identical components/props/gating), modals mounted at view root",
+      "pass_fail": "pass",
+      "verified_by": "claude:sonnet:reviewer-renata",
+      "verified_at": "2026-07-18T16:38:54Z",
+      "notes": "All 9 pre-existing inventory unit tests kept passing behind the tab host (C-005)"
+    },
+    {
+      "criterion_id": "FR-012",
+      "description": "Fiche tab: race/genre/langues cards and histoire, editable by owner or mj/admin, persisted.",
+      "proof_type": "automated_test",
+      "evidence": "src/components/vitruve/__tests__/FicheTab.spec.ts — cards render, edit affordance hidden when !canEdit, save emits trimmed text; save path updateCharacter(id, { backstory }) matches firestore.rules owner rule hasOnly(['backstory','updatedAt'])",
+      "pass_fail": "pass",
+      "verified_by": "claude:sonnet:reviewer-renata",
+      "verified_at": "2026-07-18T16:38:54Z",
+      "notes": "Valeurs pills omitted: no data field exists in CharacterProfile — accepted resolution of analysis finding U1"
+    },
+    {
+      "criterion_id": "FR-013",
+      "description": "Caractéristiques tab: PV/Mana/Niveau cards, posture selector (existing persisted mechanism), three category blocks with adjusted % bars and clickable injury squares cycling saine→jaune→rouge→saine.",
+      "proof_type": "automated_test",
+      "evidence": "src/components/vitruve/__tests__/CaracTab.spec.ts — three categories from fixture, injury click emits correct next state, read-only when !canEdit; posture reuses PlayerView's pre-existing changePosture persistence (WP03 review verified no re-implementation); category mapping sourced from JET_CATEGORY_META (single source after WP04 cycle-2 fix)",
+      "pass_fail": "pass",
+      "verified_by": "claude:sonnet:reviewer-renata",
+      "verified_at": "2026-07-18T16:38:54Z",
+      "notes": null
+    },
+    {
+      "criterion_id": "FR-014",
+      "description": "Injury states persisted per character (session.injuries), synced in real time, modifiable by owner or mj/admin only.",
+      "proof_type": "automated_test",
+      "evidence": "src/controllers/__tests__/usePlayerStore.spec.ts — setInjury map computation (add jaune, upgrade rouge, clear removes key); participants rules cover session fields (owner or mj/admin); live sync via the WP01 subscribe pattern",
+      "pass_fail": "pass",
+      "verified_by": "claude:sonnet:reviewer-renata",
+      "verified_at": "2026-07-18T16:38:54Z",
+      "notes": "'none' is never stored — absence means saine, per data-model rule"
+    },
+    {
+      "criterion_id": "FR-015",
+      "description": "A character may have multiple children (parentCharacterId); each child renders a mini-sheet tab (portrait, PV ±, Mana with 'Aucune magie' at 0 max, elements, carac blocks with independent injuries) persisted under the parent participant's childSessions.",
+      "proof_type": "automated_test",
+      "evidence": "src/components/vitruve/__tests__/ChildSheetTab.spec.ts (13 cases: seeded session display, null-session fallback without NaN, 'Aucune magie', emits, canEdit gating) + PlayerView.spec.ts (child tabs, PV+ → setChildVitals, stale-tab fallback to fiche); CaracCategoryBlock shared component keeps parent/child rendering identical",
+      "pass_fail": "pass",
+      "verified_by": "claude:sonnet:reviewer-renata",
+      "verified_at": "2026-07-18T16:38:54Z",
+      "notes": "All-zero fallback for a genuinely missing childSessions entry accepted on the merits in WP06 review (CharacterProfile carries no vitals fields; seeded vitals live in childSessions)"
+    },
+    {
+      "criterion_id": "FR-016",
+      "description": "While a child tab is active the calculator computes from the child's attributes and injuries; leaving restores the parent context.",
+      "proof_type": "automated_test",
+      "evidence": "src/views/__tests__/PlayerView.spec.ts — FR-016 case added in WP06 cycle 2: distinguishable parent/child fixtures (distinct primaries and disjoint injuries maps), asserts JetCalculator's attributes+injuries+contextKey all switch to the child's on child-tab activation and restore on return, with .not.toEqual guards against half-switched context",
+      "pass_fail": "pass",
+      "verified_by": "claude:sonnet:reviewer-renata",
+      "verified_at": "2026-07-18T16:38:54Z",
+      "notes": "This was the WP06 cycle-1 rejection; coverage added test-only, production verified unchanged"
+    },
+    {
+      "criterion_id": "FR-017",
+      "description": "Child characters never appear as standalone members in player lists, team views, or État du groupe.",
+      "proof_type": "automated_test",
+      "evidence": "src/controllers/__tests__/usePlayerStore.spec.ts — party filters parentCharacterId holders, pinned against the real seeded Firm Bintaggle/Furmiaou fixture from scripts/data; children have no participant docs by design (childSessions on the parent)",
+      "pass_fail": "pass",
+      "verified_by": "claude:sonnet:reviewer-renata",
+      "verified_at": "2026-07-18T16:38:54Z",
+      "notes": null
+    },
+    {
+      "criterion_id": "FR-018",
+      "description": "Seed data registers Furmiaou as child of Firm Bintaggle with the legacy stat block (PV 48/48, Mana 0/0, Nature+Transmutation, 65/50/55, puissance 5, finesse 2, aura 3, relation 2, instinct 5, savoir 1).",
+      "proof_type": "code_review",
+      "evidence": "scripts/data/characters.json Furmiaou entry (parentCharacterId: 'firm', full FR-018 stat block, values diffed against legacy-reference/index.html buildFurmHTML in WP01 review) + scripts/data/participants.json childSessions.furmiaou on Firm's participant; seed scripts verified to pass fields through unmodified",
+      "pass_fail": "pass",
+      "verified_by": "claude:sonnet:reviewer-renata",
+      "verified_at": "2026-07-18T16:38:54Z",
+      "notes": "Seeding against live Firestore (npm run seed:defaultchars:admin) left as a human step — needs the service-account key"
+    }
+  ],
+  "negative_invariants": []
+}
