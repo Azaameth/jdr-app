@@ -1,16 +1,25 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
+import BackpackGrid from '../components/BackpackGrid.vue'
+import DonDetailModal from '../components/DonDetailModal.vue'
+import DonList from '../components/DonList.vue'
+import InventorySlotModal, {
+  type InventorySlotContext,
+  type InventorySlotDeletePayload,
+  type InventorySlotSavePayload,
+} from '../components/InventorySlotModal.vue'
+import WeaponArmorList from '../components/WeaponArmorList.vue'
 import { useAuthStore } from '../controllers/useAuthStore'
+import { useInventoryStore } from '../controllers/useInventoryStore'
 import { usePlayerStore } from '../controllers/usePlayerStore'
 import { getCharacterById } from '../models/repositories/CharacterRepository'
 import { listClassesByCampaign } from '../models/repositories/ClassRepository'
-import { getInventoryByCharacterId } from '../models/repositories/InventoryRepository'
 import { getParticipantByCharacterId } from '../models/repositories/ParticipantRepository'
 import { listRacesByCampaign } from '../models/repositories/RaceRepository'
-import type { CharacterProfile } from '../models/types/Character'
+import type { CharacterGift, CharacterProfile } from '../models/types/Character'
 import type { Class } from '../models/types/Class'
-import type { CharacterInventory } from '../models/types/Inventory'
+import type { InventoryCategory, InventoryItem, WeaponArmorItem } from '../models/types/Inventory'
 import type { Participant, Posture } from '../models/types/Participant'
 import type { Race } from '../models/types/Race'
 
@@ -28,12 +37,16 @@ const props = withDefaults(
 const route = useRoute()
 const authStore = useAuthStore()
 const playerStore = usePlayerStore()
+const inventoryStore = useInventoryStore()
 const campaignId = computed(() => props.campaignId ?? (route.params.id as string))
 const characterId = computed(() => props.characterId ?? (route.params.characterId as string))
 
 const character = ref<CharacterProfile | null>(null)
 const participant = ref<Participant | null>(null)
-const inventory = ref<CharacterInventory | null>(null)
+const inventory = computed(() => inventoryStore.inventory.value)
+const weapons = computed(() => inventory.value?.weapons ?? [])
+const armor = computed(() => inventory.value?.armor ?? [])
+const backpackItems = computed(() => inventory.value?.items ?? [])
 const races = ref<Race[]>([])
 const classes = ref<Class[]>([])
 const loading = ref(false)
@@ -41,6 +54,74 @@ const error = ref('')
 const forbidden = ref(false)
 const sessionLoading = ref<'hp' | 'mana' | 'posture' | null>(null)
 const sessionError = ref('')
+
+// Slot editing: only the inventory's owner (character's uid) or an mj/admin
+// may open the modal in edit mode (FR-009). Everyone else — including all
+// viewers when Firebase isn't configured (no inventory loaded) — sees no
+// edit affordance, enforced both here and by the display components' render.
+const canEditInventory = computed(() => {
+  const inv = inventory.value
+  const currentUser = authStore.user.value
+  if (!inv || !currentUser) return false
+  return inv.uid === currentUser.uid || authStore.isMj.value || authStore.isAdmin.value
+})
+
+const slotModalOpen = ref(false)
+const slotModalContext = ref<InventorySlotContext | null>(null)
+
+function openBackpackSlot(payload: { category: InventoryCategory; item?: InventoryItem }) {
+  if (!canEditInventory.value) return
+  slotModalContext.value = { kind: 'backpack', category: payload.category, item: payload.item }
+  slotModalOpen.value = true
+}
+
+function openEquipmentSlot(payload: { kind: 'weapons' | 'armor'; item?: WeaponArmorItem }) {
+  if (!canEditInventory.value) return
+  slotModalContext.value = { kind: payload.kind, item: payload.item }
+  slotModalOpen.value = true
+}
+
+function closeSlotModal() {
+  slotModalOpen.value = false
+  slotModalContext.value = null
+}
+
+const donModalOpen = ref(false)
+const donModalGift = ref<CharacterGift | null>(null)
+
+function openDonModal(gift: CharacterGift) {
+  donModalGift.value = gift
+  donModalOpen.value = true
+}
+
+function closeDonModal() {
+  donModalOpen.value = false
+  donModalGift.value = null
+}
+
+async function handleSlotSave(payload: InventorySlotSavePayload) {
+  const success =
+    payload.kind === 'backpack'
+      ? await inventoryStore.saveBackpackItem(payload.item)
+      : await inventoryStore.saveEquipmentItem(payload.kind, payload.item)
+
+  // On failure (e.g. category-full rejection), keep the modal open so the
+  // French error surfaced by the store is visible via `errorMessage`.
+  if (success) {
+    closeSlotModal()
+  }
+}
+
+async function handleSlotDelete(payload: InventorySlotDeletePayload) {
+  const success =
+    payload.kind === 'backpack'
+      ? await inventoryStore.removeBackpackItem(payload.itemId)
+      : await inventoryStore.removeEquipmentItem(payload.kind, payload.itemId)
+
+  if (success) {
+    closeSlotModal()
+  }
+}
 
 const postureOptions: Array<{ value: Posture; label: string; tone: string }> = [
   { value: 'DEFENSIF', label: 'Défensif', tone: 'def' },
@@ -231,7 +312,6 @@ async function loadCharacter() {
   if (!campaignId.value || !characterId.value) {
     character.value = null
     participant.value = null
-    inventory.value = null
     races.value = []
     classes.value = []
     error.value = ''
@@ -248,16 +328,15 @@ async function loadCharacter() {
   sessionError.value = ''
 
   try {
-    const [char, participantRow, inventoryRow, raceList, classList] = await Promise.all([
+    const [char, participantRow, , raceList, classList] = await Promise.all([
       getCharacterById(characterId.value),
       getParticipantByCharacterId(characterId.value, campaignId.value),
-      getInventoryByCharacterId(characterId.value, campaignId.value),
+      inventoryStore.loadInventory(characterId.value, campaignId.value),
       listRacesByCampaign(campaignId.value),
       listClassesByCampaign(campaignId.value),
     ])
     character.value = char
     participant.value = participantRow
-    inventory.value = inventoryRow
     races.value = raceList
     classes.value = classList
 
@@ -497,13 +576,9 @@ watch([campaignId, characterId, () => authStore.user.value?.uid], loadCharacter,
       </section>
 
       <!-- Dons -->
-      <section class="card" v-if="character.gifts.length">
+      <section class="card">
         <h2>Dons</h2>
-        <div v-for="gift in character.gifts" :key="gift.id" class="gift-row">
-          <b>{{ gift.name }}</b>
-          <span v-if="gift.manaCost"> · {{ gift.manaCost }} mana</span>
-          <p class="desc">{{ gift.description }}</p>
-        </div>
+        <DonList :gifts="character.gifts" @open="openDonModal" />
       </section>
 
       <!-- Histoire -->
@@ -512,19 +587,45 @@ watch([campaignId, characterId, () => authStore.user.value?.uid], loadCharacter,
         <p class="lore">{{ character.backstory }}</p>
       </section>
 
-      <section class="card" v-if="inventory?.items?.length">
-        <h2>Inventaire</h2>
-        <ul class="inventory">
-          <li v-for="item in inventory.items" :key="item.itemId">
-            {{ item.name }}
-            <span v-if="item.quantity > 1">×{{ item.quantity }}</span>
-            <span v-if="item.equipped" class="badge">équipé</span>
-          </li>
-        </ul>
+      <section class="card">
+        <h2>Armes & Armures</h2>
+        <div class="grid-2 weapon-armor-grid">
+          <WeaponArmorList
+            title="Armes"
+            kind="weapons"
+            :items="weapons"
+            :editable="canEditInventory"
+            @slot-click="openEquipmentSlot"
+          />
+          <WeaponArmorList
+            title="Armures & Protections"
+            kind="armor"
+            :items="armor"
+            :editable="canEditInventory"
+            @slot-click="openEquipmentSlot"
+          />
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>Sac à dos</h2>
+        <BackpackGrid :items="backpackItems" :editable="canEditInventory" @slot-click="openBackpackSlot" />
       </section>
     </template>
 
     <p v-else>Personnage introuvable.</p>
+
+    <InventorySlotModal
+      v-if="slotModalContext"
+      :open="slotModalOpen"
+      :context="slotModalContext"
+      :error-message="inventoryStore.error.value"
+      @close="closeSlotModal"
+      @save="handleSlotSave"
+      @delete="handleSlotDelete"
+    />
+
+    <DonDetailModal :open="donModalOpen" :gift="donModalGift" @close="closeDonModal" />
   </div>
 </template>
 
@@ -738,27 +839,14 @@ h3 {
   padding: 0 4px;
   color: #c9a84c;
 }
-.gift-row {
-  margin-bottom: 0.5rem;
-}
-.desc {
-  font-size: 0.85rem;
-  color: #b8a07a;
-  margin: 0.15rem 0 0;
-}
 .lore {
   font-size: 0.9rem;
   line-height: 1.6;
   color: #d4c49a;
   white-space: pre-wrap;
 }
-.inventory {
-  list-style: none;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-  font-size: 0.9rem;
+.weapon-armor-grid {
+  align-items: start;
 }
 .error {
   color: #ffb0b0;
@@ -820,6 +908,10 @@ h3 {
 
   .session-actions {
     justify-content: flex-end;
+  }
+
+  .weapon-armor-grid {
+    grid-template-columns: 1fr;
   }
 }
 </style>

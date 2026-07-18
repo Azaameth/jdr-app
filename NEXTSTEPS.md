@@ -4,7 +4,7 @@ Increment ledger for specs that cross CLAUDE.md's high-complexity threshold (~4+
 
 ## Locked contracts (Phase 2.2)
 
-These are locked now, ahead of the features that consume them, per CLAUDE.md's high-complexity-spec policy. Cite from the Vitruve sheet, inventory, negotiation, and theme specs below instead of re-deriving.
+These are locked now, ahead of the features that consume them, per CLAUDE.md's high-complexity-spec policy. Cite from the Vitruve sheet, negotiation, and theme specs below instead of re-deriving (the inventory schema itself shipped as `inventory-slots-dons-01KXRF5M` — see its entry below).
 
 ### Per-campaign scoping convention
 
@@ -14,27 +14,7 @@ These are locked now, ahead of the features that consume them, per CLAUDE.md's h
 
 ### Typed inventory schema
 
-Two distinct pieces currently conflated under "inventory" — model them separately:
-
-1. **Backpack category slots** (`nourriture`, `munitions`, `bivouac`, `soins`, `potions`, `quete`, `speciaux`, `docs`, `gemmes`, `butin`) — simple name+quantity items, hard slot-capped per category. `category` enum + a code-level max-slots lookup table (not per-doc placeholder documents; empty slots computed client-side as `maxSlots - filledCount`):
-   ```
-   nourriture: 1, munitions: 2, quete: 7, speciaux: 7, docs: 9, gemmes: 9,
-   bivouac: 15, soins: 15, potions: 15, butin: 16
-   ```
-   (Verified against `legacy-reference/index.html:3176-3186` — the plan's original count omitted `soins: 15`.)
-2. **Weapons/armor** (`armes`/`armures`) — NOT slot-capped in legacy (list grows freely; UI just pads to a minimum of 3 empty slots). Legacy's `(...)` stat annotation is **not** a clean parseable DSL — real character data (`legacy-reference/index.html:1912-1916`) includes entries like `(RD2 vs proj. magiques)`, `(vs proj. magiques)` with no number at all, and `(Armure impossible — Oracle)` as a whole placeholder. A strict `damageDie` enum + numeric `armorRating` would silently drop these. Use a hybrid: structured optional fields for the common case, plus a freeform fallback:
-   ```ts
-   interface WeaponArmorItem {
-     name: string
-     damageDie?: 'D4' | 'D6' | 'D8' | 'D10' | 'D12' | 'D20'
-     damageBonus?: number   // the "+4"/"−1" part
-     armorRating?: number   // the "RD2" part
-     statNote?: string      // anything that doesn't reduce to the above,
-                             // e.g. "vs proj. magiques", "Armure impossible — Oracle"
-   }
-   ```
-   A parser attempts the structured fields first and falls back to `statNote` — never throws away data.
-- Cleanup while implementing this: `src/models/types/Character.ts` already declares an `InventoryItem`/`InventoryItemType` that's unused anywhere in `src/` (confirmed via grep) and duplicates-by-name the real, wired `InventoryItem` in `src/models/types/Inventory.ts` (the one `InventoryRepository.ts` actually uses). Retire the dead one so there's a single `InventoryItem` type.
+**Implemented** — see `src/models/types/Inventory.ts` (`InventoryCategory`, `InventoryItem`, `WeaponArmorItem`, `CharacterInventory`, `BACKPACK_MAX_SLOTS`), shipped via spec-kitty mission `inventory-slots-dons-01KXRF5M`. The two pieces once conflated under "inventory" — capped backpack category slots and the uncapped weapons/armor lists with their hybrid structured/freeform stat fields — are both real types there now; the legacy-string parser (including the `WeaponArmorItem.statNote` fallback for annotations like `(RD2 vs proj. magiques)` and `(Armure impossible — Oracle)`) lives in `src/utils/inventoryText.ts`. Cite that code in future specs instead of re-deriving the schema here. The dead `InventoryItem`/`InventoryItemType` that used to duplicate this by name in `src/models/types/Character.ts` has been retired — `Inventory.ts` is the single source now.
 
 ### Alt-form/transformation data model
 
@@ -59,6 +39,20 @@ Generalizes legacy's hardcoded "Furmiaou" tab (`legacy-reference/index.html:3494
 - **Live**, on the participant doc: `participants/{id}.session.altForm?: { hp: number; mana?: number }` — updated through the *same* `usePlayerStore.setSessionResource` clamp path already used for hp/mana (extend it to accept an optional alt-form sub-resource), not a parallel update function.
 - The per-sub jaune/rouge state cycling (legacy's `_caracStates`, keyed `furm_<cat>_<idx>` vs `<charName>_<cat>_<idx>`) is reused as-is once Phase 3.3(b) introduces it for the main sheet — the alt-form stat block uses the same keying scheme, not a bespoke one.
 - Deliberately not modeled (no second data point to generalize from yet): multiple alt-forms per character, a structured mana-cost field per ability (legacy embeds cost in the description text inconsistently — don't force-extract it).
+
+## Inventory slots & dons system (spec-kitty mission `inventory-slots-dons-01KXRF5M`)
+
+Status: **WP03 approved** (2026-07-17) — WP04/WP05 pending. Branch: `feat/inventory-slots-dons`; WP code lives on lane branches (`...lane-a`/`-b`/`-c` for WP01/02/03) until `spec-kitty merge` after WP05. Mission artifacts (spec/plan/contracts/tasks/analysis) in `kitty-specs/inventory-slots-dons-01KXRF5M/`.
+
+The "Typed inventory schema" contract below is now **implemented** in WP01 (`src/models/types/Inventory.ts`, plus `src/utils/inventoryText.ts` parser, `InventoryRepository` writes, `useInventoryStore`, migrated fixtures) — future specs cite the code, not the prose. Two contract addenda from implementation: `CharacterInventory.id` (Firestore doc id, analysis finding U1) and `WeaponArmorItem.itemId` were added; `equipped` is vestigial and omitted from regenerated fixtures (U2). WP02 adds read-only display (`src/components/BackpackGrid.vue`, `src/components/WeaponArmorList.vue`, `PlayerView.vue` integration) — the old "équipé" badge is gone per U2.
+
+**Increments** (resume with `spec-kitty next --agent claude --mission inventory-slots-dons-01KXRF5M`):
+
+- [x] WP01 — Data layer: types, parser, repository writes, store, fixture migration (approved cycle 1, 120 unit tests)
+- [x] WP02 — Backpack & equipment display (approved cycle 1, 139 unit tests)
+- [x] WP03 — Slot editing modals & permissions (approved cycle 2 — cycle 1 rejected for missing save/delete integration tests, fixed; 172 unit tests). `AppModal.vue` is now the reusable modal base (generic, a11y: role=dialog/Escape/backdrop); WP04's DonDetailModal must reuse it unmodified.
+- [ ] WP04 — Dons cards & detail modal
+- [ ] WP05 — E2E smoke, docs updates, final gates → then `spec-kitty accept` + `spec-kitty merge`, PR to `main`
 
 ## Vitruve character sheet (interactive layer)
 

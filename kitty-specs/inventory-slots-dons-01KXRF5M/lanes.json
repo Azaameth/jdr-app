@@ -1,0 +1,115 @@
+{
+  "version": 1,
+  "mission_slug": "inventory-slots-dons-01KXRF5M",
+  "mission_id": "01KXRF5MZC0M9TV7DVCJ17Q086",
+  "mission_branch": "kitty/mission-inventory-slots-dons-01KXRF5M",
+  "target_branch": "feat/inventory-slots-dons",
+  "lanes": [
+    {
+      "lane_id": "lane-a",
+      "wp_ids": [
+        "WP01"
+      ],
+      "write_scope": [
+        "scripts/data/characters.json",
+        "scripts/data/inventories.json",
+        "src/models/repositories/InventoryRepository.ts",
+        "src/models/types/Character.ts",
+        "src/models/types/Inventory.ts",
+        "src/utils/**"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "artifact-rendering",
+        "legacy-cleanup",
+        "tracker-integration",
+        "workspace"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    },
+    {
+      "lane_id": "lane-b",
+      "wp_ids": [
+        "WP02"
+      ],
+      "write_scope": [
+        "src/views/PlayerView.vue"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "app-shell",
+        "artifact-rendering",
+        "legacy-cleanup"
+      ],
+      "depends_on_lanes": [
+        "lane-a"
+      ],
+      "parallel_group": 1
+    },
+    {
+      "lane_id": "lane-c",
+      "wp_ids": [
+        "WP03"
+      ],
+      "write_scope": [
+        "src/components/AppModal.*",
+        "src/components/InventorySlotModal.*",
+        "src/components/__tests__/AppModal.spec.*",
+        "src/components/__tests__/InventorySlotModal.spec.*"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "app-shell",
+        "artifact-rendering",
+        "legacy-cleanup"
+      ],
+      "depends_on_lanes": [
+        "lane-b"
+      ],
+      "parallel_group": 2
+    },
+    {
+      "lane_id": "lane-d",
+      "wp_ids": [
+        "WP04"
+      ],
+      "write_scope": [
+        "src/components/DonDetailModal.*",
+        "src/components/DonList.*",
+        "src/components/__tests__/DonDetailModal.spec.*",
+        "src/components/__tests__/DonList.spec.*"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "artifact-rendering",
+        "legacy-cleanup"
+      ],
+      "depends_on_lanes": [
+        "lane-c"
+      ],
+      "parallel_group": 3
+    },
+    {
+      "lane_id": "lane-e",
+      "wp_ids": [
+        "WP05"
+      ],
+      "write_scope": [
+        "MIGRATION_BACKLOG.md",
+        "NEXTSTEPS.md"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "artifact-rendering"
+      ],
+      "depends_on_lanes": [
+        "lane-d"
+      ],
+      "parallel_group": 4
+    }
+  ],
+  "computed_at": "2026-07-17T16:53:45.564970+00:00",
+  "computed_from": "dependency_graph+ownership",
+  "planning_artifact_wps": []
+}
