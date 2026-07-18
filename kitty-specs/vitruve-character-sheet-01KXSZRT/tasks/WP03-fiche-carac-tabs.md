@@ -18,7 +18,8 @@ subtasks:
 - T016
 - T017
 - T018
-agent: claude
+agent: "claude:sonnet:reviewer-renata:reviewer"
+shell_pid: "38706"
 history:
 - 2026-07-18T07:12:04Z — created by /spec-kitty.tasks
 agent_profile: frontend-freddy
@@ -142,3 +143,10 @@ spec-kitty agent action implement WP03 --agent claude
 - Check `set-injury` emits the *next* state, not the current one (classic off-by-one in cycle UIs).
 - `tickState` is a singleton: confirm reset is wired in the view on character change, or ticks will leak between characters.
 - Histoire save path: owner (non-MJ) must succeed — this exercises the new owner backstory-only Firestore rule from WP01; flag if the client sends fields beyond `backstory`.
+
+## Activity Log
+
+- 2026-07-18T11:36:05Z – claude:sonnet:frontend-freddy:implementer – shell_pid=36142 – Assigned agent via action command
+- 2026-07-18T11:49:36Z – claude:sonnet:frontend-freddy:implementer – shell_pid=36142 – Ready for review: FicheTab+CaracTab+tickState implemented, PlayerView wired (subscribeParty added for setInjury context), type-check/lint/test:unit all green (282 tests). See handoff notes for valeurs-field omission and race-bonus data-source mapping.
+- 2026-07-18T11:50:02Z – claude:sonnet:reviewer-renata:reviewer – shell_pid=38706 – Started review via action command
+- 2026-07-18T11:54:49Z – user – shell_pid=38706 – Review passed: formula fidelity re-derived and matches all 9 injury combos incl. pin-at-5/floor-at-5; injury cycle correctly emits next state (saine->jaune->rouge->null); category mapping locked and exact; six-name compétence exclusion incl. 'savoir (xxx)' prefix verified against real seed data; tickState singleton reset wired on characterId change, never persisted; subscribeParty/unsubscribeParty claim verified against usePlayerStore.setInjury (no-op without partyCampaignId), no listener leak; histoire save sends only {backstory} matching firestore.rules hasOnly(['backstory','updatedAt']); valeurs omission matches accepted analysis finding U1; French/legacy wording verified against legacy-reference; type-check/lint/test:unit (282 tests) all green.
