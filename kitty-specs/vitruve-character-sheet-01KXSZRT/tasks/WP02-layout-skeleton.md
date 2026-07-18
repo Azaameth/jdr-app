@@ -18,7 +18,8 @@ subtasks:
 - T011
 - T012
 - T013
-agent: claude
+agent: "claude:sonnet:reviewer-renata:reviewer"
+shell_pid: "35158"
 history:
 - 2026-07-18T07:12:04Z — created by /spec-kitty.tasks
 agent_profile: frontend-freddy
@@ -123,3 +124,10 @@ spec-kitty agent action implement WP02 --agent claude
 - Manually check the demo-build path: with no Firebase config, the page must render read-only with zero console errors (NFR-003) — the restructure must not introduce accesses to undefined participant/session data.
 - Check `activeTab` reset on character switch and that modal open-state survives tab switches per current behavior.
 - Out-of-map edits: this WP owns `PlayerView.vue`; later WPs will make small integration edits to it with recorded rationales — but *this* WP must not touch files outside its list.
+
+## Activity Log
+
+- 2026-07-18T11:16:28Z – claude:sonnet:frontend-freddy:implementer – shell_pid=30945 – Assigned agent via action command
+- 2026-07-18T11:31:07Z – claude:sonnet:frontend-freddy:implementer – shell_pid=30945 – Ready for review: two-column vitruve layout (VitruveSheet.vue new + PlayerView.vue restructured) with Fiche/Caracteristiques/Dons/Inventaire tab host. Dons/Inventaire relocated unchanged (same components/props/canEditInventory gating/modal mounting). Fiche/Carac are French 'a venir' placeholders for WP03. activeTab resets to fiche on characterId change. Responsive stack <768px with min-width:0. Validation: type-check clean, lint clean (oxlint+eslint --fix, no unexpected diffs), unit 245/245 passed (incl. new VitruveSheet.spec.ts + updated PlayerView.spec.ts tab-switch/reset coverage), e2e 3/3 passed on chromium (CI=true, after npm run build to produce dist/ for preview server - initial e2e run failed on ALL specs incl. unrelated ones due to missing dist/, not a regression). No e2e selectors changed - e2e/inventory.spec.ts only exercises the unauthenticated redirect guard, no PlayerView DOM assertions. Deviation: kept changePosture/postureOptions in PlayerView unrendered (eslint-disabled unused-vars) since WP03 T018 explicitly reuses this persistence logic rather than re-implementing it.
+- 2026-07-18T11:31:41Z – claude:sonnet:reviewer-renata:reviewer – shell_pid=35158 – Started review via action command
+- 2026-07-18T11:35:37Z – user – shell_pid=35158 – Review passed: move-only relocation of Dons/Inventaire verified identical (props/canEditInventory/modals unchanged); modals mounted at view root, survive tab switches; activeTab defaults 'fiche', widened type, resets on characterId change (tested); VitruveSheet emits-based vitals, steppers hidden when !canEditSession, portrait fallback with ti-user icon convention, empty widgets slot; demo-build null-safety traced through participant/session optional chains; responsive grid 300px/1fr with min-width:0, 767px breakpoint to 1fr; French legacy tab wording confirmed against legacy-reference/index.html. Validation: type-check clean, lint clean, unit 245/245, build succeeds, e2e chromium 3/3. Isolated WP02 commit 0d72e1d touches only its 4 owned files.
