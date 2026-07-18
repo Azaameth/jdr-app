@@ -1,6 +1,8 @@
 {
+  "accept_commit": "9c642ece5b3696c3e4af41ef358e8fa4458b453e",
   "acceptance_history": [
     {
+      "accept_commit": "9c642ece5b3696c3e4af41ef358e8fa4458b453e",
       "acceptance_mode": "pr",
       "accepted_at": "2026-07-18T16:40:00.864657+00:00",
       "accepted_by": "monthie",
