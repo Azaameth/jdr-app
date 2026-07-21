@@ -210,7 +210,14 @@ describe('useInventoryStore', () => {
     })
 
     it('replaces an existing armor item in place', async () => {
-      const armor: WeaponArmorItem[] = [{ itemId: 'a-1', name: 'Bouclier', armorRating: 2 }]
+      const armor: WeaponArmorItem[] = [
+        {
+          itemId: 'a-1',
+          name: 'Bouclier',
+          equipped: true,
+          statBonus: { stat: 'armorPhysique', amount: 2 },
+        },
+      ]
       mocks.getInventoryByCharacterId.mockResolvedValue(makeInventory({ armor }))
       mocks.updateInventoryEquipment.mockResolvedValue(true)
       const store = useInventoryStore()
@@ -219,12 +226,18 @@ describe('useInventoryStore', () => {
       const result = await store.saveEquipmentItem('armor', {
         itemId: 'a-1',
         name: 'Bouclier',
-        armorRating: 4,
+        equipped: true,
+        statBonus: { stat: 'armorPhysique', amount: 4 },
       })
 
       expect(result).toBe(true)
       expect(mocks.updateInventoryEquipment).toHaveBeenCalledWith('inv-1', 'armor', [
-        { itemId: 'a-1', name: 'Bouclier', armorRating: 4 },
+        {
+          itemId: 'a-1',
+          name: 'Bouclier',
+          equipped: true,
+          statBonus: { stat: 'armorPhysique', amount: 4 },
+        },
       ])
     })
 

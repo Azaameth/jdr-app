@@ -32,6 +32,7 @@ import {
 import { listClassesByCampaign } from '../models/repositories/ClassRepository'
 import { getParticipantByCharacterId } from '../models/repositories/ParticipantRepository'
 import { listRacesByCampaign } from '../models/repositories/RaceRepository'
+import { computeEffectiveMaxStat } from '../utils/effectiveStats'
 import type { CharacterAttributes, CharacterGift, CharacterProfile } from '../models/types/Character'
 import type { Class } from '../models/types/Class'
 import type { InventoryCategory, InventoryItem, WeaponArmorItem } from '../models/types/Inventory'
@@ -69,6 +70,13 @@ const inventory = computed(() => inventoryStore.inventory.value)
 const weapons = computed(() => inventory.value?.weapons ?? [])
 const armor = computed(() => inventory.value?.armor ?? [])
 const backpackItems = computed(() => inventory.value?.items ?? [])
+const equippedItems = computed(() => [...weapons.value, ...armor.value])
+const effectiveMaxHp = computed(() =>
+  computeEffectiveMaxStat(participant.value?.session.maxHp ?? 0, equippedItems.value, 'maxHp'),
+)
+const effectiveMaxMana = computed(() =>
+  computeEffectiveMaxStat(participant.value?.session.maxMana ?? 0, equippedItems.value, 'maxMana'),
+)
 const races = ref<Race[]>([])
 const classes = ref<Class[]>([])
 const loading = ref(false)
@@ -162,6 +170,13 @@ const activeChildEquipment = computed<WeaponArmorItem[]>(() => {
   const inv = inventoryStore.childInventories.value[child.id]
   if (!inv) return []
   return [...inv.weapons, ...inv.armor]
+})
+
+const activeChildEffectiveMaxHp = computed(() => {
+  const child = activeChild.value
+  if (!child) return null
+  const base = participant.value?.childSessions?.[child.id] ?? EMPTY_CHILD_SESSION
+  return computeEffectiveMaxStat(base.maxHp, activeChildEquipment.value, 'maxHp')
 })
 
 const EMPTY_ATTRIBUTES: CharacterAttributes = {
@@ -323,7 +338,7 @@ async function changeSessionResource(resource: 'hp' | 'mana', delta: number) {
 
   const session = participant.value.session
   const current = resource === 'hp' ? session.hp : session.mana
-  const max = resource === 'hp' ? session.maxHp : session.maxMana
+  const max = resource === 'hp' ? effectiveMaxHp.value : effectiveMaxMana.value
   const next = clampSessionValue(resource, current + delta, max)
   if (next === current) return
 
@@ -345,6 +360,7 @@ async function changeSessionResource(resource: 'hp' | 'mana', delta: number) {
       characterId.value,
       resource,
       next,
+      max,
     )
     if (!updated) {
       throw new Error('Impossible de mettre a jour la session du participant.')
@@ -358,6 +374,24 @@ async function changeSessionResource(resource: 'hp' | 'mana', delta: number) {
     sessionLoading.value = null
   }
 }
+
+// Unequipping a stat-bonus item can drop the effective max below the current
+// stored value (e.g. current mana 8 with a +4 ring, unequip it → max drops to
+// 4). Only ever pulls current DOWN to the new ceiling — a max increase (e.g.
+// re-equipping) never bumps current back up on its own; that still requires
+// an explicit + click, same as before this watcher existed.
+watch(effectiveMaxHp, (newMax, oldMax) => {
+  if (newMax >= oldMax) return
+  const session = participant.value?.session
+  if (!session || session.hp <= newMax) return
+  void changeSessionResource('hp', newMax - session.hp)
+})
+watch(effectiveMaxMana, (newMax, oldMax) => {
+  if (newMax >= oldMax) return
+  const session = participant.value?.session
+  if (!session || session.mana <= newMax) return
+  void changeSessionResource('mana', newMax - session.mana)
+})
 
 async function changePosture(posture: Posture) {
   if (!participant.value || !campaignId.value || !characterId.value) return
@@ -445,7 +479,10 @@ async function adjustChildHp(childId: string, delta: number) {
 
   const previous = participant.value
   const base = previous.childSessions?.[childId] ?? EMPTY_CHILD_SESSION
-  const next = clampSessionValue('hp', base.hp + delta, base.maxHp)
+  const childInv = inventoryStore.childInventories.value[childId]
+  const childEquipment = childInv ? [...childInv.weapons, ...childInv.armor] : []
+  const maxHp = computeEffectiveMaxStat(base.maxHp, childEquipment, 'maxHp')
+  const next = clampSessionValue('hp', base.hp + delta, maxHp)
   if (next === base.hp && previous.childSessions?.[childId]) return
 
   participant.value = {
@@ -460,6 +497,16 @@ async function adjustChildHp(childId: string, delta: number) {
     childError.value = playerStore.error.value ?? ''
   }
 }
+
+// Same "only pull current down, never bump it up" rule as the parent's HP/Mana
+// watchers above, for whichever child tab is currently active.
+watch(activeChildEffectiveMaxHp, (newMax, oldMax) => {
+  const child = activeChild.value
+  if (!child || newMax === null || oldMax === null || newMax >= oldMax) return
+  const base = participant.value?.childSessions?.[child.id]
+  if (!base || base.hp <= newMax) return
+  void adjustChildHp(child.id, newMax - base.hp)
+})
 
 // Cycles a child's Caractéristiques injury square — same replace-map
 // semantics (whole `injuries` object rewritten) as handleSetInjury, but

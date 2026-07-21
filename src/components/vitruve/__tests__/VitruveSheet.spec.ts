@@ -193,4 +193,46 @@ describe('VitruveSheet', () => {
 
     expect(wrapper.find('.vitruve-widgets').text()).toBe('')
   })
+
+  it('renders a combined armor total with an AM/AP breakdown from equipped items', () => {
+    const wrapper = mount(VitruveSheet, {
+      props: {
+        character: makeCharacter(),
+        participant: makeParticipant(),
+        canEditSession: true,
+        sessionLoading: null,
+        equipment: [
+          {
+            itemId: 'a-1',
+            name: "Robe d'Arcaniste",
+            equipped: true,
+            statBonus: { stat: 'armorMagique', amount: 2 },
+          },
+          {
+            itemId: 'a-2',
+            name: 'Bouclier',
+            equipped: true,
+            statBonus: { stat: 'armorPhysique', amount: 3 },
+          },
+        ],
+      },
+    })
+
+    expect(wrapper.find('.armor-total').text()).toBe('5')
+    expect(wrapper.find('.armor-breakdown').text()).toBe('AM 2 · AP 3')
+  })
+
+  it('shows an all-zero armor total when there is no equipment', () => {
+    const wrapper = mount(VitruveSheet, {
+      props: {
+        character: makeCharacter(),
+        participant: makeParticipant(),
+        canEditSession: true,
+        sessionLoading: null,
+      },
+    })
+
+    expect(wrapper.find('.armor-total').text()).toBe('0')
+    expect(wrapper.find('.armor-breakdown').text()).toBe('AM 0 · AP 0')
+  })
 })

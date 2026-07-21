@@ -53,14 +53,74 @@ describe('WeaponArmorList', () => {
     expect(wrapper.find('.stat-label').text()).toBe('DÉGÂTS')
   })
 
-  it('shows an ARMURE badge with the structured armor rating for armor', () => {
-    const item: WeaponArmorItem = { itemId: 'a-1', name: 'Cotte de mailles', armorRating: 2 }
+  it('falls back to an ARMURE label for a legacy/uncategorized armor item with only a statNote', () => {
+    const item: WeaponArmorItem = { itemId: 'a-1', name: 'Cotte de mailles', statNote: 'RD2' }
     const wrapper = mount(WeaponArmorList, {
       props: { title: 'Armures & Protections', kind: 'armor', items: [item] },
     })
 
     expect(wrapper.find('.stat-value').text()).toBe('RD2')
     expect(wrapper.find('.stat-label').text()).toBe('ARMURE')
+  })
+
+  it('shows an AM badge for an armor item with an armorMagique statBonus', () => {
+    const item: WeaponArmorItem = {
+      itemId: 'a-robe',
+      name: "Robe d'Arcaniste",
+      equipped: true,
+      statBonus: { stat: 'armorMagique', amount: 2 },
+    }
+    const wrapper = mount(WeaponArmorList, {
+      props: { title: 'Armures & Protections', kind: 'armor', items: [item] },
+    })
+
+    expect(wrapper.find('.stat-value').text()).toBe('+2')
+    expect(wrapper.find('.stat-label').text()).toBe('AM')
+  })
+
+  it('shows an AP badge for an armor item with an armorPhysique statBonus', () => {
+    const item: WeaponArmorItem = {
+      itemId: 'a-shield',
+      name: 'Bouclier de cuivre',
+      equipped: true,
+      statBonus: { stat: 'armorPhysique', amount: 2 },
+    }
+    const wrapper = mount(WeaponArmorList, {
+      props: { title: 'Armures & Protections', kind: 'armor', items: [item] },
+    })
+
+    expect(wrapper.find('.stat-value').text()).toBe('+2')
+    expect(wrapper.find('.stat-label').text()).toBe('AP')
+  })
+
+  it('shows a MANA badge for an armor item with a maxMana statBonus', () => {
+    const item: WeaponArmorItem = {
+      itemId: 'a-ring',
+      name: 'Anneau de Mana',
+      equipped: true,
+      statBonus: { stat: 'maxMana', amount: 4 },
+    }
+    const wrapper = mount(WeaponArmorList, {
+      props: { title: 'Armures & Protections', kind: 'armor', items: [item] },
+    })
+
+    expect(wrapper.find('.stat-value').text()).toBe('+4')
+    expect(wrapper.find('.stat-label').text()).toBe('MANA')
+  })
+
+  it('shows a PV badge for an armor item with a maxHp statBonus', () => {
+    const item: WeaponArmorItem = {
+      itemId: 'a-amulet',
+      name: 'Amulette de Vie',
+      equipped: true,
+      statBonus: { stat: 'maxHp', amount: 3 },
+    }
+    const wrapper = mount(WeaponArmorList, {
+      props: { title: 'Armures & Protections', kind: 'armor', items: [item] },
+    })
+
+    expect(wrapper.find('.stat-value').text()).toBe('+3')
+    expect(wrapper.find('.stat-label').text()).toBe('PV')
   })
 
   it('shows the badge value from a bare statNote when there are no structured stats', () => {

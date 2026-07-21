@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { WeaponArmorItem } from '../models/types/Inventory'
-import { formatWeaponArmorStat } from '../utils/inventoryText'
+import { formatWeaponArmorStat, weaponArmorStatLabel } from '../utils/inventoryText'
 
 const props = withDefaults(
   defineProps<{
@@ -21,7 +21,9 @@ const emit = defineEmits<{
 
 const MIN_SLOTS = 3
 
-const badgeLabel = computed(() => (props.kind === 'weapons' ? 'DÉGÂTS' : 'ARMURE'))
+function badgeLabel(item: WeaponArmorItem): string {
+  return weaponArmorStatLabel(item, props.kind)
+}
 
 const slots = computed<Array<WeaponArmorItem | null>>(() => {
   const filled: Array<WeaponArmorItem | null> = [...props.items]
@@ -61,7 +63,7 @@ function handleSlotClick(item?: WeaponArmorItem) {
           <span class="slot-name">{{ entry.name }}</span>
           <span v-if="badgeValue(entry)" class="stat-badge">
             <span class="stat-value">{{ badgeValue(entry) }}</span>
-            <span class="stat-label">{{ badgeLabel }}</span>
+            <span class="stat-label">{{ badgeLabel(entry) }}</span>
           </span>
         </template>
         <span v-else class="slot-dash" aria-hidden="true">–</span>

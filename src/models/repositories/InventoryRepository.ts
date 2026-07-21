@@ -34,6 +34,13 @@ export async function getInventoryByCharacterId(
   return first ? mapInventory(first.id, first.data()) : null
 }
 
+export async function listInventoriesByCampaign(campaignId: string): Promise<CharacterInventory[]> {
+  if (!db) return []
+  const q = query(collection(db, INVENTORIES_COLLECTION), where('campaignId', '==', campaignId))
+  const snapshot = await getDocs(q)
+  return snapshot.docs.map((docSnap) => mapInventory(docSnap.id, docSnap.data()))
+}
+
 /** Replace the backpack items array (store has already validated caps). */
 export async function updateInventoryItems(
   inventoryId: string,

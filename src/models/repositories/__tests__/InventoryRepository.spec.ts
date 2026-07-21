@@ -26,6 +26,7 @@ describe('InventoryRepository', () => {
       const repo = await import('../InventoryRepository')
 
       expect(await repo.getInventoryByCharacterId('char-1', 'camp-1')).toBeNull()
+      expect(await repo.listInventoriesByCampaign('camp-1')).toEqual([])
       expect(await repo.updateInventoryItems('inv-1', [])).toBe(false)
       expect(await repo.updateInventoryEquipment('inv-1', 'armor', [])).toBe(false)
 
@@ -103,6 +104,52 @@ describe('InventoryRepository', () => {
       const result = await repo.getInventoryByCharacterId('char-1', 'camp-1')
 
       expect(result).toBeNull()
+    })
+
+    it('listInventoriesByCampaign maps every matching doc, filtered by campaignId only', async () => {
+      firestoreMocks.getDocs.mockResolvedValue({
+        docs: [
+          {
+            id: 'inv-1',
+            data: () => ({
+              uid: 'uid-1',
+              campaignId: 'camp-1',
+              characterId: 'char-1',
+              items: [],
+              weapons: [],
+              armor: [],
+            }),
+          },
+          {
+            id: 'inv-2',
+            data: () => ({
+              uid: 'uid-2',
+              campaignId: 'camp-1',
+              characterId: 'char-2',
+              items: [],
+              weapons: [],
+              armor: [],
+            }),
+          },
+        ],
+      })
+
+      const repo = await import('../InventoryRepository')
+      const result = await repo.listInventoriesByCampaign('camp-1')
+
+      expect(result).toHaveLength(2)
+      expect(result.map((inv) => inv.characterId)).toEqual(['char-1', 'char-2'])
+      expect(firestoreMocks.where).toHaveBeenCalledWith('campaignId', '==', 'camp-1')
+      expect(firestoreMocks.where).not.toHaveBeenCalledWith('characterId', '==', expect.anything())
+    })
+
+    it('listInventoriesByCampaign returns an empty array when nothing matches', async () => {
+      firestoreMocks.getDocs.mockResolvedValue({ docs: [] })
+
+      const repo = await import('../InventoryRepository')
+      const result = await repo.listInventoriesByCampaign('camp-empty')
+
+      expect(result).toEqual([])
     })
 
     it('updateInventoryItems writes the items array and a refreshed updatedAt', async () => {

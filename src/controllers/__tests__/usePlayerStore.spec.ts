@@ -187,6 +187,48 @@ describe('usePlayerStore', () => {
       })
     })
 
+    it('clamps hp to the maxOverride (equipment-adjusted effective max) instead of the raw stored maxHp', async () => {
+      mocks.getParticipantByCharacterId.mockResolvedValue(
+        makeParticipant({ session: { hp: 10, maxHp: 10, mana: 5, maxMana: 20, posture: 'DEFENSIF' } }),
+      )
+      mocks.setParticipantSessionByCharacterId.mockResolvedValue(makeParticipant())
+      const store = usePlayerStore()
+
+      await store.setSessionResource('camp-1', 'char-1', 'hp', 1000, 14)
+
+      expect(mocks.setParticipantSessionByCharacterId).toHaveBeenCalledWith('char-1', 'camp-1', {
+        hp: 14,
+      })
+    })
+
+    it('clamps mana to the maxOverride instead of the raw stored maxMana', async () => {
+      mocks.getParticipantByCharacterId.mockResolvedValue(
+        makeParticipant({ session: { hp: 10, maxHp: 50, mana: 5, maxMana: 4, posture: 'DEFENSIF' } }),
+      )
+      mocks.setParticipantSessionByCharacterId.mockResolvedValue(makeParticipant())
+      const store = usePlayerStore()
+
+      await store.setSessionResource('camp-1', 'char-1', 'mana', 1000, 8)
+
+      expect(mocks.setParticipantSessionByCharacterId).toHaveBeenCalledWith('char-1', 'camp-1', {
+        mana: 8,
+      })
+    })
+
+    it('falls back to the raw stored max when no maxOverride is supplied', async () => {
+      mocks.getParticipantByCharacterId.mockResolvedValue(
+        makeParticipant({ session: { hp: 10, maxHp: 50, mana: 5, maxMana: 20, posture: 'DEFENSIF' } }),
+      )
+      mocks.setParticipantSessionByCharacterId.mockResolvedValue(makeParticipant())
+      const store = usePlayerStore()
+
+      await store.setSessionResource('camp-1', 'char-1', 'hp', 1000)
+
+      expect(mocks.setParticipantSessionByCharacterId).toHaveBeenCalledWith('char-1', 'camp-1', {
+        hp: 50,
+      })
+    })
+
     it('returns null without throwing when the participant is not found', async () => {
       mocks.getParticipantByCharacterId.mockResolvedValue(null)
       const store = usePlayerStore()

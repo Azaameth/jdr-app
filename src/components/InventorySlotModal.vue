@@ -41,14 +41,20 @@ const name = ref('')
 const quantityText = ref('')
 const statText = ref('')
 
+type ArmorCategory = 'armorMagique' | 'armorPhysique' | 'maxHp' | 'maxMana'
+const armorCategory = ref<ArmorCategory>('armorPhysique')
+const armorValueText = ref('')
+const armorNoteText = ref('')
+
 const isEditing = computed(() => Boolean(props.context.item))
 
-const statLabel = computed(() =>
-  props.context.kind === 'weapons' ? 'Dégâts / particularité' : 'Armure (RD) / particularité',
-)
-const statPlaceholder = computed(() =>
-  props.context.kind === 'weapons' ? 'ex : D10/+4' : 'ex : RD4 ou Résiste au feu',
-)
+const armorValueLabel = computed(() => {
+  if (armorCategory.value === 'maxHp') return 'Bonus (PV)'
+  if (armorCategory.value === 'maxMana') return 'Bonus (Mana)'
+  if (armorCategory.value === 'armorMagique') return 'Bonus (Armure Magique)'
+  return 'Bonus (Armure Physique)'
+})
+const armorValuePlaceholder = 'ex : 2'
 
 function resetForm() {
   const ctx = props.context
@@ -56,6 +62,19 @@ function resetForm() {
     name.value = ctx.item?.name ?? ''
     quantityText.value = ctx.item && ctx.item.quantity > 1 ? String(ctx.item.quantity) : ''
     statText.value = ''
+  } else if (ctx.kind === 'armor') {
+    name.value = ctx.item?.name ?? ''
+    quantityText.value = ''
+    statText.value = ''
+    const item = ctx.item
+    if (item?.statBonus) {
+      armorCategory.value = item.statBonus.stat
+      armorValueText.value = String(item.statBonus.amount)
+    } else {
+      armorCategory.value = 'armorPhysique'
+      armorValueText.value = ''
+    }
+    armorNoteText.value = item?.statNote ?? ''
   } else {
     name.value = ctx.item?.name ?? ''
     statText.value = ctx.item ? formatWeaponArmorStat(ctx.item) : ''
@@ -83,6 +102,13 @@ function parsePositiveInt(text: string | number): number | null {
   return Number.isFinite(parsed) && parsed >= 1 ? parsed : null
 }
 
+function parseNonNegativeInt(text: string): number | null {
+  const trimmed = String(text).trim()
+  if (!trimmed) return null
+  const parsed = Number.parseInt(trimmed, 10)
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : null
+}
+
 function handleClose() {
   emit('close')
 }
@@ -105,6 +131,21 @@ function handleSave() {
         category: ctx.category,
         quantity: parsePositiveInt(quantityText.value) ?? 1,
       },
+    })
+    return
+  }
+
+  if (ctx.kind === 'armor') {
+    const value = parseNonNegativeInt(armorValueText.value)
+    const note = armorNoteText.value.trim()
+    const item: Omit<WeaponArmorItem, 'itemId'> = { name: trimmedName, equipped: true }
+    if (value !== null) {
+      item.statBonus = { stat: armorCategory.value, amount: value }
+    }
+    if (note) item.statNote = note
+    emit('save', {
+      kind: 'armor',
+      item: { itemId: ctx.item?.itemId, ...item },
     })
     return
   }
@@ -152,13 +193,43 @@ function handleDelete() {
           class="field-input"
         />
       </template>
-      <template v-else>
-        <label class="field-label" for="inv-slot-stat">{{ statLabel }}</label>
+      <template v-else-if="context.kind === 'weapons'">
+        <label class="field-label" for="inv-slot-stat">Dégâts / particularité</label>
         <input
           id="inv-slot-stat"
           v-model="statText"
           type="text"
-          :placeholder="statPlaceholder"
+          placeholder="ex : D10/+4"
+          class="field-input"
+        />
+      </template>
+      <template v-else-if="context.kind === 'armor'">
+        <label class="field-label" for="inv-slot-category">Catégorie</label>
+        <select id="inv-slot-category" v-model="armorCategory" class="field-input">
+          <option value="armorMagique">Armure Magique</option>
+          <option value="armorPhysique">Armure Physique</option>
+          <option value="maxHp">PV Max</option>
+          <option value="maxMana">Mana Max</option>
+        </select>
+
+        <label class="field-label" for="inv-slot-value">{{ armorValueLabel }}</label>
+        <input
+          id="inv-slot-value"
+          v-model="armorValueText"
+          type="number"
+          min="0"
+          :placeholder="armorValuePlaceholder"
+          class="field-input"
+        />
+
+        <label class="field-label" for="inv-slot-note">
+          Particularité <span class="field-optional">(optionnel)</span>
+        </label>
+        <input
+          id="inv-slot-note"
+          v-model="armorNoteText"
+          type="text"
+          placeholder="ex : vs proj. magiques"
           class="field-input"
         />
       </template>

@@ -36,10 +36,9 @@ export interface WeaponArmorItem {
   name: string
   damageDie?: 'D4' | 'D6' | 'D8' | 'D10' | 'D12' | 'D20'
   damageBonus?: number
-  armorRating?: number
   statNote?: string
   equipped?: boolean
-  statBonus?: { stat: 'maxHp' | 'maxMana'; amount: number }
+  statBonus?: { stat: 'maxHp' | 'maxMana' | 'armorMagique' | 'armorPhysique'; amount: number }
 }
 
 export interface CharacterInventory {

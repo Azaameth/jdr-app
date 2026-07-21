@@ -5,12 +5,18 @@ import CampaignShell from '../components/layout/CampaignShell.vue'
 import { useAuthStore } from '../controllers/useAuthStore'
 import { useCampaignStore } from '../controllers/useCampaignStore'
 import { listCharactersByCampaign } from '../models/repositories/CharacterRepository'
+import { listInventoriesByCampaign } from '../models/repositories/InventoryRepository'
 import {
   listParticipantsByCampaign,
   resetTeamSessionToMax,
 } from '../models/repositories/ParticipantRepository'
 import type { SecondaryAttributes } from '../models/types/Character'
 import type { Posture } from '../models/types/Participant'
+import {
+  computeArmorTotal,
+  computeEffectiveMaxStat,
+  type ArmorTotal,
+} from '../utils/effectiveStats'
 
 const route = useRoute()
 const router = useRouter()
@@ -31,6 +37,7 @@ interface PlayerRow {
   maxMana: number
   posture: Posture | '—'
   secondary: SecondaryAttributes
+  armor: ArmorTotal
 }
 
 const secondaryAttributeLabels: Record<keyof SecondaryAttributes, string> = {
@@ -183,15 +190,19 @@ async function loadPlayers() {
   loadingState.value = true
   errorState.value = ''
   try {
-    const [characters, participants] = await Promise.all([
+    const [characters, participants, inventories] = await Promise.all([
       listCharactersByCampaign(campaignId.value),
       listParticipantsByCampaign(campaignId.value),
+      listInventoriesByCampaign(campaignId.value),
     ])
     const participantByCharacterId = new Map(
       participants.map((participant) => [participant.characterId, participant]),
     )
     const participantByUid = new Map(
       participants.map((participant) => [participant.uid, participant]),
+    )
+    const inventoryByCharacterId = new Map(
+      inventories.map((inventory) => [inventory.characterId, inventory]),
     )
     // Transformation children (e.g. Furmiaou) are shown nested under their
     // parent's sheet via ChildSheetTab, not as their own roster row — same
@@ -202,6 +213,8 @@ async function loadPlayers() {
         // Prefer the explicit character link; keep uid fallback for legacy participant rows.
         const participant =
           participantByCharacterId.get(character.id) ?? participantByUid.get(character.ownerUid)
+        const inventory = inventoryByCharacterId.get(character.id)
+        const equipment = inventory ? [...inventory.weapons, ...inventory.armor] : []
         return {
           uid: character.ownerUid,
           characterId: character.id,
@@ -210,11 +223,12 @@ async function loadPlayers() {
           classId: character.classId,
           level: character.level,
           hp: participant?.session?.hp ?? 0,
-          maxHp: participant?.session?.maxHp ?? 0,
+          maxHp: computeEffectiveMaxStat(participant?.session?.maxHp ?? 0, equipment, 'maxHp'),
           mana: participant?.session?.mana ?? 0,
-          maxMana: participant?.session?.maxMana ?? 0,
+          maxMana: computeEffectiveMaxStat(participant?.session?.maxMana ?? 0, equipment, 'maxMana'),
           posture: participant?.session?.posture ?? '—',
           secondary: character.attributes.secondary,
+          armor: computeArmorTotal(equipment),
         }
       })
   } catch (err) {
@@ -315,6 +329,7 @@ async function restTeam() {
                 <th>Race</th>
                 <th>Classe</th>
                 <th>Niv.</th>
+                <th>Armure</th>
                 <th>PV</th>
                 <th>Mana</th>
                 <th>Posture</th>
@@ -331,6 +346,10 @@ async function restTeam() {
                 <td>{{ p.raceId }}</td>
                 <td>{{ p.classId }}</td>
                 <td>{{ p.level }}</td>
+                <td class="armor-cell">
+                  <span class="armor-total">{{ p.armor.total }}</span>
+                  <span class="armor-breakdown">AM {{ p.armor.magique }} · AP {{ p.armor.physique }}</span>
+                </td>
                 <td>
                   <div class="resource-cell">
                     <span>{{ p.hp }} / {{ p.maxHp }} ({{ p.hpRate }}%)</span>
@@ -533,6 +552,23 @@ main {
     width 0.2s ease,
     background-color 0.2s ease,
     opacity 0.2s ease;
+}
+
+.armor-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.armor-total {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #d2c39b;
+}
+
+.armor-breakdown {
+  font-size: 0.72rem;
+  color: #8a7a5c;
 }
 
 .posture-badge {

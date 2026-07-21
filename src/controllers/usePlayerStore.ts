@@ -36,6 +36,13 @@ export function usePlayerStore() {
     characterId: string,
     resource: 'hp' | 'mana',
     targetValue: number,
+    // Equipment can raise max HP/Mana above the stored raw session value
+    // (equipment-stat-effects). Callers that know the character's effective
+    // max (e.g. PlayerView.vue, via computeEffectiveMaxStat) should pass it
+    // here so the server-side clamp doesn't silently re-cap the write back
+    // down to the raw stored max. Falls back to the raw stored max for any
+    // caller that doesn't have equipment data on hand.
+    maxOverride?: number,
   ): Promise<Participant | null> {
     error.value = null
 
@@ -45,7 +52,8 @@ export function usePlayerStore() {
         return null
       }
 
-      const maxValue = resource === 'hp' ? participant.session.maxHp : participant.session.maxMana
+      const rawMax = resource === 'hp' ? participant.session.maxHp : participant.session.maxMana
+      const maxValue = maxOverride ?? rawMax
       const boundedMax = Math.max(0, maxValue)
       const normalized =
         resource === 'hp'

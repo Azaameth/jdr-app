@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { computeEffectiveMaxStat } from '../effectiveStats'
+import { computeArmorTotal, computeEffectiveMaxStat } from '../effectiveStats'
 import type { WeaponArmorItem } from '../../models/types/Inventory'
 
 function item(overrides: Partial<WeaponArmorItem>): WeaponArmorItem {
@@ -28,7 +28,7 @@ describe('computeEffectiveMaxStat', () => {
   it('contributes 0 for an item with no statBonus at all', () => {
     const items = [
       item({ equipped: true, statNote: 'vs proj. magiques' }),
-      item({ equipped: false, damageBonus: 2, armorRating: 1 }),
+      item({ equipped: false, damageBonus: 2 }),
     ]
     expect(computeEffectiveMaxStat(20, items, 'maxHp')).toBe(20)
   })
@@ -55,5 +55,35 @@ describe('computeEffectiveMaxStat', () => {
       item({ equipped: true, statBonus: { stat: 'maxHp', amount: 100 } }),
     ]
     expect(computeEffectiveMaxStat(20, items, 'maxMana')).toBe(27)
+  })
+})
+
+describe('computeArmorTotal', () => {
+  it('sums magique and physique bonuses separately and combines them into total', () => {
+    const items = [
+      item({ equipped: true, statBonus: { stat: 'armorMagique', amount: 2 } }),
+      item({ equipped: true, statBonus: { stat: 'armorPhysique', amount: 3 } }),
+    ]
+    expect(computeArmorTotal(items)).toEqual({ magique: 2, physique: 3, total: 5 })
+  })
+
+  it('stacks multiple items on the same armor category', () => {
+    const items = [
+      item({ equipped: true, statBonus: { stat: 'armorMagique', amount: 2 } }),
+      item({ equipped: true, statBonus: { stat: 'armorMagique', amount: 1 } }),
+    ]
+    expect(computeArmorTotal(items)).toEqual({ magique: 3, physique: 0, total: 3 })
+  })
+
+  it('ignores unequipped items and non-armor statBonus targets', () => {
+    const items = [
+      item({ equipped: false, statBonus: { stat: 'armorPhysique', amount: 10 } }),
+      item({ equipped: true, statBonus: { stat: 'maxHp', amount: 5 } }),
+    ]
+    expect(computeArmorTotal(items)).toEqual({ magique: 0, physique: 0, total: 0 })
+  })
+
+  it('returns all zeros for an empty items array', () => {
+    expect(computeArmorTotal([])).toEqual({ magique: 0, physique: 0, total: 0 })
   })
 })

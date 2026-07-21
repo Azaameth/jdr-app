@@ -5,6 +5,7 @@ import type { CharacterProfile } from '../../models/types/Character'
 import type { CharacterInventory, WeaponArmorItem } from '../../models/types/Inventory'
 import type { Participant } from '../../models/types/Participant'
 import type { User } from '../../models/types/User'
+import { setParticipantSessionByCharacterId } from '../../models/repositories/ParticipantRepository'
 
 vi.mock('vue-router', async () => {
   const actual = await vi.importActual<typeof import('vue-router')>('vue-router')
@@ -101,14 +102,18 @@ function makeInventoryStore(
   // but individual tests may `.mockImplementation(...)` them to call `setError`
   // and return `false` to exercise the failure branch.
   const errorRef = ref<string | null>(null)
+  // Reactive so tests can mutate equipment mid-test (e.g. simulate an
+  // unequip) and observe PlayerView's effective-max watchers react, the same
+  // way saveEquipmentItem/removeEquipmentItem mutate the real store's ref.
+  const inventoryRef = ref<CharacterInventory | null>(inventory)
   return {
-    inventory: computed(() => inventory),
+    inventory: computed(() => inventoryRef.value),
     // WP02: mirrors the real store's childInventories cache — defaults to `{}`
     // so every pre-existing single-argument call site keeps working unchanged.
     childInventories: computed(() => childInventoriesMap ?? {}),
     loading: computed(() => false),
     error: computed(() => errorRef.value),
-    loadInventory: vi.fn<() => Promise<CharacterInventory | null>>(async () => inventory),
+    loadInventory: vi.fn<() => Promise<CharacterInventory | null>>(async () => inventoryRef.value),
     saveBackpackItem: vi.fn<() => Promise<boolean>>(async () => true),
     removeBackpackItem: vi.fn<() => Promise<boolean>>(async () => true),
     saveEquipmentItem: vi.fn<() => Promise<boolean>>(async () => true),
@@ -117,6 +122,9 @@ function makeInventoryStore(
     loadChildInventories: vi.fn<() => Promise<void>>(async () => {}),
     setError: (message: string | null) => {
       errorRef.value = message
+    },
+    setInventory: (next: CharacterInventory | null) => {
+      inventoryRef.value = next
     },
   }
 }
@@ -413,7 +421,17 @@ describe('PlayerView — inventory slot save/delete store integration (T016, rev
   it('calls removeEquipmentItem on delete and closes the modal on success', async () => {
     mountAsOwner()
     const store = makeInventoryStore(
-      makeInventory({ uid: 'owner-uid', armor: [{ itemId: 'armor-1', name: 'Cuirasse', armorRating: 4 }] }),
+      makeInventory({
+        uid: 'owner-uid',
+        armor: [
+          {
+            itemId: 'armor-1',
+            name: 'Cuirasse',
+            equipped: true,
+            statBonus: { stat: 'armorPhysique', amount: 4 },
+          },
+        ],
+      }),
     )
     mockInventoryState.mockReturnValue(store)
 
@@ -902,5 +920,130 @@ describe('PlayerView — child character tabs & raw editor (WP06)', () => {
     const childEquipment = childTab.props('equipment') as WeaponArmorItem[]
     expect(childEquipment).toEqual(childInventory.armor)
     expect(childEquipment.some((item) => item.itemId === 'parent-ring')).toBe(false)
+  })
+})
+
+// Regression coverage for the bug the user hit live: the mana/PV +/- steppers
+// looked enabled once equipment raised the effective max, but the persisted
+// write was silently clamped back down to the raw stored max — both in
+// PlayerView.vue's own clampSessionValue call and (a second, previously
+// undiscovered layer) in usePlayerStore.setSessionResource's server-side
+// re-clamp. Asserts on the actual write payload, not just the optimistic UI.
+describe('PlayerView — max-stat clamp uses the equipment-adjusted effective max', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    currentCharacter = makeCharacter()
+    currentChildren = []
+    currentParticipant = null
+  })
+
+  function mountAsOwner(inventory: CharacterInventory) {
+    mockAuthState.mockReturnValue(
+      makeAuthStore({ uid: 'owner-uid', displayName: 'J', email: '', photoURL: '', role: 'joueur' }),
+    )
+    const store = makeInventoryStore(inventory)
+    mockInventoryState.mockReturnValue(store)
+    return store
+  }
+
+  it('lets mana rise above the raw stored maxMana once an equipped item grants a bonus', async () => {
+    currentParticipant = makeParticipant({
+      session: { hp: 10, maxHp: 10, mana: 4, maxMana: 4, posture: 'FOCUS' },
+    })
+    mountAsOwner(
+      makeInventory({
+        uid: 'owner-uid',
+        armor: [
+          {
+            itemId: 'ring',
+            name: 'Anneau de Mana',
+            equipped: true,
+            statBonus: { stat: 'maxMana', amount: 4 },
+          },
+        ],
+      }),
+    )
+    vi.mocked(setParticipantSessionByCharacterId).mockResolvedValue(
+      makeParticipant({ session: { hp: 10, maxHp: 10, mana: 5, maxMana: 4, posture: 'FOCUS' } }),
+    )
+
+    const wrapper = mount(PlayerView, { props: { campaignId: 'campaign-1', characterId: 'char-1' } })
+    await flushPromises()
+
+    // Already at the raw maxMana (4/4) — before the fix this button click was
+    // a silent no-op (next === current inside clampSessionValue) because the
+    // clamp ceiling was the raw maxMana, not the effective one (4 + 4 = 8).
+    const manaPlusButton = wrapper.find('.mana-pill .vbtn:last-child')
+    await manaPlusButton.trigger('click')
+    await flushPromises()
+
+    expect(setParticipantSessionByCharacterId).toHaveBeenCalledWith('char-1', 'campaign-1', {
+      mana: 5,
+    })
+  })
+
+  it('pulls current mana DOWN to the new effective max when a bonus item is unequipped', async () => {
+    currentParticipant = makeParticipant({
+      session: { hp: 10, maxHp: 10, mana: 8, maxMana: 4, posture: 'FOCUS' },
+    })
+    const store = mountAsOwner(
+      makeInventory({
+        uid: 'owner-uid',
+        armor: [
+          {
+            itemId: 'ring',
+            name: 'Anneau de Mana',
+            equipped: true,
+            statBonus: { stat: 'maxMana', amount: 4 },
+          },
+        ],
+      }),
+    )
+    vi.mocked(setParticipantSessionByCharacterId).mockResolvedValue(
+      makeParticipant({ session: { hp: 10, maxHp: 10, mana: 4, maxMana: 4, posture: 'FOCUS' } }),
+    )
+
+    mount(PlayerView, { props: { campaignId: 'campaign-1', characterId: 'char-1' } })
+    await flushPromises()
+
+    // Effective max was 8 (4 base + 4 ring), current mana sits right at it.
+    // Unequip the ring: effective max drops back to 4 — current mana (8) is
+    // now above the new ceiling and must be pulled down automatically.
+    store.setInventory(makeInventory({ uid: 'owner-uid', armor: [] }))
+    await flushPromises()
+
+    expect(setParticipantSessionByCharacterId).toHaveBeenCalledWith('char-1', 'campaign-1', {
+      mana: 4,
+    })
+  })
+
+  it('does NOT bump current mana up on its own when the effective max increases (re-equip)', async () => {
+    currentParticipant = makeParticipant({
+      session: { hp: 10, maxHp: 10, mana: 2, maxMana: 4, posture: 'FOCUS' },
+    })
+    const store = mountAsOwner(makeInventory({ uid: 'owner-uid', armor: [] }))
+
+    const wrapper = mount(PlayerView, { props: { campaignId: 'campaign-1', characterId: 'char-1' } })
+    await flushPromises()
+
+    // Equip a +4 mana ring: effective max rises from 4 to 8. Current mana (2)
+    // is well under both ceilings — no automatic write should happen.
+    store.setInventory(
+      makeInventory({
+        uid: 'owner-uid',
+        armor: [
+          {
+            itemId: 'ring',
+            name: 'Anneau de Mana',
+            equipped: true,
+            statBonus: { stat: 'maxMana', amount: 4 },
+          },
+        ],
+      }),
+    )
+    await flushPromises()
+
+    expect(setParticipantSessionByCharacterId).not.toHaveBeenCalled()
+    expect(wrapper.find('.mana-pill .vbig').text()).toBe('2')
   })
 })

@@ -31,13 +31,90 @@ describe('InventorySlotModal', () => {
     expect(statInput.attributes('placeholder')).toBe('ex : D10/+4')
   })
 
-  it('renders the armor label/placeholder for an armor context', () => {
+  it('renders a category picker + value + note fields for an armor context, defaulting to Armure Physique', () => {
     const wrapper = mountModal({ kind: 'armor' })
 
-    expect(wrapper.text()).toContain('Armure (RD) / particularité')
-    expect(wrapper.find('#inv-slot-stat').attributes('placeholder')).toBe(
-      'ex : RD4 ou Résiste au feu',
+    expect(wrapper.find('#inv-slot-stat').exists()).toBe(false)
+    expect((wrapper.find('#inv-slot-category').element as HTMLSelectElement).value).toBe(
+      'armorPhysique',
     )
+    expect(wrapper.text()).toContain('Bonus (Armure Physique)')
+    expect(wrapper.find('#inv-slot-value').exists()).toBe(true)
+    expect(wrapper.find('#inv-slot-note').exists()).toBe(true)
+  })
+
+  it('pre-fills the Mana category and bonus amount when editing an item with a maxMana statBonus', () => {
+    const item: WeaponArmorItem = {
+      itemId: 'a-ring',
+      name: 'Anneau de Mana',
+      equipped: true,
+      statBonus: { stat: 'maxMana', amount: 4 },
+    }
+    const wrapper = mountModal({ kind: 'armor', item })
+
+    expect((wrapper.find('#inv-slot-category').element as HTMLSelectElement).value).toBe(
+      'maxMana',
+    )
+    expect((wrapper.find('#inv-slot-value').element as HTMLInputElement).value).toBe('4')
+    expect(wrapper.text()).toContain('Bonus (Mana)')
+  })
+
+  it('emits a statBonus save payload when the PV category is chosen for an armor item', async () => {
+    const wrapper = mountModal({ kind: 'armor' })
+
+    await wrapper.find('#inv-slot-name').setValue('Amulette de Vie')
+    await wrapper.find('#inv-slot-category').setValue('maxHp')
+    await wrapper.find('#inv-slot-value').setValue('3')
+    await wrapper.find('form').trigger('submit.prevent')
+
+    expect(wrapper.emitted('save')?.[0]?.[0]).toEqual({
+      kind: 'armor',
+      item: {
+        itemId: undefined,
+        name: 'Amulette de Vie',
+        equipped: true,
+        statBonus: { stat: 'maxHp', amount: 3 },
+      },
+    })
+  })
+
+  it('emits a statBonus save payload with an optional note when the default Armure Physique category is kept', async () => {
+    const wrapper = mountModal({ kind: 'armor' })
+
+    await wrapper.find('#inv-slot-name').setValue('Bouclier renforcé')
+    await wrapper.find('#inv-slot-value').setValue('3')
+    await wrapper.find('#inv-slot-note').setValue('vs proj. magiques')
+    await wrapper.find('form').trigger('submit.prevent')
+
+    expect(wrapper.emitted('save')?.[0]?.[0]).toEqual({
+      kind: 'armor',
+      item: {
+        itemId: undefined,
+        name: 'Bouclier renforcé',
+        equipped: true,
+        statBonus: { stat: 'armorPhysique', amount: 3 },
+        statNote: 'vs proj. magiques',
+      },
+    })
+  })
+
+  it('emits a statBonus save payload when the Armure Magique category is chosen', async () => {
+    const wrapper = mountModal({ kind: 'armor' })
+
+    await wrapper.find('#inv-slot-name').setValue("Robe d'Arcaniste")
+    await wrapper.find('#inv-slot-category').setValue('armorMagique')
+    await wrapper.find('#inv-slot-value').setValue('2')
+    await wrapper.find('form').trigger('submit.prevent')
+
+    expect(wrapper.emitted('save')?.[0]?.[0]).toEqual({
+      kind: 'armor',
+      item: {
+        itemId: undefined,
+        name: "Robe d'Arcaniste",
+        equipped: true,
+        statBonus: { stat: 'armorMagique', amount: 2 },
+      },
+    })
   })
 
   it('pre-fills name and quantity when editing an existing backpack item', () => {
@@ -149,7 +226,12 @@ describe('InventorySlotModal', () => {
   it('preserves the itemId on save when editing an existing item', async () => {
     const wrapper = mountModal({
       kind: 'armor',
-      item: { itemId: 'a-1', name: 'Cotte de mailles', armorRating: 2 },
+      item: {
+        itemId: 'a-1',
+        name: 'Cotte de mailles',
+        equipped: true,
+        statBonus: { stat: 'armorPhysique', amount: 2 },
+      },
     })
 
     await wrapper.find('form').trigger('submit.prevent')
@@ -159,7 +241,8 @@ describe('InventorySlotModal', () => {
       item: {
         itemId: 'a-1',
         name: 'Cotte de mailles',
-        armorRating: 2,
+        equipped: true,
+        statBonus: { stat: 'armorPhysique', amount: 2 },
       },
     })
   })

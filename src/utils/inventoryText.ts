@@ -9,10 +9,11 @@ function normalizeMinus(text: string): string {
 }
 
 /**
- * Parses a legacy weapon/armor display string into structured stats.
- * '(D10/+4)' | '(RD2)' | '(RD2 vs proj. magiques)' → structured fields.
- * Anything that doesn't reduce to a recognized damage/armor pattern falls back
- * to `statNote` verbatim — no information is ever dropped. Lossless.
+ * Parses a legacy weapon display string into structured stats.
+ * '(D10/+4)' → structured damage fields. Armor no longer goes through this
+ * text parser (InventorySlotModal builds statBonus items directly) — anything
+ * that doesn't match the damage-die pattern falls back to `statNote` verbatim,
+ * no information is ever dropped. Lossless.
  */
 export function parseWeaponArmorText(raw: string): Omit<WeaponArmorItem, 'itemId'> {
   const trimmed = raw.trim()
@@ -41,27 +42,15 @@ export function parseWeaponArmorText(raw: string): Omit<WeaponArmorItem, 'itemId
     return result
   }
 
-  const armorMatch = annotation.match(/^RD(\d+)(?:\s+(.*))?$/)
-  if (armorMatch) {
-    const result: Omit<WeaponArmorItem, 'itemId'> = {
-      name,
-      armorRating: Number.parseInt(armorMatch[1] ?? '', 10),
-    }
-    if (armorMatch[2]) {
-      result.statNote = armorMatch[2].trim()
-    }
-    return result
-  }
-
   return { name, statNote: annotation }
 }
 
 /**
  * Inverse of parseWeaponArmorText, for display badges.
- * 'D10/+4' | 'RD2' | 'RD2 vs proj. magiques' | bare statNote | '' when no stats.
+ * 'D10/+4' | '+4' (statBonus) | bare statNote | '' when no stats.
  */
 export function formatWeaponArmorStat(
-  item: Pick<WeaponArmorItem, 'damageDie' | 'damageBonus' | 'armorRating' | 'statNote'>,
+  item: Pick<WeaponArmorItem, 'damageDie' | 'damageBonus' | 'statNote' | 'statBonus'>,
 ): string {
   if (item.damageDie) {
     if (item.damageBonus === undefined) {
@@ -71,8 +60,9 @@ export function formatWeaponArmorStat(
     return `${item.damageDie}/${sign}${Math.abs(item.damageBonus)}`
   }
 
-  if (item.armorRating !== undefined) {
-    return item.statNote ? `RD${item.armorRating} ${item.statNote}` : `RD${item.armorRating}`
+  if (item.statBonus) {
+    const sign = item.statBonus.amount >= 0 ? '+' : '-'
+    return `${sign}${Math.abs(item.statBonus.amount)}`
   }
 
   if (item.statNote) {
@@ -80,6 +70,23 @@ export function formatWeaponArmorStat(
   }
 
   return ''
+}
+
+const STAT_BONUS_BADGE_LABELS: Record<'maxHp' | 'maxMana' | 'armorMagique' | 'armorPhysique', string> = {
+  maxHp: 'PV',
+  maxMana: 'MANA',
+  armorMagique: 'AM',
+  armorPhysique: 'AP',
+}
+
+/** Per-item badge label: weapons are always DÉGÂTS; armor shows PV/MANA/AM/AP when the item carries a matching statBonus, or ARMURE as a fallback for legacy/uncategorized items. */
+export function weaponArmorStatLabel(
+  item: Pick<WeaponArmorItem, 'statBonus'>,
+  kind: 'weapons' | 'armor',
+): string {
+  if (kind === 'weapons') return 'DÉGÂTS'
+  if (item.statBonus) return STAT_BONUS_BADGE_LABELS[item.statBonus.stat]
+  return 'ARMURE'
 }
 
 /** 'Kit médical ×4' → { name: 'Kit médical', quantity: 4 }; 'Rations' → { name: 'Rations', quantity: 1 } */

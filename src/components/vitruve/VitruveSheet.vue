@@ -3,7 +3,7 @@ import { computed, ref, watch } from 'vue'
 import type { CharacterProfile } from '../../models/types/Character'
 import type { WeaponArmorItem } from '../../models/types/Inventory'
 import type { Participant } from '../../models/types/Participant'
-import { computeEffectiveMaxStat } from '../../utils/effectiveStats'
+import { computeArmorTotal, computeEffectiveMaxStat } from '../../utils/effectiveStats'
 
 const props = withDefaults(
   defineProps<{
@@ -52,6 +52,7 @@ const effectiveMaxMana = computed(() => {
   if (!s) return 0
   return computeEffectiveMaxStat(s.maxMana, props.equipment, 'maxMana')
 })
+const armorTotal = computed(() => computeArmorTotal(props.equipment))
 
 const hpMinusDisabled = computed(() => {
   const s = session.value
@@ -156,6 +157,12 @@ function handlePortraitError() {
       </div>
     </div>
 
+    <div v-if="session" class="armor-cell">
+      <span class="armor-total">{{ armorTotal.total }}</span>
+      <span class="armor-label">Armure</span>
+      <span class="armor-breakdown">AM {{ armorTotal.magique }} · AP {{ armorTotal.physique }}</span>
+    </div>
+
     <p v-if="sessionError" class="error session-error">{{ sessionError }}</p>
 
     <div class="vitruve-illo">
@@ -257,6 +264,30 @@ function handlePortraitError() {
 .vbtn:disabled {
   opacity: 0.4;
   cursor: not-allowed;
+}
+.armor-cell {
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(212, 168, 67, 0.18);
+  border-radius: 5px;
+  padding: 6px 8px;
+  text-align: center;
+  margin-bottom: 10px;
+}
+.armor-total {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #a8a8a8;
+}
+.armor-label {
+  font-size: 0.78rem;
+  color: #a89a7c;
+  margin-left: 6px;
+}
+.armor-breakdown {
+  display: block;
+  font-size: 0.72rem;
+  color: #a89a7c;
+  margin-top: 2px;
 }
 .session-error {
   margin: 0 0 10px;

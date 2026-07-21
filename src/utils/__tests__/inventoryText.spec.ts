@@ -4,6 +4,7 @@ import {
   parseLegacyGiftText,
   parseQuantityText,
   parseWeaponArmorText,
+  weaponArmorStatLabel,
 } from '../inventoryText'
 
 describe('inventoryText', () => {
@@ -24,18 +25,17 @@ describe('inventoryText', () => {
       })
     })
 
-    it('parses a bare armor rating with no note', () => {
+    it('falls back to a verbatim statNote for RD-shaped text (armor no longer parses this way)', () => {
       expect(parseWeaponArmorText("Robe d'Arcaniste enchantée (RD2)")).toEqual({
         name: "Robe d'Arcaniste enchantée",
-        armorRating: 2,
+        statNote: 'RD2',
       })
     })
 
-    it('parses an armor rating plus a trailing note', () => {
+    it('falls back to a verbatim statNote for RD-plus-note text too', () => {
       expect(parseWeaponArmorText('Anneau du Dieu du Feu (RD2 vs proj. magiques)')).toEqual({
         name: 'Anneau du Dieu du Feu',
-        armorRating: 2,
-        statNote: 'vs proj. magiques',
+        statNote: 'RD2 vs proj. magiques',
       })
     })
 
@@ -75,7 +75,6 @@ describe('inventoryText', () => {
         ['Vieille épée (D4/−1)', 'D4/-1'],
         ['Deux haches à une main (D10/+4)', 'D10/+4'],
         ["Robe d'Arcaniste enchantée (RD2)", 'RD2'],
-        ['Anneau du Dieu du Feu (RD2 vs proj. magiques)', 'RD2 vs proj. magiques'],
         ['Anneau du Dieu du Feu (vs proj. magiques)', 'vs proj. magiques'],
       ]
 
@@ -88,6 +87,63 @@ describe('inventoryText', () => {
         const parsed = parseWeaponArmorText('Armure impossible — Oracle')
         expect(formatWeaponArmorStat(parsed)).toBe('')
       })
+    })
+  })
+
+  describe('formatWeaponArmorStat with statBonus', () => {
+    it('formats a positive maxMana statBonus as a signed number', () => {
+      expect(
+        formatWeaponArmorStat({ statBonus: { stat: 'maxMana', amount: 4 } }),
+      ).toBe('+4')
+    })
+
+    it('formats a negative statBonus with a minus sign', () => {
+      expect(
+        formatWeaponArmorStat({ statBonus: { stat: 'maxHp', amount: -2 } }),
+      ).toBe('-2')
+    })
+
+    it('formats an armorMagique/armorPhysique statBonus the same signed-number way', () => {
+      expect(
+        formatWeaponArmorStat({ statBonus: { stat: 'armorMagique', amount: 2 } }),
+      ).toBe('+2')
+      expect(
+        formatWeaponArmorStat({ statBonus: { stat: 'armorPhysique', amount: 3 } }),
+      ).toBe('+3')
+    })
+  })
+
+  describe('weaponArmorStatLabel', () => {
+    it('always labels weapons as DÉGÂTS regardless of item content', () => {
+      expect(weaponArmorStatLabel({}, 'weapons')).toBe('DÉGÂTS')
+    })
+
+    it('labels a plain armor item as ARMURE', () => {
+      expect(weaponArmorStatLabel({}, 'armor')).toBe('ARMURE')
+    })
+
+    it('labels an armor item with a maxMana statBonus as MANA', () => {
+      expect(
+        weaponArmorStatLabel({ statBonus: { stat: 'maxMana', amount: 4 } }, 'armor'),
+      ).toBe('MANA')
+    })
+
+    it('labels an armor item with a maxHp statBonus as PV', () => {
+      expect(
+        weaponArmorStatLabel({ statBonus: { stat: 'maxHp', amount: 4 } }, 'armor'),
+      ).toBe('PV')
+    })
+
+    it('labels an armor item with an armorMagique statBonus as AM', () => {
+      expect(
+        weaponArmorStatLabel({ statBonus: { stat: 'armorMagique', amount: 2 } }, 'armor'),
+      ).toBe('AM')
+    })
+
+    it('labels an armor item with an armorPhysique statBonus as AP', () => {
+      expect(
+        weaponArmorStatLabel({ statBonus: { stat: 'armorPhysique', amount: 3 } }, 'armor'),
+      ).toBe('AP')
     })
   })
 

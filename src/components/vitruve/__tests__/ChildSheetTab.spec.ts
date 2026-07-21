@@ -200,4 +200,40 @@ describe('ChildSheetTab', () => {
     await squares[0]?.trigger('click')
     expect(wrapper.emitted('set-injury')).toBeUndefined()
   })
+
+  it('renders a combined armor total with an AM/AP breakdown from the child’s own equipment', () => {
+    const wrapper = mount(ChildSheetTab, {
+      props: {
+        child: makeChild(),
+        childSession: makeSession(),
+        canEdit: false,
+        equipment: [
+          {
+            itemId: 'a-1',
+            name: 'Collier runique',
+            equipped: true,
+            statBonus: { stat: 'armorMagique', amount: 1 },
+          },
+          {
+            itemId: 'a-2',
+            name: 'Griffes renforcées',
+            equipped: true,
+            statBonus: { stat: 'armorPhysique', amount: 4 },
+          },
+        ],
+      },
+    })
+
+    expect(wrapper.find('.armor-total').text()).toBe('5')
+    expect(wrapper.find('.armor-breakdown').text()).toBe('AM 1 · AP 4')
+  })
+
+  it('shows an all-zero armor total when the child has no equipment prop', () => {
+    const wrapper = mount(ChildSheetTab, {
+      props: { child: makeChild(), childSession: makeSession(), canEdit: false },
+    })
+
+    expect(wrapper.find('.armor-total').text()).toBe('0')
+    expect(wrapper.find('.armor-breakdown').text()).toBe('AM 0 · AP 0')
+  })
 })

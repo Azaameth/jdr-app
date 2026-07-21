@@ -10,7 +10,7 @@ import type {
 import CaracCategoryBlock, { type CaracCategorySub } from './CaracCategoryBlock.vue'
 import { adjustedCategoryPct } from './tickState'
 import { JET_CATEGORY_META, type JetCategory } from './jetFormula'
-import { computeEffectiveMaxStat } from '../../utils/effectiveStats'
+import { computeArmorTotal, computeEffectiveMaxStat } from '../../utils/effectiveStats'
 
 // Child-character mini-sheet (FR-015): "Forme" tab for a child (transformation,
 // e.g. Furmiaou) of the currently displayed character. Generalizes legacy's
@@ -113,6 +113,7 @@ const effectiveMaxHp = computed(() =>
 const effectiveMaxMana = computed(() =>
   computeEffectiveMaxStat(session.value.maxMana, props.equipment ?? [], 'maxMana'),
 )
+const armorTotal = computed(() => computeArmorTotal(props.equipment ?? []))
 
 // Mirrors VitruveSheet's hp clamp display (PlayerView's clampSessionValue
 // allows hp down to -maxHp, not just 0 — same convention here for the child).
@@ -176,6 +177,12 @@ function imageUrl(path: string) {
         <div class="vcard-val big mana">{{ session.mana }}</div>
         <p v-if="!hasMana" class="no-mana-note">Aucune magie</p>
       </div>
+    </div>
+
+    <div class="armor-cell">
+      <span class="armor-total">{{ armorTotal.total }}</span>
+      <span class="armor-label">Armure</span>
+      <span class="armor-breakdown">AM {{ armorTotal.magique }} · AP {{ armorTotal.physique }}</span>
     </div>
 
     <div v-if="child.elements.length" class="element-badges">
@@ -297,6 +304,30 @@ function imageUrl(path: string) {
   color: #6a5a8a;
   font-style: italic;
   margin: 0.25rem 0 0;
+}
+.armor-cell {
+  background: rgba(0, 0, 0, 0.22);
+  border: 1px solid rgba(74, 160, 80, 0.2);
+  border-radius: 8px;
+  padding: 0.55rem 0.7rem;
+  text-align: center;
+  margin-bottom: 1rem;
+}
+.armor-total {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: #f2e6cc;
+}
+.armor-label {
+  font-size: 0.72rem;
+  color: #a89a7c;
+  margin-left: 6px;
+}
+.armor-breakdown {
+  display: block;
+  font-size: 0.68rem;
+  color: #a89a7c;
+  margin-top: 2px;
 }
 .element-badges {
   display: flex;
