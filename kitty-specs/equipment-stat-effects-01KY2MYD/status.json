@@ -1,7 +1,7 @@
 {
-  "event_count": 13,
-  "last_event_id": "01KY2R704Z3P8K7BZPSBY61Y4E",
-  "materialized_at": "2026-07-21T16:30:15.711472+00:00",
+  "event_count": 15,
+  "last_event_id": "01KY2R80JABDYZFBGS6VHV6FA6",
+  "materialized_at": "2026-07-21T16:30:48.903396+00:00",
   "mission_number": "",
   "mission_slug": "equipment-stat-effects-01KY2MYD",
   "mission_type": "software-dev",
@@ -12,9 +12,9 @@
     "claimed": 0,
     "done": 0,
     "for_review": 0,
-    "in_progress": 0,
+    "in_progress": 1,
     "in_review": 0,
-    "planned": 1
+    "planned": 0
   },
   "work_packages": {
     "WP01": {
@@ -32,11 +32,11 @@
       "last_transition_at": "2026-07-21T16:30:15.711472+00:00"
     },
     "WP03": {
-      "actor": "finalize-tasks",
+      "actor": "claude:sonnet:curator-carla:implementer",
       "force_count": 0,
-      "lane": "planned",
-      "last_event_id": "01KY2Q1GTBGS5Z4VBRJDF8AEX4",
-      "last_transition_at": "2026-07-21T16:09:47.595635+00:00"
+      "lane": "in_progress",
+      "last_event_id": "01KY2R80JABDYZFBGS6VHV6FA6",
+      "last_transition_at": "2026-07-21T16:30:48.903396+00:00"
     }
   }
 }
