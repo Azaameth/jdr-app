@@ -261,7 +261,9 @@
       },
       {
         "itemId": "inv-9-anneau-de-mana",
-        "name": "Anneau de Mana"
+        "name": "Anneau de Mana",
+        "equipped": true,
+        "statBonus": { "stat": "maxMana", "amount": 4 }
       }
     ],
     "createdAt": "2026-07-13T19:51:37.518Z",

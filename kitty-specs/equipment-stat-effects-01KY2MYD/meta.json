@@ -1,0 +1,32 @@
+{
+  "accept_commit": "c66979eb99394e838c9c6495e7a7a099972c2d2e",
+  "acceptance_history": [
+    {
+      "accept_commit": "c66979eb99394e838c9c6495e7a7a099972c2d2e",
+      "acceptance_mode": "pr",
+      "accepted_at": "2026-07-21T16:38:27.361289+00:00",
+      "accepted_by": "monthie",
+      "accepted_from_commit": "ab8595c14df2fb7d2d582a29f37802ac092ddb96"
+    }
+  ],
+  "acceptance_mode": "pr",
+  "accepted_at": "2026-07-21T16:38:27.361289+00:00",
+  "accepted_by": "monthie",
+  "accepted_from_commit": "ab8595c14df2fb7d2d582a29f37802ac092ddb96",
+  "baseline_merge_commit": "5b09c946269771817a53611b8fa88a724a233ce4",
+  "created_at": "2026-07-21T15:33:08.270524+00:00",
+  "flattened": true,
+  "friendly_name": "Equipment Stat Effects",
+  "mission_id": "01KY2MYD1E6RR7PW4T7A9VZ3GV",
+  "mission_number": 5,
+  "mission_slug": "equipment-stat-effects-01KY2MYD",
+  "mission_type": "software-dev",
+  "pr_bound": true,
+  "purpose_context": "Today WeaponArmorItem.damageBonus/armorRating are untyped numbers nothing consumes, and max HP/Mana are raw stored fields with no formula behind them. Players and the MJ expect equipping something like a +4 Mana Ring to visibly raise max mana on the sheet without a manual edit. This mission locks a structured bonus schema and the aggregation layer needed to make that true, per MIGRATION_BACKLOG.md's Cluster 1 sequencing.",
+  "purpose_tldr": "Equipped weapons/armor items automatically raise or lower a character's computed stats (starting with max HP/Mana), instead of being flavor-only numbers no code reads.",
+  "slug": "equipment-stat-effects-01KY2MYD",
+  "target_branch": "feat/equipment-stat-effects",
+  "topology": "coord",
+  "vcs": "git",
+  "vcs_locked_at": "2026-07-21T16:12:18.164604+00:00"
+}

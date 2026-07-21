@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import type { CharacterProfile } from '../../models/types/Character'
+import type { WeaponArmorItem } from '../../models/types/Inventory'
 import type { Participant } from '../../models/types/Participant'
+import { computeEffectiveMaxStat } from '../../utils/effectiveStats'
 
 const props = withDefaults(
   defineProps<{
@@ -12,12 +14,14 @@ const props = withDefaults(
     canEditSession: boolean
     sessionLoading?: 'hp' | 'mana' | 'posture' | null
     sessionError?: string
+    equipment?: WeaponArmorItem[]
   }>(),
   {
     raceName: undefined,
     className: undefined,
     sessionLoading: null,
     sessionError: '',
+    equipment: () => [],
   },
 )
 
@@ -38,15 +42,26 @@ const subtitle = computed(() => {
 
 const session = computed(() => props.participant?.session ?? null)
 
+const effectiveMaxHp = computed(() => {
+  const s = session.value
+  if (!s) return 0
+  return computeEffectiveMaxStat(s.maxHp, props.equipment, 'maxHp')
+})
+const effectiveMaxMana = computed(() => {
+  const s = session.value
+  if (!s) return 0
+  return computeEffectiveMaxStat(s.maxMana, props.equipment, 'maxMana')
+})
+
 const hpMinusDisabled = computed(() => {
   const s = session.value
   if (!s) return true
-  return props.sessionLoading !== null || s.hp <= -s.maxHp
+  return props.sessionLoading !== null || s.hp <= -effectiveMaxHp.value
 })
 const hpPlusDisabled = computed(() => {
   const s = session.value
   if (!s) return true
-  return props.sessionLoading !== null || s.hp >= s.maxHp
+  return props.sessionLoading !== null || s.hp >= effectiveMaxHp.value
 })
 const manaMinusDisabled = computed(() => {
   const s = session.value
@@ -56,7 +71,7 @@ const manaMinusDisabled = computed(() => {
 const manaPlusDisabled = computed(() => {
   const s = session.value
   if (!s) return true
-  return props.sessionLoading !== null || s.mana >= s.maxMana
+  return props.sessionLoading !== null || s.mana >= effectiveMaxMana.value
 })
 
 // Portrait: image with object-fit:cover, else class-icon placeholder fallback
@@ -92,7 +107,7 @@ function handlePortraitError() {
     <div v-if="session" class="vitals-strip">
       <div class="vpill pv-pill">
         <div class="vbig pv">{{ session.hp }}</div>
-        <div class="vlbl">PV / {{ session.maxHp }}</div>
+        <div class="vlbl">PV / {{ effectiveMaxHp }}</div>
         <div v-if="canEditSession" class="vbtns">
           <button
             type="button"
@@ -117,7 +132,7 @@ function handlePortraitError() {
 
       <div class="vpill mana-pill">
         <div class="vbig mana">{{ session.mana }}</div>
-        <div class="vlbl">Mana / {{ session.maxMana }}</div>
+        <div class="vlbl">Mana / {{ effectiveMaxMana }}</div>
         <div v-if="canEditSession" class="vbtns">
           <button
             type="button"

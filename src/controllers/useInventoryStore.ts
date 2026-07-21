@@ -13,6 +13,7 @@ import {
 } from '../models/types/Inventory'
 
 const inventory = ref<CharacterInventory | null>(null)
+const childInventories = ref<Record<string, CharacterInventory>>({})
 const loading = ref(false)
 const error = ref<string | null>(null)
 
@@ -176,8 +177,21 @@ export function useInventoryStore() {
     return Math.max(0, BACKPACK_MAX_SLOTS[category] - filledCount)
   }
 
+  async function loadChildInventories(childIds: string[], campaignId: string): Promise<void> {
+    const results = await Promise.all(
+      childIds.map((id) => getInventoryByCharacterId(id, campaignId)),
+    )
+    const next: Record<string, CharacterInventory> = {}
+    childIds.forEach((id, i) => {
+      const inv = results[i]
+      if (inv) next[id] = inv
+    })
+    childInventories.value = next
+  }
+
   return {
     inventory: computed(() => inventory.value),
+    childInventories: computed(() => childInventories.value),
     loading: computed(() => loading.value),
     error: computed(() => error.value),
     loadInventory,
@@ -186,5 +200,6 @@ export function useInventoryStore() {
     saveEquipmentItem,
     removeEquipmentItem,
     freeSlots,
+    loadChildInventories,
   }
 }

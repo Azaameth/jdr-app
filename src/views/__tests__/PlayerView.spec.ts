@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { computed, ref } from 'vue'
 import { flushPromises, mount } from '@vue/test-utils'
 import type { CharacterProfile } from '../../models/types/Character'
-import type { CharacterInventory } from '../../models/types/Inventory'
+import type { CharacterInventory, WeaponArmorItem } from '../../models/types/Inventory'
 import type { Participant } from '../../models/types/Participant'
 import type { User } from '../../models/types/User'
 
@@ -90,7 +90,10 @@ function makeAuthStore(user: User | null) {
   }
 }
 
-function makeInventoryStore(inventory: CharacterInventory | null) {
+function makeInventoryStore(
+  inventory: CharacterInventory | null,
+  childInventoriesMap?: Record<string, CharacterInventory>,
+) {
   // `errorRef` backs the `error` computed so tests covering the T016 save/delete
   // wiring (review cycle 1 feedback) can flip the store's error mid-test via
   // `setError`, mirroring how the real store sets `error.value` inside a
@@ -100,6 +103,9 @@ function makeInventoryStore(inventory: CharacterInventory | null) {
   const errorRef = ref<string | null>(null)
   return {
     inventory: computed(() => inventory),
+    // WP02: mirrors the real store's childInventories cache — defaults to `{}`
+    // so every pre-existing single-argument call site keeps working unchanged.
+    childInventories: computed(() => childInventoriesMap ?? {}),
     loading: computed(() => false),
     error: computed(() => errorRef.value),
     loadInventory: vi.fn<() => Promise<CharacterInventory | null>>(async () => inventory),
@@ -108,6 +114,7 @@ function makeInventoryStore(inventory: CharacterInventory | null) {
     saveEquipmentItem: vi.fn<() => Promise<boolean>>(async () => true),
     removeEquipmentItem: vi.fn<() => Promise<boolean>>(async () => true),
     freeSlots: vi.fn<() => number>(() => 0),
+    loadChildInventories: vi.fn<() => Promise<void>>(async () => {}),
     setError: (message: string | null) => {
       errorRef.value = message
     },
@@ -837,5 +844,63 @@ describe('PlayerView — child character tabs & raw editor (WP06)', () => {
     expect(calculator().props('attributes')).toEqual(currentCharacter?.attributes)
     expect(calculator().props('injuries')).toEqual(parentInjuries)
     expect(calculator().props('contextKey')).toBe('char-1')
+  })
+
+  // WP02 T011 (closes analyze finding A3): SC-004/FR-005's parent/child
+  // equipment isolation invariant is the single highest-risk line in this
+  // WP (see WP02's Risks section — activeChildEquipment reading the wrong
+  // ref would compile fine and only misbehave at runtime). T006 only proves
+  // the store cache is populated correctly; this test proves PlayerView
+  // actually reads from the right key when wiring props to the child sheet.
+  it('never lets ChildSheetTab receive the parent equipment, or VitruveSheet receive the child equipment (SC-004 isolation)', async () => {
+    mockAuthState.mockReturnValue(
+      makeAuthStore({ uid: 'owner-uid', displayName: 'J', email: '', photoURL: '', role: 'joueur' }),
+    )
+    const parentInventory = makeInventory({
+      uid: 'owner-uid',
+      armor: [
+        {
+          itemId: 'parent-ring',
+          name: 'Anneau du Parent',
+          equipped: true,
+          statBonus: { stat: 'maxMana', amount: 4 },
+        },
+      ],
+    })
+    const childInventory = makeInventory({
+      id: 'inv-furmiaou',
+      characterId: 'furmiaou',
+      armor: [
+        {
+          itemId: 'child-ring',
+          name: 'Griffe Enchantée',
+          equipped: true,
+          statBonus: { stat: 'maxHp', amount: 10 },
+        },
+      ],
+    })
+    mockInventoryState.mockReturnValue(
+      makeInventoryStore(parentInventory, { furmiaou: childInventory }),
+    )
+    currentChildren = [furmiaou]
+
+    const wrapper = mount(PlayerView, { props: { campaignId: 'campaign-1', characterId: 'char-1' } })
+    await flushPromises()
+
+    // Parent side (still on a base tab): VitruveSheet must carry only the
+    // parent's own armor — never the child's.
+    const parentEquipment = wrapper.findComponent(VitruveSheet).props('equipment') as WeaponArmorItem[]
+    expect(parentEquipment).toEqual(parentInventory.armor)
+    expect(parentEquipment.some((item) => item.itemId === 'child-ring')).toBe(false)
+
+    // Switch to the child tab: ChildSheetTab must carry only the child's own
+    // armor — never the parent's. This is the assertion that fails if
+    // activeChildEquipment is ever changed to read `inventoryStore.inventory`
+    // instead of `inventoryStore.childInventories.value[child.id]`.
+    await selectTab(wrapper, 'Furmiaou')
+    const childTab = wrapper.findComponent(ChildSheetTab)
+    const childEquipment = childTab.props('equipment') as WeaponArmorItem[]
+    expect(childEquipment).toEqual(childInventory.armor)
+    expect(childEquipment.some((item) => item.itemId === 'parent-ring')).toBe(false)
   })
 })
