@@ -152,6 +152,18 @@ const activeChild = computed<CharacterProfile | null>(() => {
   return children.value.find((child) => child.id === activeTab.value) ?? null
 })
 
+// The active child's OWN weapons+armor (FR-005/SC-004): sourced from the
+// keyed `childInventories` cache — NEVER from `inventoryStore.inventory`,
+// which is the parent's singleton ref. Mixing the two would silently break
+// child/parent equipment isolation (research.md D3).
+const activeChildEquipment = computed<WeaponArmorItem[]>(() => {
+  const child = activeChild.value
+  if (!child) return []
+  const inv = inventoryStore.childInventories.value[child.id]
+  if (!inv) return []
+  return [...inv.weapons, ...inv.armor]
+})
+
 const EMPTY_ATTRIBUTES: CharacterAttributes = {
   primary: { force: 0, social: 0, mental: 0 },
   secondary: { puissance: 0, finesse: 0, aura: 0, relation: 0, instinct: 0, savoir: 0 },
@@ -610,6 +622,10 @@ async function loadCharacter() {
     races.value = raceList
     classes.value = classList
     children.value = childList
+    await inventoryStore.loadChildInventories(
+      childList.map((c) => c.id),
+      campaignId.value,
+    )
 
     // Guard : un joueur ne peut voir que son propre personnage
     const user = authStore.user.value
@@ -683,6 +699,7 @@ onBeforeUnmount(() => {
         :can-edit-session="canEditSession"
         :session-loading="sessionLoading"
         :session-error="sessionError"
+        :equipment="[...weapons, ...armor]"
         @adjust-hp="(delta) => changeSessionResource('hp', delta)"
         @adjust-mana="(delta) => changeSessionResource('mana', delta)"
       >
@@ -791,6 +808,7 @@ onBeforeUnmount(() => {
               :child="activeChild"
               :child-session="participant?.childSessions?.[activeChild.id] ?? null"
               :can-edit="canEditCharacter"
+              :equipment="activeChildEquipment"
               @adjust-hp="handleChildAdjustHp"
               @set-injury="handleChildSetInjury"
             />

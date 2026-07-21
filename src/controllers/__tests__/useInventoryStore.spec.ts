@@ -281,4 +281,73 @@ describe('useInventoryStore', () => {
       expect(store.freeSlots('nourriture')).toBe(1)
     })
   })
+
+  describe('loadChildInventories', () => {
+    it('resolves to an empty cache for an empty childIds array', async () => {
+      const store = useInventoryStore()
+
+      await store.loadChildInventories([], 'camp-1')
+
+      expect(store.childInventories.value).toEqual({})
+      expect(mocks.getInventoryByCharacterId).not.toHaveBeenCalled()
+    })
+
+    it('populates the cache with one entry per child, keyed by characterId', async () => {
+      const childA = makeInventory({ id: 'inv-a', characterId: 'child-a' })
+      const childB = makeInventory({ id: 'inv-b', characterId: 'child-b' })
+      mocks.getInventoryByCharacterId.mockImplementation(async (characterId: string) => {
+        if (characterId === 'child-a') return childA
+        if (characterId === 'child-b') return childB
+        return null
+      })
+      const store = useInventoryStore()
+
+      await store.loadChildInventories(['child-a', 'child-b'], 'camp-1')
+
+      expect(store.childInventories.value).toEqual({ 'child-a': childA, 'child-b': childB })
+    })
+
+    it('omits entries for children with no inventory doc', async () => {
+      const childA = makeInventory({ id: 'inv-a', characterId: 'child-a' })
+      mocks.getInventoryByCharacterId.mockImplementation(async (characterId: string) => {
+        if (characterId === 'child-a') return childA
+        return null
+      })
+      const store = useInventoryStore()
+
+      await store.loadChildInventories(['child-a', 'child-b'], 'camp-1')
+
+      expect(store.childInventories.value).toEqual({ 'child-a': childA })
+      expect(store.childInventories.value['child-b']).toBeUndefined()
+    })
+
+    it('does not touch the existing inventory ref', async () => {
+      const parentInv = makeInventory({ id: 'inv-parent', characterId: 'parent-1' })
+      const childInv = makeInventory({ id: 'inv-child', characterId: 'child-a' })
+      mocks.getInventoryByCharacterId.mockResolvedValueOnce(parentInv)
+      const store = useInventoryStore()
+      await store.loadInventory('parent-1', 'camp-1')
+
+      mocks.getInventoryByCharacterId.mockResolvedValue(childInv)
+      await store.loadChildInventories(['child-a'], 'camp-1')
+
+      expect(store.inventory.value).toEqual(parentInv)
+    })
+
+    it('replaces the cache rather than merging on a second call', async () => {
+      const childA = makeInventory({ id: 'inv-a', characterId: 'child-a' })
+      const childB = makeInventory({ id: 'inv-b', characterId: 'child-b' })
+      const store = useInventoryStore()
+
+      mocks.getInventoryByCharacterId.mockResolvedValue(childA)
+      await store.loadChildInventories(['child-a'], 'camp-1')
+      expect(store.childInventories.value).toEqual({ 'child-a': childA })
+
+      mocks.getInventoryByCharacterId.mockResolvedValue(childB)
+      await store.loadChildInventories(['child-b'], 'camp-1')
+
+      expect(store.childInventories.value).toEqual({ 'child-b': childB })
+      expect(store.childInventories.value['child-a']).toBeUndefined()
+    })
+  })
 })

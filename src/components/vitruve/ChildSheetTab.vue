@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { CharacterProfile } from '../../models/types/Character'
+import type { WeaponArmorItem } from '../../models/types/Inventory'
 import type {
   CharacterSessionState,
   InjuryState,
@@ -9,6 +10,7 @@ import type {
 import CaracCategoryBlock, { type CaracCategorySub } from './CaracCategoryBlock.vue'
 import { adjustedCategoryPct } from './tickState'
 import { JET_CATEGORY_META, type JetCategory } from './jetFormula'
+import { computeEffectiveMaxStat } from '../../utils/effectiveStats'
 
 // Child-character mini-sheet (FR-015): "Forme" tab for a child (transformation,
 // e.g. Furmiaou) of the currently displayed character. Generalizes legacy's
@@ -21,6 +23,7 @@ const props = defineProps<{
   child: CharacterProfile
   childSession: CharacterSessionState | null
   canEdit: boolean
+  equipment?: WeaponArmorItem[]
 }>()
 
 const emit = defineEmits<{
@@ -99,12 +102,24 @@ function cycleInjury(attr: SecondaryAttributeName) {
   emit('set-injury', attr, next)
 }
 
+// Effective max HP/Mana (FR-004/FR-005): base session max plus bonuses from
+// this child's OWN equipped items only — never the parent's (SC-004,
+// research.md D3). `props.equipment` is sourced by PlayerView from
+// `useInventoryStore().childInventories.value[child.id]`, isolated from the
+// parent's singleton `inventory` ref.
+const effectiveMaxHp = computed(() =>
+  computeEffectiveMaxStat(session.value.maxHp, props.equipment ?? [], 'maxHp'),
+)
+const effectiveMaxMana = computed(() =>
+  computeEffectiveMaxStat(session.value.maxMana, props.equipment ?? [], 'maxMana'),
+)
+
 // Mirrors VitruveSheet's hp clamp display (PlayerView's clampSessionValue
 // allows hp down to -maxHp, not just 0 — same convention here for the child).
-const hpMinusDisabled = computed(() => !props.canEdit || session.value.hp <= -session.value.maxHp)
-const hpPlusDisabled = computed(() => !props.canEdit || session.value.hp >= session.value.maxHp)
+const hpMinusDisabled = computed(() => !props.canEdit || session.value.hp <= -effectiveMaxHp.value)
+const hpPlusDisabled = computed(() => !props.canEdit || session.value.hp >= effectiveMaxHp.value)
 
-const hasMana = computed(() => session.value.maxMana > 0)
+const hasMana = computed(() => effectiveMaxMana.value > 0)
 
 function imageUrl(path: string) {
   if (!path) return ''
@@ -132,7 +147,7 @@ function imageUrl(path: string) {
 
     <div class="summary-cards">
       <div class="vcard">
-        <div class="vcard-lbl">PV / {{ session.maxHp }}</div>
+        <div class="vcard-lbl">PV / {{ effectiveMaxHp }}</div>
         <div class="vcard-val big pv">{{ session.hp }}</div>
         <div v-if="canEdit" class="child-hp-btns">
           <button
@@ -157,7 +172,7 @@ function imageUrl(path: string) {
       </div>
 
       <div class="vcard">
-        <div class="vcard-lbl">Mana / {{ session.maxMana }}</div>
+        <div class="vcard-lbl">Mana / {{ effectiveMaxMana }}</div>
         <div class="vcard-val big mana">{{ session.mana }}</div>
         <p v-if="!hasMana" class="no-mana-note">Aucune magie</p>
       </div>
