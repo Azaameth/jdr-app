@@ -17,6 +17,7 @@ subtasks:
 - T008
 - T009
 - T010
+- T011
 agent: ""
 shell_pid: ""
 history:
@@ -132,7 +133,14 @@ Place this call right after the existing `children.value = childList` assignment
 
 **Do not** add any lazy/on-tab-switch loading — children are loaded eagerly here, same as everything else in this sequence (research.md D3's rationale: `childSessions` are already all loaded upfront, so this matches existing precedent).
 
-**Validation**: `npm run dev`, load a character with at least one child/transformation (Firm/Furmiaou in seed data), confirm no console errors and no change in load time perceptible to a human.
+**Important — existing test fixture needs updating too**: `src/views/__tests__/PlayerView.spec.ts` already mocks `useInventoryStore` via a `makeInventoryStore(inventory)` helper (around line 93) that every existing test in the file uses through `mockInventoryState.mockReturnValue(makeInventoryStore(...))`. Once `PlayerView.vue` calls `inventoryStore.loadChildInventories(...)` (this subtask), every existing mounted-`PlayerView` test will throw `TypeError: inventoryStore.loadChildInventories is not a function` unless the mock is updated first. Extend `makeInventoryStore` to also return:
+```ts
+childInventories: computed(() => childInventoriesMap ?? {}),
+loadChildInventories: vi.fn<() => Promise<void>>(async () => {}),
+```
+(add an optional second parameter to `makeInventoryStore` for the child-inventories map, defaulting to `{}`, so every pre-existing call site — which passes only one argument — keeps working unchanged). Do this as part of this subtask, not deferred to T011, since T007 is what breaks the fixture.
+
+**Validation**: `npm run dev`, load a character with at least one child/transformation (Firm/Furmiaou in seed data), confirm no console errors and no change in load time perceptible to a human. `npm run test:unit -- PlayerView` still green (every pre-existing test in the file, not just new ones).
 
 ### T008 — `VitruveSheet.vue`: render effective max HP/Mana, fix clamping
 
@@ -244,6 +252,42 @@ Place this call right after the existing `children.value = childList` assignment
 
 **Validation**: manual check per `quickstart.md`'s "Validate the UI" section — a character with an equipped bonus item shows the raised max (SC-001); a transformation tab shows a *different* effective max than the parent when only one of them has bonus gear equipped (SC-004).
 
+### T011 — Automated isolation regression test (closes analyze finding A3)
+
+**Purpose**: `/spec-kitty.analyze` flagged that SC-004/FR-005's child-vs-parent isolation invariant — which T010's own risk note calls the single highest-risk line in this WP — had no automated test at the layer where it could actually break. T006 only proves the store cache is populated correctly; it doesn't prove `PlayerView.vue` reads from the right key. This subtask closes that gap.
+
+Add to the existing `describe('PlayerView — child character tabs & raw editor (WP06)', ...)` block in `src/views/__tests__/PlayerView.spec.ts` (around line 609 — reuse its `furmiaou` fixture and `mountAsOwner()` helper, do not duplicate them):
+
+1. In `mountAsOwner()` (or a local variant for this test), pass distinct equipment to the parent vs. the child through the T007-extended `makeInventoryStore(parentInventory, childInventoriesMap)`:
+   ```ts
+   const parentInventory = makeInventory({
+     uid: 'owner-uid',
+     armor: [
+       { itemId: 'parent-ring', name: 'Anneau du Parent', equipped: true, statBonus: { stat: 'maxMana', amount: 4 } },
+     ],
+   })
+   const childInventory = makeInventory({
+     id: 'inv-furmiaou',
+     characterId: 'furmiaou',
+     armor: [
+       { itemId: 'child-ring', name: 'Griffe Enchantée', equipped: true, statBonus: { stat: 'maxHp', amount: 10 } },
+     ],
+   })
+   mockInventoryState.mockReturnValue(
+     makeInventoryStore(parentInventory, { furmiaou: childInventory }),
+   )
+   ```
+2. Mount `PlayerView`, switch to the `Furmiaou` tab (reuse the `selectTab` helper already used elsewhere in this file), and assert on `ChildSheetTab`'s received `equipment` prop (the prop name/shape from T009):
+   ```ts
+   const childTab = wrapper.findComponent(ChildSheetTab)
+   const equipment = childTab.props('equipment') as WeaponArmorItem[]
+   expect(equipment).toEqual(childInventory.armor)          // has the child's own item
+   expect(equipment.some((i) => i.itemId === 'parent-ring')).toBe(false)  // never the parent's
+   ```
+3. Add the inverse assertion on the parent side (switch back to a base tab, or check `VitruveSheet`'s `equipment` prop while still on a base tab before switching): the parent's `VitruveSheet` equipment must never include `'child-ring'`.
+
+**Validation**: this test fails if `PlayerView.vue`'s `activeChildEquipment` computed (T010) is ever changed to read `inventoryStore.inventory.value` instead of `inventoryStore.childInventories.value[child.id]` — that's the whole point; if you can comment out the `.value[child.id]` indexing and the test still passes, the test isn't strict enough.
+
 ## Definition of Done
 
 - [ ] `useInventoryStore` exposes `childInventories`/`loadChildInventories` per `contracts/data-layer.md` section 3, without changing any existing export's behavior.
@@ -254,21 +298,24 @@ Place this call right after the existing `children.value = childList` assignment
 - [ ] `ChildSheetTab.vue`'s `hasMana`/"Aucune magie" check uses the effective max.
 - [ ] `PlayerView.vue` passes the parent's own equipment to `VitruveSheet` and each child's own equipment (from `childInventories`, never `inventory`) to `ChildSheetTab`.
 - [ ] With no equipped bonus items anywhere, the UI is pixel-identical to before this WP (regression check).
-- [ ] `npm run type-check`, `npm run lint`, `npm run test:unit` all green.
+- [ ] T011's isolation test exists, passes, and is strict enough to fail if the isolation wiring regresses (see T011's validation note).
+- [ ] `npm run type-check`, `npm run lint`, `npm run test:unit`, and `npm run test:e2e` all green (the e2e gate applies because this WP modifies `PlayerView.vue`, a full view — charter Quality Gates; existing `e2e/vitruve.spec.ts` is smoke-level, so this is a regression check, not new e2e authoring — analyze finding A1).
 
 ## Risks
 
-- **Isolation bug** (highest risk, called out in T010): `activeChildEquipment` accidentally reading the parent's `inventory` ref instead of `childInventories[child.id]` would compile fine (same type) and only show up as a behavioral bug — a child incorrectly inheriting the parent's bonuses, or vice versa. Test this manually with a seed setup where only one of parent/child has a bonus item equipped.
+- **Isolation bug** (highest risk, called out in T010 — now covered by T011): `activeChildEquipment` accidentally reading the parent's `inventory` ref instead of `childInventories[child.id]` would compile fine (same type) and only show up as a behavioral bug — a child incorrectly inheriting the parent's bonuses, or vice versa. T011 makes this a CI-caught failure, not just a manual-QA hope.
 - **Clamping regression**: forgetting to update even one of the four `VitruveSheet.vue` disabled-computeds (or the two `ChildSheetTab.vue` ones) leaves a stale comparison against the raw max — subtle, since it only misbehaves once a character actually has equipment bonuses in play (the seed fixture from WP01 T004 makes this testable).
 - **Prop-shape drift between the two components**: T008 and T009 must use the same `equipment` prop shape, or T010's wiring code becomes inconsistent. Decide the shape once (combined `equipment: WeaponArmorItem[]` is recommended) and use it in both.
+- **Broken existing test fixture**: T007's extension of `makeInventoryStore` must keep every pre-existing call site (single-argument) working — if the second parameter isn't optional-with-a-default, every test in `PlayerView.spec.ts` written before this WP breaks.
 
 ## Reviewer Guidance
 
-- Trace `activeChildEquipment` in `PlayerView.vue` back to `childInventories`, not `inventory` — this is the single highest-value line to review carefully.
+- Trace `activeChildEquipment` in `PlayerView.vue` back to `childInventories`, not `inventory` — this is the single highest-value line to review carefully. T011 should fail if this is wrong; verify T011 actually would fail by briefly checking its assertion targets the right prop.
 - Verify all four `VitruveSheet.vue` clamping computeds and both `ChildSheetTab.vue` ones were updated — grep for `s.maxHp`/`s.maxMana`/`session.value.maxHp`/`session.value.maxMana` remaining in disabled-state logic after the change; there should be none left comparing against the raw value.
 - Confirm `hasMana` in `ChildSheetTab.vue` uses the effective max — easy to miss since it's not a `+`/`-` button.
 - Manually exercise SC-004: seed or raw-edit one bonus item onto a child only (not the parent), confirm the parent's displayed max is unaffected and only the child's is raised.
 - Confirm zero changes to `src/models/types/Inventory.ts`, `src/utils/effectiveStats.ts`, or `scripts/data/inventories.json` in this WP's diff — those are WP01's surface.
+- Confirm `npm run test:e2e` was actually run (not skipped) — check the activity log / PR notes for its output, not just `test:unit`.
 
 ## Activity Log
 

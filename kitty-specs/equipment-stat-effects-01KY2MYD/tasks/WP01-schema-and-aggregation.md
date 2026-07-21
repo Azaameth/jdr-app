@@ -136,24 +136,33 @@ Cover, at minimum, one test per case:
 
 **Validation**: every case above has its own `it(...)` block with an explicit assertion; `npm run test:unit -- effectiveStats` green.
 
-### T004 — Seed fixture: add the Mana Ring example (FR-008)
+### T004 — Seed fixture: populate the existing Mana Ring item (FR-008)
 
-**Purpose**: exercise the new fields end-to-end in real seed data, using the backlog's own example (`MIGRATION_BACKLOG.md` item 4: "Mwasa's +4 Mana Ring").
+**Purpose**: exercise the new fields end-to-end in real seed data, using the backlog's own example (`MIGRATION_BACKLOG.md` item 4: "Mwasa's +4 Mana Ring" — note the backlog's "Mwasa" is a spelling variant of the actual character, "Mwassa Mekhsitt", `characterId: "mwassa"`).
 
-1. Open `scripts/data/inventories.json` and find Mwasa's inventory entry (or the closest existing character with a ring/amulet-type item in their `armor` or `weapons` list — check the file first; if no existing item is thematically a "ring", add one new entry to that character's `armor` array rather than repurposing an unrelated item).
-2. Set (or add) an item with:
-   ```json
-   {
-     "itemId": "<stable-id-matching-existing-convention>",
-     "name": "Anneau de Mana",
-     "equipped": true,
-     "statBonus": { "stat": "maxMana", "amount": 4 }
-   }
-   ```
-   Keep whatever `statNote`/`damageBonus`/`armorRating` fields (if any) that item already had — this is additive, per C-004/research.md D4, not a replacement.
-3. Match the file's existing JSON formatting exactly (indentation, key order convention already used by sibling entries) so the diff is minimal and reviewable.
+This item **already exists** — no new entry needed, and there is no need to search for it. In `scripts/data/inventories.json`, find the object where `"characterId": "mwassa"`, then inside its `armor` array find the entry:
 
-**Validation**: `git diff scripts/data/inventories.json` shows a small, clean addition; the JSON still parses (`node -e "JSON.parse(require('fs').readFileSync('scripts/data/inventories.json'))"` or equivalent); no other character's data changed.
+```json
+{
+  "itemId": "inv-9-anneau-de-mana",
+  "name": "Anneau de Mana"
+}
+```
+
+Add the two new fields to that exact entry (do not create a second ring, do not touch any other character's data):
+
+```json
+{
+  "itemId": "inv-9-anneau-de-mana",
+  "name": "Anneau de Mana",
+  "equipped": true,
+  "statBonus": { "stat": "maxMana", "amount": 4 }
+}
+```
+
+Match the file's existing JSON formatting exactly (indentation, key order convention already used by sibling entries) so the diff is minimal and reviewable.
+
+**Validation**: `git diff scripts/data/inventories.json` shows exactly two added keys on the `inv-9-anneau-de-mana` entry — nothing else in the file changes; the JSON still parses (`node -e "JSON.parse(require('fs').readFileSync('scripts/data/inventories.json'))"` or equivalent).
 
 ## Definition of Done
 

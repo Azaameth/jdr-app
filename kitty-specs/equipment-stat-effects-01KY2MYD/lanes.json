@@ -49,9 +49,28 @@
         "lane-a"
       ],
       "parallel_group": 1
+    },
+    {
+      "lane_id": "lane-planning",
+      "wp_ids": [
+        "WP03"
+      ],
+      "write_scope": [
+        "MIGRATION_BACKLOG.md",
+        "NEXTSTEPS.md"
+      ],
+      "predicted_surfaces": [
+        "planning"
+      ],
+      "depends_on_lanes": [
+        "lane-b"
+      ],
+      "parallel_group": 2
     }
   ],
-  "computed_at": "2026-07-21T15:57:29.533505+00:00",
+  "computed_at": "2026-07-21T16:09:48.094738+00:00",
   "computed_from": "dependency_graph+ownership",
-  "planning_artifact_wps": []
+  "planning_artifact_wps": [
+    "WP03"
+  ]
 }
