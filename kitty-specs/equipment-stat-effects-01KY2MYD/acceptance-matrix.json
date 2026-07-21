@@ -1,0 +1,110 @@
+{
+  "mission_slug": "equipment-stat-effects-01KY2MYD",
+  "mission_number": "",
+  "mission_type": "software-dev",
+  "overall_verdict": "pass",
+  "criteria": [
+    {
+      "criterion_id": "FR-001",
+      "description": "WeaponArmorItem gains an equipped: boolean field, defaulting to false for items that don't set it.",
+      "proof_type": "code_review",
+      "evidence": "src/models/types/Inventory.ts (WP01, commit d62e54d on kitty/mission-equipment-stat-effects-01KY2MYD-lane-a) — WeaponArmorItem gains `equipped?: boolean`; optional field is absent/false by default, no migration needed.",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-07-21T15:59:00Z",
+      "notes": "Reviewed against contracts/data-layer.md section 1 line-by-line during WP01 review; exact match."
+    },
+    {
+      "criterion_id": "FR-002",
+      "description": "WeaponArmorItem gains a structured, optional bonus shape (target stat + amount), distinct from statNote. Only maxHp/maxMana are valid targets.",
+      "proof_type": "code_review",
+      "evidence": "src/models/types/Inventory.ts (WP01, d62e54d) — `statBonus?: { stat: 'maxHp' | 'maxMana'; amount: number }`, additive to damageBonus/armorRating/statNote, none of which are modified.",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-07-21T15:59:00Z",
+      "notes": null
+    },
+    {
+      "criterion_id": "FR-003",
+      "description": "Effective max HP/Mana equal stored base plus the sum of every equipped item's bonus targeting that stat.",
+      "proof_type": "automated_test",
+      "evidence": "src/utils/__tests__/effectiveStats.spec.ts (WP01, d62e54d) — 'adds a single equipped bonus to the base value', 'stacks two equipped bonuses on the same stat instead of overwriting', 'sums only the equipped-with-matching-stat items in a mixed array'.",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-07-21T15:59:00Z",
+      "notes": "npm run test:unit -- effectiveStats: 7/7 passed, re-run fresh during WP01 review."
+    },
+    {
+      "criterion_id": "FR-004",
+      "description": "Effective max HP/Mana (not raw stored base) renders on VitruveSheet.vue and ChildSheetTab.vue.",
+      "proof_type": "code_review",
+      "evidence": "src/components/vitruve/VitruveSheet.vue and ChildSheetTab.vue (WP02, commit 52c47e9 on kitty/mission-equipment-stat-effects-01KY2MYD-lane-b) — both template interpolations swapped to effectiveMaxHp/effectiveMaxMana computeds calling computeEffectiveMaxStat; all four VitruveSheet.vue clamping computeds and both ChildSheetTab.vue clamping computeds + hasMana updated to use the effective value (grep for raw session.maxHp/maxMana in disabled-state logic returned zero hits during WP02 review).",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-07-21T16:15:00Z",
+      "notes": null
+    },
+    {
+      "criterion_id": "FR-005",
+      "description": "A child/transformation character's effective max stats are computed from that child's own equipped items only — never the parent's inventory.",
+      "proof_type": "automated_test",
+      "evidence": "src/views/__tests__/PlayerView.spec.ts (WP02, 52c47e9) — 'never lets ChildSheetTab receive the parent equipment, or VitruveSheet receive the child equipment (SC-004 isolation)' (line 855), using strict non-membership assertions (`.some(...).toBe(false)`), not just length checks. Backed by src/controllers/__tests__/useInventoryStore.spec.ts's 'does not touch the existing inventory ref' and 'populates the cache with one entry per child, keyed by characterId'. Production code traced: PlayerView.vue's activeChildEquipment computed reads inventoryStore.childInventories.value[child.id], confirmed never inventoryStore.inventory.value.",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-07-21T16:15:00Z",
+      "notes": "This was the mission's highest flagged risk (analyze finding A3); closed with a dedicated automated test, not manual QA only."
+    },
+    {
+      "criterion_id": "FR-006",
+      "description": "Unequipping an item (or an item with no bonus) excludes its contribution from the effective max on next computation — pure derived computation, no separate persistence/migration.",
+      "proof_type": "automated_test",
+      "evidence": "src/utils/__tests__/effectiveStats.spec.ts (WP01) — 'ignores an unequipped item even if it carries a statBonus', 'contributes 0 for an item with no statBonus at all'.",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-07-21T15:59:00Z",
+      "notes": null
+    },
+    {
+      "criterion_id": "FR-007",
+      "description": "statNote is never read by the bonus-aggregation logic; renders as free text exactly as today.",
+      "proof_type": "code_review",
+      "evidence": "src/utils/effectiveStats.ts (WP01, d62e54d) — grep for damageBonus/armorRating/statNote returned 3 hits, all in comments explaining the exclusion, zero in executable code (verified during WP01 review).",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-07-21T15:59:00Z",
+      "notes": null
+    },
+    {
+      "criterion_id": "FR-008",
+      "description": "Existing seed/fixture weapon/armor data updated so at least one real example (the +4 Mana Ring) exercises the new fields end-to-end.",
+      "proof_type": "code_review",
+      "evidence": "scripts/data/inventories.json (WP01, d62e54d) — characterId 'mwassa', armor[].itemId 'inv-9-anneau-de-mana' gained `equipped: true, statBonus: {stat: 'maxMana', amount: 4}`; git diff confirmed only those two keys changed on that entry, valid JSON.",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-07-21T15:59:00Z",
+      "notes": null
+    },
+    {
+      "criterion_id": "FR-009",
+      "description": "MIGRATION_BACKLOG.md item 4 and NEXTSTEPS.md reflect the shipped mission (charter DIR-002 / CLAUDE.md increment-ledger policy).",
+      "proof_type": "code_review",
+      "evidence": "MIGRATION_BACKLOG.md and NEXTSTEPS.md (WP03, commit e540c4c) — item 4 marked done citing real field/function names (equipped, statBonus, computeEffectiveMaxStat, childInventories/loadChildInventories) fact-checked against the real WP01/WP02 diffs during WP03 review; Cluster 1 sequencing bullet updated to partial (equipment effects done, transformation-attach UI still open); NEXTSTEPS.md gained a brief 'Implemented' pointer section.",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-07-21T16:34:00Z",
+      "notes": "Added during plan-phase remediation of analyze finding A2."
+    }
+  ],
+  "negative_invariants": [
+    {
+      "invariant_id": "C-004",
+      "description": "statNote is never restructured or parsed by new code in this mission.",
+      "verification_method": "code_review: grep for statNote in src/utils/effectiveStats.ts and the WP02 diff — zero reads outside comments (WP01/WP02 review)."
+    },
+    {
+      "invariant_id": "C-001",
+      "description": "Only maxHp/maxMana are in scope as bonus targets; jetTotal/roll-total bonuses are explicitly out of scope this mission.",
+      "verification_method": "code_review: jetFormula.ts/JetCalculator.vue diff-untouched (git show --stat on WP01/WP02 commits); MIGRATION_BACKLOG.md's WP03 update explicitly documents this as still-open, not done."
+    }
+  ]
+}
