@@ -45,13 +45,13 @@ C-006 (spec.md) mandates a hard two-phase split: the schema + aggregation-logic 
 **Estimated size**: 7 subtasks, ~500 lines.
 **Requirement refs**: FR-004, FR-005.
 
-- [ ] T005 Add `childInventories = ref<Record<string, CharacterInventory>>({})` and `loadChildInventories(childIds, campaignId)` to `useInventoryStore.ts` (WP02)
-- [ ] T006 Unit tests for `loadChildInventories` (no-db no-op, populates cache, multiple children, missing-inventory child) (WP02)
-- [ ] T007 Call `loadChildInventories` from `PlayerView.vue`'s existing character-load sequence, alongside `listChildrenOf` (WP02)
-- [ ] T008 `VitruveSheet.vue`: render `computeEffectiveMaxStat` output for max HP/Mana instead of the raw stored value; update the `+`/`-` disabled-state clamping to use the effective max (WP02)
-- [ ] T009 `ChildSheetTab.vue`: accept the child's own weapon/armor list as a new prop, render its own effective max, update its clamping the same way (WP02)
-- [ ] T010 `PlayerView.vue`: pass `childInventories.value[activeChild.id]`'s weapons+armor down to `ChildSheetTab.vue` as the new prop from T009 (WP02)
-- [ ] T011 Add an automated isolation regression test asserting `activeChildEquipment` reads only from `childInventories[child.id]`, never from `inventory` (closes analyze finding A3 — SC-004/NFR-002 previously had manual-only coverage) (WP02)
+- [x] T005 Add `childInventories = ref<Record<string, CharacterInventory>>({})` and `loadChildInventories(childIds, campaignId)` to `useInventoryStore.ts` (WP02)
+- [x] T006 Unit tests for `loadChildInventories` (no-db no-op, populates cache, multiple children, missing-inventory child) (WP02)
+- [x] T007 Call `loadChildInventories` from `PlayerView.vue`'s existing character-load sequence, alongside `listChildrenOf` (WP02)
+- [x] T008 `VitruveSheet.vue`: render `computeEffectiveMaxStat` output for max HP/Mana instead of the raw stored value; update the `+`/`-` disabled-state clamping to use the effective max (WP02)
+- [x] T009 `ChildSheetTab.vue`: accept the child's own weapon/armor list as a new prop, render its own effective max, update its clamping the same way (WP02)
+- [x] T010 `PlayerView.vue`: pass `childInventories.value[activeChild.id]`'s weapons+armor down to `ChildSheetTab.vue` as the new prop from T009 (WP02)
+- [x] T011 Add an automated isolation regression test asserting `activeChildEquipment` reads only from `childInventories[child.id]`, never from `inventory` (closes analyze finding A3 — SC-004/NFR-002 previously had manual-only coverage) (WP02)
 
 **Dependencies**: WP01 (needs the new fields and the aggregation function).
 
