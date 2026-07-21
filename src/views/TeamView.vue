@@ -193,25 +193,30 @@ async function loadPlayers() {
     const participantByUid = new Map(
       participants.map((participant) => [participant.uid, participant]),
     )
-    playerRows.value = characters.map((character) => {
-      // Prefer the explicit character link; keep uid fallback for legacy participant rows.
-      const participant =
-        participantByCharacterId.get(character.id) ?? participantByUid.get(character.ownerUid)
-      return {
-        uid: character.ownerUid,
-        characterId: character.id,
-        name: character.name,
-        raceId: character.raceId,
-        classId: character.classId,
-        level: character.level,
-        hp: participant?.session?.hp ?? 0,
-        maxHp: participant?.session?.maxHp ?? 0,
-        mana: participant?.session?.mana ?? 0,
-        maxMana: participant?.session?.maxMana ?? 0,
-        posture: participant?.session?.posture ?? '—',
-        secondary: character.attributes.secondary,
-      }
-    })
+    // Transformation children (e.g. Furmiaou) are shown nested under their
+    // parent's sheet via ChildSheetTab, not as their own roster row — same
+    // exclusion usePlayerStore().party already applies for PartyStatus.
+    playerRows.value = characters
+      .filter((character) => !character.parentCharacterId)
+      .map((character) => {
+        // Prefer the explicit character link; keep uid fallback for legacy participant rows.
+        const participant =
+          participantByCharacterId.get(character.id) ?? participantByUid.get(character.ownerUid)
+        return {
+          uid: character.ownerUid,
+          characterId: character.id,
+          name: character.name,
+          raceId: character.raceId,
+          classId: character.classId,
+          level: character.level,
+          hp: participant?.session?.hp ?? 0,
+          maxHp: participant?.session?.maxHp ?? 0,
+          mana: participant?.session?.mana ?? 0,
+          maxMana: participant?.session?.maxMana ?? 0,
+          posture: participant?.session?.posture ?? '—',
+          secondary: character.attributes.secondary,
+        }
+      })
   } catch (err) {
     errorState.value =
       err instanceof Error ? err.message : 'Erreur lors du chargement des participants.'

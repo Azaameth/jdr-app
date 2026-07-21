@@ -46,7 +46,12 @@ async function loadCharacters() {
   errorState.value = ''
 
   try {
-    allCharacters.value = await listCharactersByCampaign(campaignId.value)
+    // Transformation children (e.g. Furmiaou) are shown nested under their
+    // parent's sheet via ChildSheetTab, not as their own tab — same
+    // exclusion usePlayerStore().party already applies for PartyStatus.
+    allCharacters.value = (await listCharactersByCampaign(campaignId.value)).filter(
+      (character) => !character.parentCharacterId,
+    )
     syncActiveCharacter()
   } catch (err) {
     errorState.value =
