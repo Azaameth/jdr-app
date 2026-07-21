@@ -62,7 +62,7 @@ C-006 (spec.md) mandates a hard two-phase split: the schema + aggregation-logic 
 **Estimated size**: 1 subtask, ~60 lines.
 **Requirement refs**: FR-009 (added during remediation to make this task's coverage explicit and traceable — see spec.md FR-009's note).
 
-- [ ] T012 Update `MIGRATION_BACKLOG.md` item 4 to "done" (mirroring how Cluster 0's items were closed out) and add this mission's entry to `NEXTSTEPS.md`'s increment ledger (WP03)
+- [x] T012 Update `MIGRATION_BACKLOG.md` item 4 to "done" (mirroring how Cluster 0's items were closed out) and add this mission's entry to `NEXTSTEPS.md`'s increment ledger (WP03)
 
 **Dependencies**: WP02 (describes what actually shipped).
 
