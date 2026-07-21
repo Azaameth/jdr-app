@@ -1,4 +1,16 @@
 {
+  "acceptance_history": [
+    {
+      "acceptance_mode": "pr",
+      "accepted_at": "2026-07-21T16:38:27.361289+00:00",
+      "accepted_by": "monthie",
+      "accepted_from_commit": "ab8595c14df2fb7d2d582a29f37802ac092ddb96"
+    }
+  ],
+  "acceptance_mode": "pr",
+  "accepted_at": "2026-07-21T16:38:27.361289+00:00",
+  "accepted_by": "monthie",
+  "accepted_from_commit": "ab8595c14df2fb7d2d582a29f37802ac092ddb96",
   "coordination_branch": "kitty/mission-equipment-stat-effects-01KY2MYD",
   "created_at": "2026-07-21T15:33:08.270524+00:00",
   "flattened": false,
