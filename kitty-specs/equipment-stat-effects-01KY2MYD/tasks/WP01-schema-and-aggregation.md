@@ -18,8 +18,8 @@ subtasks:
 - T002
 - T003
 - T004
-agent: ""
-shell_pid: ""
+agent: "claude:sonnet:reviewer-renata:reviewer"
+shell_pid: "51069"
 history:
 - timestamp: "2026-07-21T15:55:00Z"
   agent: "system"
@@ -187,3 +187,7 @@ Match the file's existing JSON formatting exactly (indentation, key order conven
 ## Activity Log
 
 - 2026-07-21T15:55:00Z – system – Prompt generated via /spec-kitty.tasks
+- 2026-07-21T16:12:19Z – claude:sonnet:implementer-ivan:implementer – shell_pid=49130 – Assigned agent via action command
+- 2026-07-21T16:15:15Z – claude:sonnet:implementer-ivan:implementer – shell_pid=49130 – Ready for review
+- 2026-07-21T16:15:39Z – claude:sonnet:reviewer-renata:reviewer – shell_pid=51069 – Started review via action command
+- 2026-07-21T16:17:56Z – user – shell_pid=51069 – Review passed: WeaponArmorItem extension and computeEffectiveMaxStat match contracts/data-layer.md sections 1-2 exactly; all 7 T003 test cases present incl. summed-stacking assertion (26, and 27 in mixed case); zero damageBonus/armorRating/statNote reads in production logic (comment-only mentions); zero src/views|components|controllers changes; seed diff isolated to mwassa's inv-9-anneau-de-mana (+2 keys only); type-check/lint/full unit suite (389 tests) all green in worktree.

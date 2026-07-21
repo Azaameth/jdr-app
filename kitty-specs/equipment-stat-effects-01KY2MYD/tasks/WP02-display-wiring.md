@@ -18,8 +18,8 @@ subtasks:
 - T009
 - T010
 - T011
-agent: ""
-shell_pid: ""
+agent: "claude:sonnet:reviewer-renata:reviewer"
+shell_pid: "61899"
 history:
 - timestamp: "2026-07-21T15:55:00Z"
   agent: "system"
@@ -320,3 +320,7 @@ Add to the existing `describe('PlayerView — child character tabs & raw editor 
 ## Activity Log
 
 - 2026-07-21T15:55:00Z – system – Prompt generated via /spec-kitty.tasks
+- 2026-07-21T16:18:37Z – claude:sonnet:frontend-freddy:implementer – shell_pid=51981 – Assigned agent via action command
+- 2026-07-21T16:26:08Z – claude:sonnet:frontend-freddy:implementer – shell_pid=51981 – Ready for review
+- 2026-07-21T16:26:41Z – claude:sonnet:reviewer-renata:reviewer – shell_pid=61899 – Started review via action command
+- 2026-07-21T16:30:16Z – user – shell_pid=61899 – Review passed: isolation wiring verified (activeChildEquipment reads childInventories.value[child.id], never inventory.value), all clamping computeds + hasMana use effective max, T011 test uses strict non-membership assertions, makeInventoryStore back-compat preserved, WP02 commit touches only the 6 owned files, type-check/lint/unit (395/395) all green, e2e green on chromium+firefox headless (10/10) with webkit failing purely on missing OS shared libraries (unrelated to this WP).
