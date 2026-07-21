@@ -17,8 +17,12 @@
     "description": "Leur identité est inconnue du commun. Chacune règne sur un aspect fondamental du réel : magie, saisons, émotions, guerre, mémoire… Pleine conscience et volonté propre.",
     "ruleNote": "Seul moyen d'en devenir une : tuer et remplacer l'une des 12.",
     "examples": [
-      { "name": "Vythranax", "epithet": "Le Dragon Légendaire" },
-      { "name": "Vindrasil", "epithet": "Le Serpent des Profondeurs" }
+      { "name": "Vythranax", "epithet": "Le Dragon Légendaire", "img": "creatures/vythranax.jpg" },
+      {
+        "name": "Vindrasil",
+        "epithet": "Le Serpent des Profondeurs",
+        "img": "creatures/vindrasil.jpg"
+      }
     ]
   },
   {
@@ -31,8 +35,12 @@
     "ruleNote": "⬆ Une Bête Effroyable qui tue une Légendaire devient soudain intelligente et consciente.",
     "footnote": "→ Peut accéder au rang Légendaire",
     "examples": [
-      { "name": "Kraken", "epithet": "Terreur des profondeurs" },
-      { "name": "Dragon de l'Ombre", "epithet": "Ravageur" }
+      { "name": "Kraken", "epithet": "Terreur des profondeurs", "img": "creatures/kraken.jpg" },
+      {
+        "name": "Dragon de l'Ombre",
+        "epithet": "Ravageur",
+        "img": "creatures/dragon_de_l_ombre.jpg"
+      }
     ],
     "branch": "left"
   },
@@ -45,7 +53,13 @@
     "description": "Ont une conscience, contrairement aux Effroyables. Créatures puissantes, exotiques, souvent uniques ou très peu nombreuses.",
     "ruleNote": "⬇ Peuvent basculer en Bêtes Effroyables par une chute morale : massacres ou perte de conscience.",
     "footnote": "↑ Ascension depuis les Communes possible",
-    "examples": [{ "name": "Dragon de Brume", "epithet": "Spectre des cieux" }],
+    "examples": [
+      {
+        "name": "Dragon de Brume",
+        "epithet": "Spectre des cieux",
+        "img": "creatures/dragon_de_brume.jpg"
+      }
+    ],
     "branch": "middle"
   },
   {
@@ -58,10 +72,26 @@
     "ruleNote": "⬆ Certaines peuvent devenir des Bêtes Rares par ascension, mutation ou quête épique.",
     "footnote": "Base du cycle — la plus grande diversité",
     "examples": [
-      { "name": "Créature de la Terre", "epithet": "Peuples des royaumes" },
-      { "name": "Créature de la Mer", "epithet": "Vie des profondeurs" },
-      { "name": "Créature du Ciel", "epithet": "Volatiles des cieux" },
-      { "name": "Créature Magique", "epithet": "Petits esprits étranges" }
+      {
+        "name": "Créature de la Terre",
+        "epithet": "Peuples des royaumes",
+        "img": "creatures/creature_de_la_terre.jpg"
+      },
+      {
+        "name": "Créature de la Mer",
+        "epithet": "Vie des profondeurs",
+        "img": "creatures/creature_de_la_mer.jpg"
+      },
+      {
+        "name": "Créature du Ciel",
+        "epithet": "Volatiles des cieux",
+        "img": "creatures/creature_du_ciel.jpg"
+      },
+      {
+        "name": "Créature Magique",
+        "epithet": "Petits esprits étranges",
+        "img": "creatures/creature_magique.jpg"
+      }
     ],
     "branch": "right"
   }

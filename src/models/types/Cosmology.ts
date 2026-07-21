@@ -3,6 +3,7 @@ export type CosmologyBranch = 'left' | 'middle' | 'right'
 export interface CosmologyExample {
   name: string
   epithet: string
+  img?: string
 }
 
 export interface CosmologyTier {

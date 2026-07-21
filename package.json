@@ -9,6 +9,7 @@
     "preview": "vite preview",
     "data:characters": "node scripts/generateCharacterData.mjs",
     "seed:defaultchars:admin": "node scripts/uploadDefaultCharsAdmin.mjs",
+    "seed:static:admin": "node scripts/uploadStaticDataAdmin.mjs",
     "seed:backfill-participant-notes:admin": "node scripts/backfillParticipantNotesAdmin.mjs",
     "seed:all": "node scripts/seedAll.mjs",
     "migrate:inventories:admin": "node scripts/migrateLiveInventoriesAdmin.mjs",

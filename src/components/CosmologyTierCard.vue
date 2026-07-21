@@ -12,6 +12,14 @@ defineEmits<{
 }>()
 
 const bodyId = computed(() => `cosmology-body-${props.tier.id}`)
+
+function imageUrl(path: string) {
+  if (!path) return ''
+  if (/^https?:\/\//.test(path)) return path
+  const clean = path.replace(/^\//, '')
+  const withImages = clean.startsWith('images/') ? clean : `images/${clean}`
+  return `${import.meta.env.BASE_URL}${withImages}`
+}
 </script>
 
 <template>
@@ -36,6 +44,12 @@ const bodyId = computed(() => `cosmology-body-${props.tier.id}`)
       <p v-if="tier.ruleNote" class="tier-rule-note">{{ tier.ruleNote }}</p>
       <div v-if="tier.examples.length" class="tier-examples">
         <div v-for="example in tier.examples" :key="example.name" class="tier-example">
+          <img
+            v-if="example.img"
+            class="tier-example-img"
+            :src="imageUrl(example.img)"
+            :alt="example.name"
+          />
           <div class="tier-example-name">{{ example.name }}</div>
           <div class="tier-example-epithet">{{ example.epithet }}</div>
         </div>
@@ -131,6 +145,15 @@ const bodyId = computed(() => `cosmology-body-${props.tier.id}`)
   border: 1px solid rgba(100, 100, 100, 0.3);
   padding: 0.35rem 0.5rem;
   text-align: center;
+  overflow: hidden;
+}
+
+.tier-example-img {
+  width: calc(100% + 1rem);
+  margin: -0.35rem -0.5rem 0.35rem;
+  height: 80px;
+  object-fit: cover;
+  display: block;
 }
 
 .tier-example-name {

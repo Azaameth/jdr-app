@@ -77,4 +77,29 @@ describe('CosmologyTierCard', () => {
     expect(wrapper.find('.up-tick').exists()).toBe(false)
     expect(wrapper.find('.tier-footnote').exists()).toBe(false)
   })
+
+  it('renders an example image resolved through the base URL when img is set', () => {
+    const wrapper = mount(CosmologyTierCard, {
+      props: {
+        tier: {
+          ...branchedTier,
+          examples: [{ name: 'Kraken', epithet: 'Terreur des profondeurs', img: 'creatures/kraken.jpg' }],
+        },
+        open: true,
+      },
+    })
+
+    const img = wrapper.find('.tier-example-img')
+    expect(img.exists()).toBe(true)
+    expect(img.attributes('src')).toContain('images/creatures/kraken.jpg')
+    expect(img.attributes('alt')).toBe('Kraken')
+  })
+
+  it('omits the example image when img is not set', () => {
+    const wrapper = mount(CosmologyTierCard, {
+      props: { tier: branchedTier, open: true },
+    })
+
+    expect(wrapper.find('.tier-example-img').exists()).toBe(false)
+  })
 })
