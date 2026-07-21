@@ -56,6 +56,7 @@ Discovery was a short, targeted interview (2026-07-21) grounded in code research
 | FR-006 | Unequipping an item (or an item with no bonus) removes/excludes its contribution from the effective max the next time it's computed — this is a pure derived computation, not a value that needs separate persistence or migration. | Confirmed |
 | FR-007 | `statNote` is never read by the bonus-aggregation logic; it continues to render as free text exactly as today. | Confirmed |
 | FR-008 | Existing seed/fixture weapon/armor data (`scripts/data/inventories.json`) is updated so at least one real example (the +4 Mana Ring backlog example) exercises the new fields end-to-end. | Confirmed |
+| FR-009 | Once this mission ships, `MIGRATION_BACKLOG.md` item 4 and `NEXTSTEPS.md` reflect it, per charter Directive 2 (docs stay synchronized with behavior changes) and CLAUDE.md's high-complexity-spec increment-ledger policy. Added during plan-phase remediation (`/spec-kitty.analyze` finding A2) — plan.md's Charter Check already implied this; this makes it an explicit, tracked requirement. | Confirmed |
 
 ### Non-Functional Requirements
 

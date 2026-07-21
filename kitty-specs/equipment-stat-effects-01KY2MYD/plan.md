@@ -12,7 +12,7 @@ Add a structured `statBonus?: { stat: 'maxHp' | 'maxMana'; amount: number }` fie
 **Language/Version**: TypeScript ~5.9 (via Vue's bundled toolchain) with Vue 3.5 SFCs (`<script setup lang="ts">`), Node 22.23.1 (pinned via `.node-version`)
 **Primary Dependencies**: vue ^3.5.38, vue-router ^5.1, firebase ^12.16 (Auth + Firestore client SDK); vite ^8.0.16; vue-tsc ^3.3.5; vitest ^4.1.9
 **Storage**: Firestore — existing `inventories` collection, one doc per character per campaign (`CharacterInventory`, flat top-level, per the locked per-campaign scoping convention in `NEXTSTEPS.md`). `statBonus`/`equipped` are new fields nested inside `weapons[]`/`armor[]` on that same doc — no new collection, no `firestore.rules` change (existing `inventories` rule at `firestore.rules:143-149` already covers the whole doc).
-**Testing**: Vitest unit tests co-located in `__tests__/` dirs, same layout as `src/components/vitruve/__tests__/jetFormula.spec.ts` (pure-function tests, zero Vue mounting) and `src/controllers/__tests__/` (store tests with mocked repository). CI runs type-check → lint → unit → e2e; e2e is not required to grow for this mission (no new route, no new interactive flow — display-only change to existing sheets).
+**Testing**: Vitest unit tests co-located in `__tests__/` dirs, same layout as `src/components/vitruve/__tests__/jetFormula.spec.ts` (pure-function tests, zero Vue mounting) and `src/controllers/__tests__/` (store tests with mocked repository). CI runs type-check → lint → unit → e2e. Per the charter's Quality Gates ("`npm run test:e2e` is required for changes touching routing, auth, or a full view"), the existing `e2e/vitruve.spec.ts` suite must be run and stay green as part of WP02's gate sweep, since WP02 modifies `PlayerView.vue` (a full view) — that suite is currently smoke-level only (unauthenticated-redirect checks), so this is a regression check, not a request for new authenticated-flow e2e coverage.
 **Target Platform**: Static SPA on GitHub Pages; must degrade to read-only no-op when Firebase env secrets are absent (`if (!db)` guard convention) — the aggregation function itself never touches Firestore, so this mainly constrains the store extension.
 **Project Type**: Single web SPA (`src/` with models/controllers/repositories/views/components layers).
 **Performance Goals**: Hobby-table scale — instant render for ~5 characters, ≤2 children each, ≤3-6 weapon/armor slots each; no special targets beyond keeping CI gates green.
@@ -27,7 +27,7 @@ Add a structured `statBonus?: { stat: 'maxHp' | 'maxMana'; amount: number }` fie
 - **Legacy-as-spec (DIR-004)**: N/A — this feature has no legacy monolith precedent (legacy never modeled equipment bonuses mechanically); grounded entirely in current-code research instead.
 - **French strings (DIR-005)**: PASS — no new user-facing copy is required by the FRs; if a "bonus included" affordance is added it will be French (NFR-004).
 - **Risk boundaries (DIR-001)**: PASS — permission model unchanged (existing `inventories` rule already covers the new nested fields); no relaxation of any check.
-- **Docs sync (DIR-002)**: `MIGRATION_BACKLOG.md` item 4 and `NEXTSTEPS.md` gain an increment-ledger entry at mission completion.
+- **Docs sync (DIR-002)**: `MIGRATION_BACKLOG.md` item 4 and `NEXTSTEPS.md` gain an increment-ledger entry at mission completion — tracked as its own work package (IC-08/WP03) so it isn't silently dropped (flagged by `/spec-kitty.analyze` finding A2).
 
 No violations → Complexity Tracking not needed.
 
@@ -118,8 +118,24 @@ scripts/
 
 ### IC-06 — Seed fixture update
 
-- **Purpose**: Give one real character (the backlog's own example, Mwasa's Mana Ring) a `statBonus: { stat: 'maxMana', amount: 4 }, equipped: true` entry in `scripts/data/inventories.json`, exercising the full path end-to-end after a reseed.
+- **Purpose**: Populate the existing (already-present, currently mechanic-less) `Anneau de Mana` item on `mwassa`'s armor list (`scripts/data/inventories.json`, `itemId: "inv-9-anneau-de-mana"` — the backlog's "Mwasa" is a spelling variant of "Mwassa Mekhsitt") with `statBonus: { stat: 'maxMana', amount: 4 }, equipped: true`, exercising the full path end-to-end after a reseed.
 - **Relevant requirements**: FR-008.
 - **Affected surfaces**: `scripts/data/inventories.json`.
 - **Sequencing/depends-on**: IC-01.
 - **Risks**: none — additive fixture data only.
+
+### IC-07 — Child-isolation regression test
+
+- **Purpose**: Close a coverage gap flagged by `/spec-kitty.analyze` (finding A3): the pure aggregation function and the store-cache tests (IC-02, IC-03) both stop short of testing the actual line most likely to break SC-004 — `PlayerView.vue`'s `activeChildEquipment` computed, which must read `childInventories[child.id]` and never the parent's `inventory` ref. Add a targeted test at that layer.
+- **Relevant requirements**: FR-005; NFR-002 (the "child-vs-parent isolation" combination).
+- **Affected surfaces**: `src/views/PlayerView.vue` (test only — no new production code beyond IC-05's existing wiring).
+- **Sequencing/depends-on**: IC-03, IC-05.
+- **Risks**: `PlayerView.vue` has no existing component-test file — this may be the first one, so keep the test narrowly scoped to the one computed rather than a full component mount if that's simpler to set up.
+
+### IC-08 — Documentation sync
+
+- **Purpose**: Close a coverage gap flagged by `/spec-kitty.analyze` (finding A2): charter DIR-002 and CLAUDE.md's high-complexity-spec increment-ledger policy both require `MIGRATION_BACKLOG.md`/`NEXTSTEPS.md` to reflect this mission once it lands — plan.md promised this but no task previously implemented it.
+- **Relevant requirements**: none (governance/docs, not a spec FR).
+- **Affected surfaces**: `MIGRATION_BACKLOG.md`, `NEXTSTEPS.md`.
+- **Sequencing/depends-on**: IC-04, IC-05, IC-06 (describes what actually shipped, so it must go last).
+- **Risks**: none — pure documentation, no code surface.

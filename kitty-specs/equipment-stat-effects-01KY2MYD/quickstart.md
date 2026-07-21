@@ -25,7 +25,7 @@ npm run dev    # SSH box: forward the port (VSCode PORTS tab or ssh -L)
 # - displayed max HP/Mana includes the bonus (SC-001)
 # - unequip via RawCharacterEditor.vue -> displayed max drops back (SC-002)
 # - a child/transformation tab shows its own effective max, independent of the parent's (SC-004)
-npm run test:e2e   # only if an existing e2e spec already covers this sheet's rendering; no new e2e spec is required by this mission's FRs
+npm run test:e2e   # REQUIRED (charter Quality Gates: WP02 touches PlayerView.vue, a full view) — existing e2e/vitruve.spec.ts is smoke-level only, must still pass green; no new e2e spec is required by this mission's FRs
 ```
 
 ## No-backend degradation check (NFR-001)
