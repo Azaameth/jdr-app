@@ -31,10 +31,10 @@ C-006 (spec.md) mandates a hard two-phase split: the schema + aggregation-logic 
 **Estimated size**: 4 subtasks, ~280 lines.
 **Requirement refs**: FR-001, FR-002, FR-003, FR-006, FR-007, FR-008.
 
-- [ ] T001 Add `equipped: boolean` and `statBonus?: { stat: 'maxHp' | 'maxMana'; amount: number }` to `WeaponArmorItem` (WP01)
-- [ ] T002 Implement `computeEffectiveMaxStat(baseValue, items, stat)` in `src/utils/effectiveStats.ts` (WP01)
-- [ ] T003 Unit tests in `src/utils/__tests__/effectiveStats.spec.ts` covering every NFR-002 combination (WP01)
-- [ ] T004 Add `statBonus`/`equipped` to the existing `mwassa` / `inv-9-anneau-de-mana` (`Anneau de Mana`) entry in `scripts/data/inventories.json` (WP01)
+- [x] T001 Add `equipped: boolean` and `statBonus?: { stat: 'maxHp' | 'maxMana'; amount: number }` to `WeaponArmorItem` (WP01)
+- [x] T002 Implement `computeEffectiveMaxStat(baseValue, items, stat)` in `src/utils/effectiveStats.ts` (WP01)
+- [x] T003 Unit tests in `src/utils/__tests__/effectiveStats.spec.ts` covering every NFR-002 combination (WP01)
+- [x] T004 Add `statBonus`/`equipped` to the existing `mwassa` / `inv-9-anneau-de-mana` (`Anneau de Mana`) entry in `scripts/data/inventories.json` (WP01)
 
 **Dependencies**: none — this is the foundation.
 

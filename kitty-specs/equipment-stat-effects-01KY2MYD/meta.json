@@ -12,5 +12,7 @@
   "purpose_tldr": "Equipped weapons/armor items automatically raise or lower a character's computed stats (starting with max HP/Mana), instead of being flavor-only numbers no code reads.",
   "slug": "equipment-stat-effects-01KY2MYD",
   "target_branch": "feat/equipment-stat-effects",
-  "topology": "coord"
+  "topology": "coord",
+  "vcs": "git",
+  "vcs_locked_at": "2026-07-21T16:12:18.164604+00:00"
 }
