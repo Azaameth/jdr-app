@@ -1,0 +1,76 @@
+{
+  "version": 1,
+  "mission_slug": "equipment-stat-effects-01KY2MYD",
+  "mission_id": "01KY2MYD1E6RR7PW4T7A9VZ3GV",
+  "mission_branch": "kitty/mission-equipment-stat-effects-01KY2MYD",
+  "target_branch": "feat/equipment-stat-effects",
+  "lanes": [
+    {
+      "lane_id": "lane-a",
+      "wp_ids": [
+        "WP01"
+      ],
+      "write_scope": [
+        "scripts/data/inventories.json",
+        "src/models/types/Inventory.ts",
+        "src/utils/__tests__/effectiveStats.spec.ts",
+        "src/utils/effectiveStats.ts"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "artifact-rendering",
+        "tests",
+        "tracker-integration",
+        "workspace"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    },
+    {
+      "lane_id": "lane-b",
+      "wp_ids": [
+        "WP02"
+      ],
+      "write_scope": [
+        "src/components/vitruve/ChildSheetTab.vue",
+        "src/components/vitruve/VitruveSheet.vue",
+        "src/controllers/__tests__/useInventoryStore.spec.ts",
+        "src/controllers/useInventoryStore.ts",
+        "src/views/PlayerView.vue"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "artifact-rendering",
+        "legacy-cleanup",
+        "tracker-integration",
+        "workspace"
+      ],
+      "depends_on_lanes": [
+        "lane-a"
+      ],
+      "parallel_group": 1
+    },
+    {
+      "lane_id": "lane-planning",
+      "wp_ids": [
+        "WP03"
+      ],
+      "write_scope": [
+        "MIGRATION_BACKLOG.md",
+        "NEXTSTEPS.md"
+      ],
+      "predicted_surfaces": [
+        "planning"
+      ],
+      "depends_on_lanes": [
+        "lane-b"
+      ],
+      "parallel_group": 2
+    }
+  ],
+  "computed_at": "2026-07-21T16:09:48.094738+00:00",
+  "computed_from": "dependency_graph+ownership",
+  "planning_artifact_wps": [
+    "WP03"
+  ]
+}
