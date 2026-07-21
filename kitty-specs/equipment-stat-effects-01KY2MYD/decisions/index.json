@@ -1,0 +1,101 @@
+{
+  "entries": [
+    {
+      "created_at": "2026-07-21T15:33:34.808416Z",
+      "decision_id": "01KY2MZ6YRVNMYY2M12EZVC3NK",
+      "final_answer": "Only max HP/Mana for this mission",
+      "input_key": "affected_stats",
+      "mission_id": "01KY2MYD1E6RR7PW4T7A9VZ3GV",
+      "mission_slug": "equipment-stat-effects-01KY2MYD",
+      "opened_by": "cli",
+      "options": [
+        "Only max HP/Mana for this mission",
+        "Max HP/Mana and roll totals",
+        "Other"
+      ],
+      "origin_flow": "specify",
+      "other_answer": false,
+      "question": "Which computed values should equipment bonuses affect: only max HP/Mana (the concrete Mana Ring example), or also roll totals (jetTotal / attribute checks)?",
+      "rationale": null,
+      "resolved_at": "2026-07-21T15:36:11.667419Z",
+      "resolved_by": null,
+      "slot_key": "specify.scope.affected_stats",
+      "status": "resolved",
+      "step_id": null,
+      "summary_json": null
+    },
+    {
+      "created_at": "2026-07-21T15:33:35.578357Z",
+      "decision_id": "01KY2MZ7PT9YPJKK73JZBNTNX5",
+      "final_answer": "Only WeaponArmorItem (weapons/armor)",
+      "input_key": "bonus_item_types",
+      "mission_id": "01KY2MYD1E6RR7PW4T7A9VZ3GV",
+      "mission_slug": "equipment-stat-effects-01KY2MYD",
+      "opened_by": "cli",
+      "options": [
+        "Only WeaponArmorItem (weapons/armor)",
+        "Both WeaponArmorItem and backpack InventoryItem",
+        "Other"
+      ],
+      "origin_flow": "specify",
+      "other_answer": false,
+      "question": "Which items can carry a stat bonus: only WeaponArmorItem entries (weapons/armor), or also backpack InventoryItem entries (rings, amulets, etc. stored as regular inventory)?",
+      "rationale": null,
+      "resolved_at": "2026-07-21T15:36:12.496017Z",
+      "resolved_by": null,
+      "slot_key": "specify.scope.item_types",
+      "status": "resolved",
+      "step_id": null,
+      "summary_json": null
+    },
+    {
+      "created_at": "2026-07-21T15:33:36.386318Z",
+      "decision_id": "01KY2MZ8G23DN6QX4C1R3HA1F1",
+      "final_answer": "Yes: equipped-only, bonuses sum",
+      "input_key": "equip_and_stacking",
+      "mission_id": "01KY2MYD1E6RR7PW4T7A9VZ3GV",
+      "mission_slug": "equipment-stat-effects-01KY2MYD",
+      "opened_by": "cli",
+      "options": [
+        "Yes: equipped-only, bonuses sum",
+        "Other"
+      ],
+      "origin_flow": "specify",
+      "other_answer": false,
+      "question": "WeaponArmorItem has no 'equipped' flag today (unlike InventoryItem). Should only equipped items contribute bonuses, and when several equipped items bonus the same stat, do they simply sum?",
+      "rationale": null,
+      "resolved_at": "2026-07-21T15:36:13.302837Z",
+      "resolved_by": null,
+      "slot_key": "specify.rules.equip_and_stacking",
+      "status": "resolved",
+      "step_id": null,
+      "summary_json": null
+    },
+    {
+      "created_at": "2026-07-21T15:33:37.199021Z",
+      "decision_id": "01KY2MZ99FK1CEK1SHDGXA8N6C",
+      "final_answer": "Schema + compute/display only, authoring via raw-JSON/seed for now",
+      "input_key": "authoring_ui",
+      "mission_id": "01KY2MYD1E6RR7PW4T7A9VZ3GV",
+      "mission_slug": "equipment-stat-effects-01KY2MYD",
+      "opened_by": "cli",
+      "options": [
+        "Schema + compute/display only, authoring via raw-JSON/seed for now",
+        "Include a guided bonus-editing UI in this mission",
+        "Other"
+      ],
+      "origin_flow": "specify",
+      "other_answer": false,
+      "question": "Does this mission need a guided UI for the MJ to set an item's bonus (target stat + amount), or is authoring via seed data / the existing RawCharacterEditor raw-JSON editor sufficient for now, with this mission focused on the schema + compute/display layer?",
+      "rationale": null,
+      "resolved_at": "2026-07-21T15:36:14.111431Z",
+      "resolved_by": null,
+      "slot_key": "specify.scope.authoring_ui",
+      "status": "resolved",
+      "step_id": null,
+      "summary_json": null
+    }
+  ],
+  "mission_id": "01KY2MYD1E6RR7PW4T7A9VZ3GV",
+  "version": 1
+}
