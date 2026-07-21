@@ -83,6 +83,16 @@
       "verified_by": null,
       "verified_at": null,
       "notes": "TODO: replace with a real acceptance criterion"
+    },
+    {
+      "criterion_id": "FR-009",
+      "description": "Verify FR-009 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": null,
+      "pass_fail": "pending",
+      "verified_by": null,
+      "verified_at": null,
+      "notes": "TODO: replace with a real acceptance criterion"
     }
   ],
   "negative_invariants": []
