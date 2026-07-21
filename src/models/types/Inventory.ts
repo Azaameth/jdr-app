@@ -38,6 +38,8 @@ export interface WeaponArmorItem {
   damageBonus?: number
   armorRating?: number
   statNote?: string
+  equipped?: boolean
+  statBonus?: { stat: 'maxHp' | 'maxMana'; amount: number }
 }
 
 export interface CharacterInventory {
