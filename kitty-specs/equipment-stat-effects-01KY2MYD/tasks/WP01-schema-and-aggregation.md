@@ -18,8 +18,8 @@ subtasks:
 - T002
 - T003
 - T004
-agent: "claude:sonnet:implementer-ivan:implementer"
-shell_pid: "49130"
+agent: "claude:sonnet:reviewer-renata:reviewer"
+shell_pid: "51069"
 history:
 - timestamp: "2026-07-21T15:55:00Z"
   agent: "system"
@@ -188,3 +188,5 @@ Match the file's existing JSON formatting exactly (indentation, key order conven
 
 - 2026-07-21T15:55:00Z – system – Prompt generated via /spec-kitty.tasks
 - 2026-07-21T16:12:19Z – claude:sonnet:implementer-ivan:implementer – shell_pid=49130 – Assigned agent via action command
+- 2026-07-21T16:15:15Z – claude:sonnet:implementer-ivan:implementer – shell_pid=49130 – Ready for review
+- 2026-07-21T16:15:39Z – claude:sonnet:reviewer-renata:reviewer – shell_pid=51069 – Started review via action command
