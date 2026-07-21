@@ -10,12 +10,14 @@ const mocks = vi.hoisted(() => ({
     vi.fn<
       (inventoryId: string, kind: 'weapons' | 'armor', list: WeaponArmorItem[]) => Promise<boolean>
     >(),
+  updateInventoryGold: vi.fn<(inventoryId: string, gold: number) => Promise<boolean>>(),
 }))
 
 vi.mock('../../models/repositories/InventoryRepository', () => ({
   getInventoryByCharacterId: mocks.getInventoryByCharacterId,
   updateInventoryItems: mocks.updateInventoryItems,
   updateInventoryEquipment: mocks.updateInventoryEquipment,
+  updateInventoryGold: mocks.updateInventoryGold,
 }))
 
 function makeInventory(overrides: Partial<CharacterInventory> = {}): CharacterInventory {
@@ -27,6 +29,7 @@ function makeInventory(overrides: Partial<CharacterInventory> = {}): CharacterIn
     items: [],
     weapons: [],
     armor: [],
+    gold: 0,
     ...overrides,
   }
 }
@@ -271,6 +274,44 @@ describe('useInventoryStore', () => {
       expect(result).toBe(true)
       expect(mocks.updateInventoryEquipment).toHaveBeenCalledWith('inv-1', 'weapons', [])
       expect(store.inventory.value?.weapons).toEqual([])
+    })
+  })
+
+  describe('setGold', () => {
+    it('persists the new gold amount and updates local state', async () => {
+      mocks.getInventoryByCharacterId.mockResolvedValue(makeInventory({ gold: 10 }))
+      mocks.updateInventoryGold.mockResolvedValue(true)
+      const store = useInventoryStore()
+      await store.loadInventory('char-1', 'camp-1')
+
+      const result = await store.setGold(50)
+
+      expect(result).toBe(true)
+      expect(mocks.updateInventoryGold).toHaveBeenCalledWith('inv-1', 50)
+      expect(store.inventory.value?.gold).toBe(50)
+    })
+
+    it('sets a French error and returns false when no inventory is loaded', async () => {
+      const store = useInventoryStore()
+
+      const result = await store.setGold(50)
+
+      expect(result).toBe(false)
+      expect(store.error.value).toBeTruthy()
+      expect(mocks.updateInventoryGold).not.toHaveBeenCalled()
+    })
+
+    it('sets a French error and leaves state unchanged when the repository returns false', async () => {
+      mocks.getInventoryByCharacterId.mockResolvedValue(makeInventory({ gold: 10 }))
+      mocks.updateInventoryGold.mockResolvedValue(false)
+      const store = useInventoryStore()
+      await store.loadInventory('char-1', 'camp-1')
+
+      const result = await store.setGold(50)
+
+      expect(result).toBe(false)
+      expect(store.error.value).toBeTruthy()
+      expect(store.inventory.value?.gold).toBe(10)
     })
   })
 

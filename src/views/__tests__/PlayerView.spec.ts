@@ -118,6 +118,7 @@ function makeInventoryStore(
     removeBackpackItem: vi.fn<() => Promise<boolean>>(async () => true),
     saveEquipmentItem: vi.fn<() => Promise<boolean>>(async () => true),
     removeEquipmentItem: vi.fn<() => Promise<boolean>>(async () => true),
+    setGold: vi.fn<() => Promise<boolean>>(async () => true),
     freeSlots: vi.fn<() => number>(() => 0),
     loadChildInventories: vi.fn<() => Promise<void>>(async () => {}),
     setError: (message: string | null) => {
@@ -162,6 +163,7 @@ function makeInventory(overrides: Partial<CharacterInventory> = {}): CharacterIn
     items: [],
     weapons: [],
     armor: [],
+    gold: 0,
     ...overrides,
   }
 }
@@ -363,6 +365,23 @@ describe('PlayerView — inventory slot save/delete store integration (T016, rev
     })
     // Success → modal closes (both `open` and `context` reset in PlayerView).
     expect(wrapper.find('.inventory-slot-form').exists()).toBe(false)
+  })
+
+  it('commits a gold input edit by calling inventoryStore.setGold with the parsed value', async () => {
+    mountAsOwner()
+    const store = makeInventoryStore(makeInventory({ uid: 'owner-uid', gold: 10 }))
+    mockInventoryState.mockReturnValue(store)
+
+    const wrapper = mount(PlayerView, { props: { campaignId: 'campaign-1', characterId: 'char-1' } })
+    await flushPromises()
+    await selectTab(wrapper, 'Inventaire')
+
+    const goldInput = wrapper.find('.gold-input')
+    await goldInput.setValue('75')
+    await goldInput.trigger('blur')
+    await flushPromises()
+
+    expect(store.setGold).toHaveBeenCalledWith(75)
   })
 
   it('opens the modal for an equipment slot, calls saveEquipmentItem with the parsed payload, and closes on success', async () => {

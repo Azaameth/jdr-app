@@ -49,6 +49,7 @@ export interface CharacterInventory {
   items: InventoryItem[]
   weapons: WeaponArmorItem[]
   armor: WeaponArmorItem[]
+  gold: number
   createdAt?: string
   updatedAt?: string
 }

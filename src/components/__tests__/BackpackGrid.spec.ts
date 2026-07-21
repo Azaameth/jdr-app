@@ -112,4 +112,51 @@ describe('BackpackGrid', () => {
 
     expect(wrapper.text()).not.toContain('équipé')
   })
+
+  it('renders a Gold cell on the same row as Rations/Munitions, showing the gold prop', () => {
+    const wrapper = mount(BackpackGrid, { props: { items: [], gold: 42 } })
+
+    const goldHeader = wrapper.findAll('.category-header').find((h) => h.text() === 'Or')
+    expect(goldHeader).toBeTruthy()
+
+    const goldSection = goldHeader?.element.closest('.category')
+    expect(goldSection).toBeTruthy()
+
+    const nourritureHeader = wrapper
+      .findAll('.category-header')
+      .find((h) => h.text().startsWith('Nourriture'))
+    const row = goldSection?.closest('.backpack-row')
+    expect(row?.contains(nourritureHeader?.element ?? null)).toBe(true)
+
+    const input = wrapper.find('.gold-input')
+    expect((input.element as HTMLInputElement).value).toBe('42')
+  })
+
+  it('emits update-gold with the parsed value when the gold input is committed', async () => {
+    const wrapper = mount(BackpackGrid, { props: { items: [], gold: 10 } })
+
+    const input = wrapper.find('.gold-input')
+    await input.setValue('25')
+    await input.trigger('blur')
+
+    expect(wrapper.emitted('update-gold')).toHaveLength(1)
+    expect(wrapper.emitted('update-gold')?.[0]).toEqual([25])
+  })
+
+  it('does not emit update-gold when the committed value is unchanged', async () => {
+    const wrapper = mount(BackpackGrid, { props: { items: [], gold: 10 } })
+
+    const input = wrapper.find('.gold-input')
+    await input.setValue('10')
+    await input.trigger('blur')
+
+    expect(wrapper.emitted('update-gold')).toBeUndefined()
+  })
+
+  it('disables the gold input when not editable', () => {
+    const wrapper = mount(BackpackGrid, { props: { items: [], gold: 5, editable: false } })
+
+    const input = wrapper.find('.gold-input')
+    expect((input.element as HTMLInputElement).disabled).toBe(true)
+  })
 })

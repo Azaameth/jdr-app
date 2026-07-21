@@ -29,6 +29,7 @@ describe('InventoryRepository', () => {
       expect(await repo.listInventoriesByCampaign('camp-1')).toEqual([])
       expect(await repo.updateInventoryItems('inv-1', [])).toBe(false)
       expect(await repo.updateInventoryEquipment('inv-1', 'armor', [])).toBe(false)
+      expect(await repo.updateInventoryGold('inv-1', 10)).toBe(false)
 
       expect(firestoreMocks.getDocs).not.toHaveBeenCalled()
       expect(firestoreMocks.updateDoc).not.toHaveBeenCalled()
@@ -40,7 +41,7 @@ describe('InventoryRepository', () => {
       vi.doMock('../../../firebase/config', () => ({ db: {} }))
     })
 
-    it('defaults missing weapons/armor to [] when mapping a pre-migration doc', async () => {
+    it('defaults missing weapons/armor/gold to []/0 when mapping a pre-migration doc', async () => {
       firestoreMocks.getDocs.mockResolvedValue({
         docs: [
           {
@@ -66,9 +67,32 @@ describe('InventoryRepository', () => {
         items: [{ itemId: 'item-1', name: 'Rations', quantity: 1, category: 'nourriture' }],
         weapons: [],
         armor: [],
+        gold: 0,
         createdAt: undefined,
         updatedAt: undefined,
       })
+    })
+
+    it('maps an existing numeric gold field through without defaulting', async () => {
+      firestoreMocks.getDocs.mockResolvedValue({
+        docs: [
+          {
+            id: 'inv-1',
+            data: () => ({
+              uid: 'uid-1',
+              campaignId: 'camp-1',
+              characterId: 'char-1',
+              items: [],
+              gold: 250,
+            }),
+          },
+        ],
+      })
+
+      const repo = await import('../InventoryRepository')
+      const result = await repo.getInventoryByCharacterId('char-1', 'camp-1')
+
+      expect(result?.gold).toBe(250)
     })
 
     it('maps existing weapons/armor arrays through without defaulting', async () => {
@@ -192,6 +216,20 @@ describe('InventoryRepository', () => {
       expect(firestoreMocks.updateDoc).toHaveBeenCalledWith(
         'doc-ref',
         expect.objectContaining({ weapons: list, updatedAt: expect.any(String) }),
+      )
+    })
+
+    it('updateInventoryGold writes the gold field and a refreshed updatedAt', async () => {
+      firestoreMocks.updateDoc.mockResolvedValue(undefined)
+
+      const repo = await import('../InventoryRepository')
+      const result = await repo.updateInventoryGold('inv-1', 150)
+
+      expect(result).toBe(true)
+      expect(firestoreMocks.doc).toHaveBeenCalledWith({}, 'inventories', 'inv-1')
+      expect(firestoreMocks.updateDoc).toHaveBeenCalledWith(
+        'doc-ref',
+        expect.objectContaining({ gold: 150, updatedAt: expect.any(String) }),
       )
     })
   })

@@ -277,6 +277,10 @@ async function handleSlotSave(payload: InventorySlotSavePayload) {
   }
 }
 
+async function handleUpdateGold(value: number) {
+  await inventoryStore.setGold(value)
+}
+
 async function handleSlotDelete(payload: InventorySlotDeletePayload) {
   const success =
     payload.kind === 'backpack'
@@ -844,8 +848,10 @@ onBeforeUnmount(() => {
             <h2>Sac à dos</h2>
             <BackpackGrid
               :items="backpackItems"
+              :gold="inventory?.gold ?? 0"
               :editable="canEditInventory"
               @slot-click="openBackpackSlot"
+              @update-gold="handleUpdateGold"
             />
           </section>
 

@@ -86,6 +86,7 @@ function makeInventory(
     items: [],
     weapons,
     armor,
+    gold: 0,
   }
 }
 

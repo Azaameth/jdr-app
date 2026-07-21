@@ -2,6 +2,7 @@ import { computed, ref } from 'vue'
 import {
   getInventoryByCharacterId,
   updateInventoryEquipment,
+  updateInventoryGold,
   updateInventoryItems,
 } from '../models/repositories/InventoryRepository'
 import {
@@ -172,6 +173,30 @@ export function useInventoryStore() {
     }
   }
 
+  async function setGold(gold: number): Promise<boolean> {
+    error.value = null
+
+    if (!inventory.value) {
+      error.value = NO_INVENTORY_ERROR
+      return false
+    }
+
+    const current = inventory.value
+
+    try {
+      const success = await updateInventoryGold(current.id, gold)
+      if (!success) {
+        error.value = "Erreur lors de l'enregistrement de l'or."
+        return false
+      }
+      inventory.value = { ...current, gold }
+      return true
+    } catch (err) {
+      error.value = err instanceof Error ? err.message : "Erreur lors de l'enregistrement de l'or."
+      return false
+    }
+  }
+
   function freeSlots(category: InventoryCategory): number {
     const filledCount = inventory.value?.items.filter((i) => i.category === category).length ?? 0
     return Math.max(0, BACKPACK_MAX_SLOTS[category] - filledCount)
@@ -199,6 +224,7 @@ export function useInventoryStore() {
     removeBackpackItem,
     saveEquipmentItem,
     removeEquipmentItem,
+    setGold,
     freeSlots,
     loadChildInventories,
   }

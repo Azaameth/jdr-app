@@ -14,6 +14,7 @@ function mapInventory(id: string, raw: Record<string, unknown>): CharacterInvent
     items: Array.isArray(raw.items) ? (raw.items as InventoryItem[]) : [],
     weapons: Array.isArray(raw.weapons) ? (raw.weapons as WeaponArmorItem[]) : [],
     armor: Array.isArray(raw.armor) ? (raw.armor as WeaponArmorItem[]) : [],
+    gold: typeof raw.gold === 'number' ? raw.gold : 0,
     createdAt: raw.createdAt ? String(raw.createdAt) : undefined,
     updatedAt: raw.updatedAt ? String(raw.updatedAt) : undefined,
   }
@@ -61,5 +62,13 @@ export async function updateInventoryEquipment(
   if (!db) return false
   const inventoryRef = doc(db, INVENTORIES_COLLECTION, inventoryId)
   await updateDoc(inventoryRef, { [kind]: list, updatedAt: new Date().toISOString() })
+  return true
+}
+
+/** Update the character's gold amount. */
+export async function updateInventoryGold(inventoryId: string, gold: number): Promise<boolean> {
+  if (!db) return false
+  const inventoryRef = doc(db, INVENTORIES_COLLECTION, inventoryId)
+  await updateDoc(inventoryRef, { gold, updatedAt: new Date().toISOString() })
   return true
 }

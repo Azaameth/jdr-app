@@ -1,19 +1,22 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { BACKPACK_MAX_SLOTS, type InventoryCategory, type InventoryItem } from '../models/types/Inventory'
 
 const props = withDefaults(
   defineProps<{
     items: InventoryItem[]
+    gold?: number
     editable?: boolean
   }>(),
   {
+    gold: 0,
     editable: true,
   },
 )
 
 const emit = defineEmits<{
   'slot-click': [payload: { category: InventoryCategory; item?: InventoryItem }]
+  'update-gold': [value: number]
 }>()
 
 const CATEGORY_LABELS: Record<InventoryCategory, string> = {
@@ -44,8 +47,8 @@ const CATEGORY_COLS: Record<InventoryCategory, number> = {
 }
 
 /** Row groupings and column-split, in legacy display order. */
-const LAYOUT_ROWS: Array<{ cols?: string; categories: InventoryCategory[] }> = [
-  { cols: '2fr 1fr', categories: ['nourriture', 'munitions'] },
+const LAYOUT_ROWS: Array<{ cols?: string; includeGold?: boolean; categories: InventoryCategory[] }> = [
+  { cols: '1fr 2fr 1fr', includeGold: true, categories: ['nourriture', 'munitions'] },
   { categories: ['bivouac'] },
   { categories: ['soins'] },
   { categories: ['potions'] },
@@ -83,6 +86,28 @@ function handleSlotClick(category: InventoryCategory, item?: InventoryItem) {
   if (!props.editable) return
   emit('slot-click', { category, item })
 }
+
+const goldText = ref(String(props.gold))
+
+watch(
+  () => props.gold,
+  (value) => {
+    goldText.value = String(value)
+  },
+)
+
+function commitGold() {
+  // `<input type="number">` can hand back a numeric value in some environments
+  // (e.g. jsdom via @vue/test-utils' setValue) rather than the string v-model
+  // normally binds; coerce defensively either way.
+  const trimmed = String(goldText.value).trim()
+  const parsed = Number.parseInt(trimmed, 10)
+  const nextValue = Number.isFinite(parsed) && parsed >= 0 ? parsed : props.gold
+  goldText.value = String(nextValue)
+  if (nextValue !== props.gold) {
+    emit('update-gold', nextValue)
+  }
+}
 </script>
 
 <template>
@@ -94,6 +119,19 @@ function handleSlotClick(category: InventoryCategory, item?: InventoryItem) {
       :class="{ 'backpack-row-split': row.categories.length > 1 }"
       :style="row.cols ? { gridTemplateColumns: row.cols } : undefined"
     >
+      <section v-if="row.includeGold" class="category">
+        <h3 class="category-header">Or</h3>
+        <input
+          type="number"
+          min="0"
+          class="gold-input"
+          :disabled="!editable"
+          v-model="goldText"
+          aria-label="Or"
+          @blur="commitGold"
+          @keydown.enter="commitGold"
+        />
+      </section>
       <section v-for="category in row.categories" :key="category" class="category">
         <h3 class="category-header">{{ headerText(category) }}</h3>
         <div
@@ -173,6 +211,26 @@ function handleSlotClick(category: InventoryCategory, item?: InventoryItem) {
 }
 .slot-dash {
   color: #806840;
+}
+.gold-input {
+  background: rgba(40, 28, 10, 0.6);
+  border: 1px solid #5c4a2a;
+  border-radius: 6px;
+  min-height: 46px;
+  padding: 0.3rem 0.35rem;
+  color: #f2e6cc;
+  font-size: 0.85rem;
+  text-align: center;
+  width: 100%;
+  box-sizing: border-box;
+}
+.gold-input:focus {
+  outline: none;
+  border-color: #f0c96a;
+}
+.gold-input:disabled {
+  opacity: 0.7;
+  cursor: default;
 }
 @media (max-width: 640px) {
   .backpack-row-split {
