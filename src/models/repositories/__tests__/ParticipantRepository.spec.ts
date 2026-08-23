@@ -68,7 +68,7 @@ describe('ParticipantRepository', () => {
       vi.doMock('../../../firebase/config', () => ({ db: {} }))
     })
 
-    it('maps a well-formed participant doc as-is', async () => {
+    it('reads participants only from the nested campaign Players collection', async () => {
       firestoreMocks.getDocs.mockResolvedValue({
         docs: [
           {
@@ -96,6 +96,7 @@ describe('ParticipantRepository', () => {
       const repo = await import('../ParticipantRepository')
       const result = await repo.listParticipantsByCampaign('camp-1')
 
+      expect(firestoreMocks.collection).toHaveBeenCalledWith({}, 'Campaigns', 'camp-1', 'Players')
       expect(result).toEqual([
         {
           id: 'participant-1',

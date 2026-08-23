@@ -204,9 +204,8 @@ async function loadPlayers() {
     const inventoryByCharacterId = new Map(
       inventories.map((inventory) => [inventory.characterId, inventory]),
     )
-    // Transformation children (e.g. Furmiaou) are shown nested under their
-    // parent's sheet via ChildSheetTab, not as their own roster row — same
-    // exclusion usePlayerStore().party already applies for PartyStatus.
+    // Transformations stay nested under their parent sheet and are excluded from
+    // the team roster rows.
     playerRows.value = characters
       .filter((character) => !character.parentCharacterId)
       .map((character) => {
@@ -263,8 +262,11 @@ async function restTeam() {
 <template>
   <CampaignShell :campaign-id="campaignId">
     <main>
-      <div class="title-row">
-        <h1>Équipe — {{ campaign?.title ?? 'Campagne' }}</h1>
+      <div class="title-row panel-surface title-panel">
+        <div class="title-copy">
+          <span class="eyebrow">Campagne</span>
+          <h1>Équipe — {{ campaign?.title ?? 'Campagne' }}</h1>
+        </div>
         <button
           v-if="canRestTeam"
           class="rest-btn"
@@ -441,16 +443,31 @@ main {
   color: #f2e6cc;
 }
 
-.title-row {
+.title-panel {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  margin-bottom: 0.8rem;
+  margin-bottom: 0.9rem;
+  padding: 0.95rem 1rem;
+}
+
+.title-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.eyebrow {
+  font-size: 0.68rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #d9b067;
 }
 
 .title-row h1 {
   margin: 0;
+  font-size: clamp(1.35rem, 2vw, 2rem);
 }
 
 .rest-btn {

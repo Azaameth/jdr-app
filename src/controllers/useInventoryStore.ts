@@ -1,4 +1,5 @@
 import { computed, ref } from 'vue'
+import { useCampaignRulesStore } from './useCampaignRulesStore'
 import {
   getInventoryByCharacterId,
   updateInventoryEquipment,
@@ -20,6 +21,37 @@ const error = ref<string | null>(null)
 
 const NO_INVENTORY_ERROR = "Aucun inventaire chargé pour ce personnage."
 const CATEGORY_FULL_ERROR = 'Catégorie pleine : aucun emplacement libre.'
+
+function getInventoryLimits() {
+  const rulesStore = useCampaignRulesStore()
+  return rulesStore.inventory.value
+}
+
+const OTHER_SLOT_LABELS: Record<InventoryCategory, string> = {
+  nourriture: 'Nourriture',
+  munitions: 'Munitions',
+  bivouac: 'Matériel de camp',
+  soins: 'Matériel de soin',
+  potions: 'Potions',
+  quete: 'Quête',
+  speciaux: 'Spéciaux',
+  docs: 'Documents',
+  gemmes: 'Gemmes',
+  butin: 'Butin',
+}
+
+function getOtherSlotLimit(category: InventoryCategory): number | null {
+  const limits = getInventoryLimits()
+  if (!limits || !limits.Other?.length) return null
+
+  const label = OTHER_SLOT_LABELS[category]
+  const match = limits.Other.find((group) => group.name === label)
+  return match ? match.slots : null
+}
+
+function getOtherSlotLabel(category: InventoryCategory): string {
+  return OTHER_SLOT_LABELS[category] ?? category
+}
 
 export function useInventoryStore() {
   async function loadInventory(
@@ -56,8 +88,17 @@ export function useInventoryStore() {
 
     if (isNew) {
       const filledCount = current.items.filter((i) => i.category === item.category).length
-      if (filledCount >= BACKPACK_MAX_SLOTS[item.category]) {
-        error.value = CATEGORY_FULL_ERROR
+      const otherSlotLimit = getOtherSlotLimit(item.category)
+      const maxSlots = otherSlotLimit ?? BACKPACK_MAX_SLOTS[item.category]
+
+      if (filledCount >= maxSlots) {
+        if (otherSlotLimit === null) {
+          error.value = CATEGORY_FULL_ERROR
+          return false
+        }
+
+        const displayName = getOtherSlotLabel(item.category)
+        error.value = `Capacité de ${displayName} atteinte : ${filledCount}/${maxSlots}.`
         return false
       }
     }
@@ -72,7 +113,7 @@ export function useInventoryStore() {
       : current.items.map((i) => (i.itemId === finalItem.itemId ? finalItem : i))
 
     try {
-      const success = await updateInventoryItems(current.id, nextItems)
+      const success = await updateInventoryItems(current.campaignId, current.characterId, nextItems)
       if (!success) {
         error.value = "Erreur lors de l'enregistrement de l'objet."
         return false
@@ -97,7 +138,7 @@ export function useInventoryStore() {
     const nextItems = current.items.filter((i) => i.itemId !== itemId)
 
     try {
-      const success = await updateInventoryItems(current.id, nextItems)
+      const success = await updateInventoryItems(current.campaignId, current.characterId, nextItems)
       if (!success) {
         error.value = "Erreur lors de la suppression de l'objet."
         return false
@@ -129,12 +170,24 @@ export function useInventoryStore() {
 
     const existingList = current[kind]
     const isNew = !existingList.some((i) => i.itemId === finalItem.itemId)
+    const limits = getInventoryLimits()
+
+    if (isNew && kind === 'weapons' && limits && existingList.length >= limits.nbSlotWeapon) {
+      error.value = `Capacité d'armes atteinte : ${existingList.length}/${limits.nbSlotWeapon}.`
+      return false
+    }
+
+    if (isNew && kind === 'armor' && limits && existingList.length >= limits.nbSlotArmor) {
+      error.value = `Capacité d'armures atteinte : ${existingList.length}/${limits.nbSlotArmor}.`
+      return false
+    }
+
     const nextList = isNew
       ? [...existingList, finalItem]
       : existingList.map((i) => (i.itemId === finalItem.itemId ? finalItem : i))
 
     try {
-      const success = await updateInventoryEquipment(current.id, kind, nextList)
+      const success = await updateInventoryEquipment(current.campaignId, current.characterId, kind, nextList)
       if (!success) {
         error.value = "Erreur lors de l'enregistrement de l'équipement."
         return false
@@ -160,7 +213,7 @@ export function useInventoryStore() {
     const nextList = current[kind].filter((i) => i.itemId !== itemId)
 
     try {
-      const success = await updateInventoryEquipment(current.id, kind, nextList)
+      const success = await updateInventoryEquipment(current.campaignId, current.characterId, kind, nextList)
       if (!success) {
         error.value = "Erreur lors de la suppression de l'équipement."
         return false
@@ -184,7 +237,7 @@ export function useInventoryStore() {
     const current = inventory.value
 
     try {
-      const success = await updateInventoryGold(current.id, gold)
+      const success = await updateInventoryGold(current.campaignId, current.characterId, gold)
       if (!success) {
         error.value = "Erreur lors de l'enregistrement de l'or."
         return false

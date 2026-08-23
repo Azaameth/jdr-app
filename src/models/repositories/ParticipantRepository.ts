@@ -7,6 +7,8 @@ import {
   updateDoc,
   where,
   writeBatch,
+  type DocumentData,
+  type QueryDocumentSnapshot,
   type Unsubscribe,
 } from 'firebase/firestore'
 
@@ -18,7 +20,12 @@ import type {
   Posture,
 } from '../types/Participant'
 
-const PARTICIPANTS_COLLECTION = 'participants'
+function getCampaignPlayersCollection(campaignId: string) {
+  if (!db) {
+    return null
+  }
+  return collection(db, 'Campaigns', campaignId, 'Players')
+}
 
 function mapSessionState(raw: Record<string, unknown>): CharacterSessionState {
   return {
@@ -61,9 +68,12 @@ function mapParticipant(id: string, raw: Record<string, unknown>): Participant {
 
 export async function listParticipantsByCampaign(campaignId: string): Promise<Participant[]> {
   if (!db) return []
-  const q = query(collection(db, PARTICIPANTS_COLLECTION), where('campaignId', '==', campaignId))
-  const snapshot = await getDocs(q)
-  return snapshot.docs.map((docSnap) => mapParticipant(docSnap.id, docSnap.data()))
+
+  const nestedRef = getCampaignPlayersCollection(campaignId)
+  if (!nestedRef) return []
+
+  const nestedSnapshot = await getDocs(nestedRef)
+  return nestedSnapshot.docs.map((docSnap) => mapParticipant(docSnap.id, docSnap.data()))
 }
 
 export function subscribeParticipantsByCampaign(
@@ -71,21 +81,24 @@ export function subscribeParticipantsByCampaign(
   onChange: (participants: Participant[]) => void,
 ): Unsubscribe {
   if (!db) return () => {}
-  const q = query(collection(db, PARTICIPANTS_COLLECTION), where('campaignId', '==', campaignId))
-  return onSnapshot(q, (snapshot) => {
+
+  const nestedRef = getCampaignPlayersCollection(campaignId)
+  if (!nestedRef) return () => {}
+
+  return onSnapshot(nestedRef, (snapshot) => {
     onChange(snapshot.docs.map((docSnap) => mapParticipant(docSnap.id, docSnap.data())))
   })
 }
 
 export async function getParticipant(uid: string, campaignId: string): Promise<Participant | null> {
   if (!db) return null
-  const q = query(
-    collection(db, PARTICIPANTS_COLLECTION),
-    where('uid', '==', uid),
-    where('campaignId', '==', campaignId),
-  )
-  const snapshot = await getDocs(q)
-  const first = snapshot.docs[0]
+
+  const nestedRef = getCampaignPlayersCollection(campaignId)
+  if (!nestedRef) return null
+
+  const q = query(nestedRef, where('uid', '==', uid))
+  const nestedSnapshot = await getDocs(q)
+  const first = nestedSnapshot.docs[0]
   return first ? mapParticipant(first.id, first.data()) : null
 }
 
@@ -94,13 +107,13 @@ export async function getParticipantByCharacterId(
   campaignId: string,
 ): Promise<Participant | null> {
   if (!db) return null
-  const q = query(
-    collection(db, PARTICIPANTS_COLLECTION),
-    where('characterId', '==', characterId),
-    where('campaignId', '==', campaignId),
-  )
-  const snapshot = await getDocs(q)
-  const first = snapshot.docs[0]
+
+  const nestedRef = getCampaignPlayersCollection(campaignId)
+  if (!nestedRef) return null
+
+  const q = query(nestedRef, where('characterId', '==', characterId))
+  const nestedSnapshot = await getDocs(q)
+  const first = nestedSnapshot.docs[0]
   return first ? mapParticipant(first.id, first.data()) : null
 }
 
@@ -111,13 +124,13 @@ export async function setParticipantSessionByCharacterId(
 ): Promise<Participant | null> {
   if (!db) return null
 
-  const q = query(
-    collection(db, PARTICIPANTS_COLLECTION),
-    where('characterId', '==', characterId),
-    where('campaignId', '==', campaignId),
-  )
+  const nestedRef = getCampaignPlayersCollection(campaignId)
+  if (!nestedRef) return null
+
+  const q = query(nestedRef, where('characterId', '==', characterId))
   const snapshot = await getDocs(q)
-  const first = snapshot.docs[0]
+  const first = snapshot.docs[0] ?? null
+
   if (!first) return null
 
   const now = new Date().toISOString()
@@ -162,8 +175,10 @@ export async function setParticipantSessionByCharacterId(
 export async function resetTeamSessionToMax(campaignId: string): Promise<number> {
   if (!db) return 0
 
-  const q = query(collection(db, PARTICIPANTS_COLLECTION), where('campaignId', '==', campaignId))
-  const snapshot = await getDocs(q)
+  const nestedRef = getCampaignPlayersCollection(campaignId)
+  if (!nestedRef) return 0
+
+  const snapshot = await getDocs(nestedRef)
   if (snapshot.empty) return 0
 
   const now = new Date().toISOString()
@@ -220,7 +235,7 @@ export async function updateSessionFields(
     updates['session.disadvantage'] = fields.disadvantage
   }
 
-  const ref = doc(db, PARTICIPANTS_COLLECTION, participantId)
+  const ref = doc(db, 'Participants', participantId)
   await updateDoc(ref, updates)
 }
 
@@ -263,6 +278,6 @@ export async function updateChildSession(
     updates[`${prefix}.disadvantage`] = fields.disadvantage
   }
 
-  const ref = doc(db, PARTICIPANTS_COLLECTION, participantId)
+  const ref = doc(db, 'Participants', participantId)
   await updateDoc(ref, updates)
 }

@@ -132,9 +132,8 @@ const caracError = ref('')
 const advDisError = ref('')
 const childError = ref('')
 
-// Child characters (transformations, e.g. Furmiaou — FR-011/FR-015) of the
-// currently displayed character, fetched alongside it in loadCharacter().
-// Excluded from every roster surface (I-C2) but shown here as extra tabs.
+// Child characters (transformations) are shown in dedicated tabs but stay out
+// of the roster surfaces.
 const children = ref<CharacterProfile[]>([])
 
 type VitruveTabKey = 'fiche' | 'carac' | 'dons' | 'inv' | string
@@ -150,20 +149,15 @@ const vitruveTabs = computed<Array<{ key: VitruveTabKey; label: string }>>(() =>
   ...children.value.map((child) => ({ key: child.id, label: child.name })),
 ])
 
-// The child (if any) whose tab is currently active — null for the four base
-// tabs. Drives both the ChildSheetTab render and the calculator context
-// below; a single source of truth so the two can't drift into a "half
-// switched" state (child attributes + parent injuries, the FR-016 bug the
-// WP06 reviewer guidance calls out explicitly).
+// Keep the active child and the active tab in a single source of truth so the
+// calculator and the child sheet always stay in sync.
 const activeChild = computed<CharacterProfile | null>(() => {
   if (BASE_TAB_KEYS.includes(activeTab.value)) return null
   return children.value.find((child) => child.id === activeTab.value) ?? null
 })
 
-// The active child's OWN weapons+armor (FR-005/SC-004): sourced from the
-// keyed `childInventories` cache — NEVER from `inventoryStore.inventory`,
-// which is the parent's singleton ref. Mixing the two would silently break
-// child/parent equipment isolation (research.md D3).
+// Child equipment is read from the child-specific inventory cache, never from
+// the parent's singleton inventory.
 const activeChildEquipment = computed<WeaponArmorItem[]>(() => {
   const child = activeChild.value
   if (!child) return []
@@ -184,12 +178,8 @@ const EMPTY_ATTRIBUTES: CharacterAttributes = {
   secondary: { puissance: 0, finesse: 0, aura: 0, relation: 0, instinct: 0, savoir: 0 },
 }
 
-// Active-context for the jet calculator (FR-016): parent's attributes +
-// injuries when a base tab is active, the active child's when a child tab is
-// active — attributes AND injuries always switch together. `contextKey`
-// changes whenever this switches (character OR tab), which JetCalculator
-// uses to reset its local manual-mod/category state, and which the watcher
-// below uses to reset the ticked-compétences sum.
+// The calculator context follows the active tab. Parent and child contexts are
+// kept together so attributes and injuries always switch in sync.
 const activeContext = computed(() => {
   const child = activeChild.value
   if (child) {

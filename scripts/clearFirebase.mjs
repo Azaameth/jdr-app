@@ -1,5 +1,5 @@
 /**
- * Clears all documents in campaigns, characters, participants, inventories, races, classes collections.
+ * Recursively clears the canonical nested Firestore tree used by the RPG model.
  * Usage: node scripts/clearFirebase.mjs [serviceAccountPath]
  */
 
@@ -18,18 +18,28 @@ function loadServiceAccount() {
   return JSON.parse(fs.readFileSync(p, 'utf8'))
 }
 
-const COLLECTIONS = ['campaigns', 'characters', 'participants', 'inventories', 'races', 'classes']
+async function deleteCollectionRecursively(collectionRef) {
+  const snapshot = await collectionRef.get()
+  if (snapshot.empty) return
 
-async function clearCollection(db, name) {
-  const snapshot = await db.collection(name).get()
-  if (snapshot.empty) {
-    console.log(`  ${name}: already empty`)
-    return
+  const batch = collectionRef.firestore.batch()
+  for (const doc of snapshot.docs) {
+    batch.delete(doc.ref)
   }
-  const batch = db.batch()
-  snapshot.docs.forEach((doc) => batch.delete(doc.ref))
   await batch.commit()
-  console.log(`  ${name}: deleted ${snapshot.size} docs`)
+
+  for (const doc of snapshot.docs) {
+    const subcollections = await doc.ref.listCollections()
+    for (const sub of subcollections) {
+      await deleteCollectionRecursively(sub)
+    }
+  }
+}
+
+async function clearTopLevelCollection(db, name) {
+  const ref = db.collection(name)
+  await deleteCollectionRecursively(ref)
+  console.log(`  ${name}: deleted recursively`)
 }
 
 async function main() {
@@ -37,9 +47,11 @@ async function main() {
   initializeApp({ credential: cert(sa) })
   const db = getFirestore()
 
+  const collectionsToClear = ['Campaigns', 'Users', 'characters', 'participants', 'inventories', 'campaigns']
+
   console.log(`Clearing project: ${sa.project_id}`)
-  for (const col of COLLECTIONS) {
-    await clearCollection(db, col)
+  for (const name of collectionsToClear) {
+    await clearTopLevelCollection(db, name)
   }
   console.log('Done.')
   process.exit(0)

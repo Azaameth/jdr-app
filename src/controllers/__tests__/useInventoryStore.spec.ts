@@ -11,6 +11,7 @@ const mocks = vi.hoisted(() => ({
       (inventoryId: string, kind: 'weapons' | 'armor', list: WeaponArmorItem[]) => Promise<boolean>
     >(),
   updateInventoryGold: vi.fn<(inventoryId: string, gold: number) => Promise<boolean>>(),
+  campaignRulesInventory: vi.fn(),
 }))
 
 vi.mock('../../models/repositories/InventoryRepository', () => ({
@@ -18,6 +19,12 @@ vi.mock('../../models/repositories/InventoryRepository', () => ({
   updateInventoryItems: mocks.updateInventoryItems,
   updateInventoryEquipment: mocks.updateInventoryEquipment,
   updateInventoryGold: mocks.updateInventoryGold,
+}))
+
+vi.mock('../../controllers/useCampaignRulesStore', () => ({
+  useCampaignRulesStore: () => ({
+    inventory: { value: mocks.campaignRulesInventory() },
+  }),
 }))
 
 function makeInventory(overrides: Partial<CharacterInventory> = {}): CharacterInventory {
@@ -40,6 +47,7 @@ describe('useInventoryStore', () => {
   beforeEach(async () => {
     vi.resetModules()
     vi.clearAllMocks()
+    mocks.campaignRulesInventory.mockReturnValue(null)
     ;({ useInventoryStore } = await import('../useInventoryStore'))
   })
 
@@ -86,6 +94,31 @@ describe('useInventoryStore', () => {
       expect(store.error.value).toBe('Catégorie pleine : aucun emplacement libre.')
       expect(mocks.updateInventoryItems).not.toHaveBeenCalled()
       expect(store.inventory.value?.items).toEqual(items)
+    })
+
+    it('uses a campaign Other slot group to enforce the backpack capacity', async () => {
+      mocks.campaignRulesInventory.mockReturnValue({
+        nbSlotWeapon: 3,
+        nbSlotArmor: 3,
+        nbSlotOther: 2,
+        currencyName: "Pièce d'or",
+        Other: [{ id: 1, name: 'Matériel de soin', slots: 1 }],
+      })
+      mocks.getInventoryByCharacterId.mockResolvedValue(makeInventory({
+        items: [{ itemId: 'i-1', name: 'Bandage', quantity: 1, category: 'soins' }],
+      }))
+      const store = useInventoryStore()
+      await store.loadInventory('char-1', 'camp-1')
+
+      const result = await store.saveBackpackItem({
+        name: 'Potion',
+        quantity: 1,
+        category: 'soins',
+      })
+
+      expect(result).toBe(false)
+      expect(store.error.value).toBe('Capacité de Matériel de soin atteinte : 1/1.')
+      expect(mocks.updateInventoryItems).not.toHaveBeenCalled()
     })
 
     it('generates an itemId for a new item and persists it', async () => {
@@ -210,6 +243,44 @@ describe('useInventoryStore', () => {
         ]),
       )
       expect(store.inventory.value?.weapons).toHaveLength(1)
+    })
+
+    it('rejects a new weapon when the campaign rule limit is reached', async () => {
+      mocks.campaignRulesInventory.mockReturnValue({
+        nbSlotWeapon: 1,
+        nbSlotArmor: 3,
+        nbSlotOther: 0,
+        currencyName: "Pièce d'or",
+        Other: [],
+      })
+      mocks.getInventoryByCharacterId.mockResolvedValue(makeInventory({ weapons: [{ itemId: 'w-1', name: 'Épée' }] }))
+      const store = useInventoryStore()
+      await store.loadInventory('char-1', 'camp-1')
+
+      const result = await store.saveEquipmentItem('weapons', { name: 'Nouvelle arme' })
+
+      expect(result).toBe(false)
+      expect(store.error.value).toBe('Capacité d\'armes atteinte : 1/1.')
+      expect(mocks.updateInventoryEquipment).not.toHaveBeenCalled()
+    })
+
+    it('rejects a new armor when the campaign rule limit is reached', async () => {
+      mocks.campaignRulesInventory.mockReturnValue({
+        nbSlotWeapon: 3,
+        nbSlotArmor: 1,
+        nbSlotOther: 0,
+        currencyName: "Pièce d'or",
+        Other: [],
+      })
+      mocks.getInventoryByCharacterId.mockResolvedValue(makeInventory({ armor: [{ itemId: 'a-1', name: 'Armure légère' }] }))
+      const store = useInventoryStore()
+      await store.loadInventory('char-1', 'camp-1')
+
+      const result = await store.saveEquipmentItem('armor', { name: 'Nouvelle armure' })
+
+      expect(result).toBe(false)
+      expect(store.error.value).toBe('Capacité d\'armures atteinte : 1/1.')
+      expect(mocks.updateInventoryEquipment).not.toHaveBeenCalled()
     })
 
     it('replaces an existing armor item in place', async () => {

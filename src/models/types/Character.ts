@@ -63,6 +63,12 @@ export interface CharacterProfile {
   createdAt?: string
   updatedAt?: string
   /**
+   * Canonical Firestore pointer for the active alternate form / active child.
+   * Kept in the normalized app object so the UI can resolve the currently
+   * active transformation without depending on the legacy camelCase field set.
+   */
+  activeFormId?: string
+  /**
    * Present iff this character is a child (transformation, e.g. Furmiaou).
    * Children are full profiles in the same `characters` collection;
    * depth is 1 (children have no children of their own — enforced by

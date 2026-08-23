@@ -1,15 +1,17 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import CampaignShell from '../components/layout/CampaignShell.vue'
 import { useAuthStore } from '../controllers/useAuthStore'
 import { useCampaignStore } from '../controllers/useCampaignStore'
+import { useCampaignRulesStore } from '../controllers/useCampaignRulesStore'
 import { CAMPAIGN_STATUS_LABELS, type CampaignStatus } from '../models/types/Campaign'
 
 const route = useRoute()
 const router = useRouter()
 const campaignStore = useCampaignStore()
 const authStore = useAuthStore()
+const rulesStore = useCampaignRulesStore()
 
 const campaignId = computed(() => route.params.id as string)
 const canEdit = computed(() => authStore.isMj.value || authStore.isAdmin.value)
@@ -17,10 +19,28 @@ const canEdit = computed(() => authStore.isMj.value || authStore.isAdmin.value)
 const campaign = computed(() =>
   campaignStore.campaigns.value.find((item) => item.id === campaignId.value),
 )
+const campaignRules = computed(() => rulesStore.rules.value)
+const primaryStats = computed(() => campaignRules.value?.Statistics.Primary ?? [])
+
+async function loadCampaignData() {
+  await campaignStore.fetchCampaigns()
+
+  if (campaignId.value) {
+    await rulesStore.fetchCampaignRules(campaignId.value)
+  }
+}
 
 onMounted(async () => {
-  await campaignStore.fetchCampaigns()
+  await loadCampaignData()
 })
+
+watch(
+  () => campaignId.value,
+  async (nextId) => {
+    if (!nextId) return
+    await rulesStore.fetchCampaignRules(nextId)
+  },
+)
 
 // --- Edit mode ---
 const editing = ref(false)
@@ -92,6 +112,22 @@ async function confirmDelete() {
         <section class="card" v-if="campaign.globalNote">
           <h2>Note globale</h2>
           <p class="body-text">{{ campaign.globalNote }}</p>
+        </section>
+
+        <section class="card rules-card" v-if="campaignRules">
+          <h2>Règles de campagne</h2>
+          <div class="rules-grid">
+            <div><b>Dé :</b> {{ campaignRules.Dice.DiceNotation }}</div>
+            <div><b>Devise :</b> {{ campaignRules.CurrencyName }}</div>
+            <div><b>Stats :</b> {{ primaryStats.length }}</div>
+            <div><b>Bonus :</b> {{ campaignRules.AdvantageDiceCount }}</div>
+            <div v-if="campaignRules.Inventory">
+              <b>Inventaire :</b> {{ campaignRules.Inventory.nbSlotWeapon }} armes / {{ campaignRules.Inventory.nbSlotArmor }} armures / {{ campaignRules.Inventory.currencyName }}
+            </div>
+          </div>
+          <ul v-if="primaryStats.length" class="stats-list">
+            <li v-for="stat in primaryStats" :key="stat.Key">{{ stat.Label }}</li>
+          </ul>
         </section>
 
         <section class="card meta">
@@ -201,6 +237,26 @@ h2 {
   gap: 2rem;
   font-size: 0.9rem;
   color: #b8a07a;
+}
+.rules-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+.rules-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 0.75rem;
+  font-size: 0.9rem;
+  color: #d4c49a;
+}
+.stats-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0;
+  padding-left: 1rem;
+  color: #f0c96a;
 }
 .form {
   display: flex;

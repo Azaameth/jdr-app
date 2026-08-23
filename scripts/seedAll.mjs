@@ -193,9 +193,30 @@ function toCharacterImagePath(characterId) {
   return `/images/portraits/${characterId}.jpg`
 }
 
-function resolveOwnerUid(raw, fallbackCharacterId) {
-  const candidate = String(raw?.ownerUid ?? raw?.uid ?? raw?.userId ?? '').trim()
-  return candidate || fallbackCharacterId
+export function resolveOwnerUid(raw, fallbackCharacterId) {
+  const emailCandidates = [
+    raw?.email,
+    raw?.userEmail,
+    raw?.user?.email,
+    raw?.ownerEmail,
+    raw?.playerEmail,
+  ]
+
+  const email = emailCandidates
+    .map((value) => String(value ?? '').trim())
+    .find((value) => value.length > 0)
+
+  if (email) return email
+
+  const legacyCandidate = String(
+    raw?.ownerUid ?? raw?.uid ?? raw?.userId ?? raw?.playerId ?? '',
+  ).trim()
+
+  if (legacyCandidate && legacyCandidate !== fallbackCharacterId) {
+    return legacyCandidate
+  }
+
+  return 'unknown-user'
 }
 
 function cleanUndefined(value) {
@@ -300,6 +321,60 @@ function toImagePath(img) {
 // Main
 // ---------------------------------------------------------------------------
 
+function buildCampaignRules() {
+  return {
+    Statistics: {
+      Primary: [
+        { Key: 'Strength', Label: 'Force', Min: 0, Max: 20 },
+        { Key: 'Agility', Label: 'Agilité', Min: 0, Max: 20 },
+        { Key: 'Intellect', Label: 'Intellect', Min: 0, Max: 20 },
+        { Key: 'Spirit', Label: 'Esprit', Min: 0, Max: 20 },
+      ],
+      Secondary: [
+        { Key: 'Power', Label: 'Puissance', LinkedPrimary: 'Strength', Formula: 'Strength * 0.5' },
+        { Key: 'Focus', Label: 'Concentration', LinkedPrimary: 'Intellect', Formula: 'Intellect * 0.5' },
+      ],
+    },
+    Dice: {
+      DiceNotation: 'd20',
+      RoundingMode: 'RoundNearest',
+      SuccessDirection: 'AboveOrEqual',
+      CriticalThreshold: 1,
+    },
+    CharacterCreation: {
+      HealthMaxFormula: '20 + Strength * 2 + Class.Bonuses.Health',
+      ManaMaxFormula: '10 + Spirit * 3 + Class.Bonuses.Mana',
+      PointBuyBudget: 20,
+      FormulaRounding: 'RoundDown',
+    },
+    CurrencyName: 'Pièces',
+    AdvantageDiceCount: 1,
+    DisadvantageDiceCount: 0,
+    MaxItems: 30,
+    MaxArmorSlots: 4,
+    MaxWeaponSlots: 2,
+  }
+}
+
+function buildRosterEntry(characterId, displayName, ownerUid, state) {
+  return {
+    DisplayName: displayName,
+    PlayerId: ownerUid,
+    Health: Number(state?.Health ?? 0),
+    HealthCurrent: Number(state?.HealthCurrent ?? state?.Health ?? 0),
+    Mana: Number(state?.Mana ?? 0),
+    ManaCurrent: Number(state?.ManaCurrent ?? state?.Mana ?? 0),
+    PhysicalArmorCurrent: Number(state?.PhysicalArmorCurrent ?? state?.PhysicalArmor ?? 0),
+    MagicalArmorCurrent: Number(state?.MagicalArmorCurrent ?? state?.MagicalArmor ?? 0),
+    ActiveFormId: null,
+    Status: 'Alive',
+  }
+}
+
+async function writeDocIfNeeded(db, pathValue, payload) {
+  await db.doc(pathValue).set(payload, { merge: true })
+}
+
 async function main() {
   const sa = loadServiceAccount()
   initializeApp({ credential: cert(sa) })
@@ -316,105 +391,193 @@ async function main() {
 
   for (const campaignConfig of campaignsConfig) {
     const { slug, title, summary, lore, globalNote, status } = campaignConfig
+    const campaignId = slugify(slug)
 
-    // ------------------------------------------------------------------
-    // Step 1 — Campaign: find by slug or create
-    // ------------------------------------------------------------------
-    console.log(`\n[1/5] Campaign "${slug}"...`)
-    let campaignId
-
-    const existing = await db.collection('campaigns').where('slug', '==', slug).limit(1).get()
-    if (!existing.empty) {
-      campaignId = existing.docs[0].id
-      console.log(`  found  -> ${campaignId}`)
-      if (!dryRun) {
-        await db
-          .collection('campaigns')
-          .doc(campaignId)
-          .update({ title, summary, lore, globalNote, status })
-      }
-    } else {
-      if (!dryRun) {
-        const ref = db.collection('campaigns').doc()
-        campaignId = ref.id
-        await ref.set({
-          slug,
-          title,
-          summary: summary ?? '',
-          lore: lore ?? '',
-          globalNote: globalNote ?? '',
-          gmId: '',
-          status: status ?? 'recrutement',
-          createdAt: new Date(),
-        })
-      } else {
-        campaignId = `dry-run-${slug}`
-      }
-      console.log(`  created -> ${campaignId}`)
+    console.log(`\n[1/7] Campaign "${slug}" -> ${campaignId}`)
+    const campaignPayload = {
+      DisplayName: title ?? slug,
+      Description: summary ?? '',
+      Status: status ?? 'Recruiting',
+      GmId: '',
+      CreatedAt: new Date().toISOString(),
+      UpdatedAt: new Date().toISOString(),
     }
+    if (!dryRun) await writeDocIfNeeded(db, `Campaigns/${campaignId}`, campaignPayload)
 
-    // ------------------------------------------------------------------
-    // Step 2 — Races
-    // ------------------------------------------------------------------
-    console.log(`[2/5] Races (${racesData.length})...`)
-    for (const r of racesData) {
-      const id = toDocId(r.n)
+    const rulesPayload = buildCampaignRules()
+    if (!dryRun) await writeDocIfNeeded(db, `Campaigns/${campaignId}/CampaignRules/Main`, rulesPayload)
+
+    console.log(`[2/7] Races (${racesData.length})...`)
+    for (const race of racesData) {
+      const raceId = slugify(race.n)
       const payload = {
-        ...r,
-        img: toImagePath(r.img),
-        campaignTags: FieldValue.arrayUnion(campaignId, slug),
+        DisplayName: race.n ?? raceId,
+        Description: race.sub ?? '',
+        Bonuses: {},
+        Traits: {},
+        StatConstraints: {},
+        CreatedAt: new Date().toISOString(),
+        UpdatedAt: new Date().toISOString(),
       }
-      if (!dryRun) await db.collection('races').doc(id).set(payload, { merge: true })
-      console.log(`  race -> ${id}`)
+      if (!dryRun) await writeDocIfNeeded(db, `Campaigns/${campaignId}/Races/${raceId}`, payload)
+      console.log(`  race -> ${raceId}`)
     }
 
-    // ------------------------------------------------------------------
-    // Step 3 — Classes
-    // ------------------------------------------------------------------
-    console.log(`[3/5] Classes (${classesData.length})...`)
-    for (const c of classesData) {
-      const id = toDocId(c.n)
+    console.log(`[3/7] Classes (${classesData.length})...`)
+    for (const classEntry of classesData) {
+      const classId = slugify(classEntry.n)
       const payload = {
-        ...c,
-        img: toImagePath(c.img),
-        campaignTags: FieldValue.arrayUnion(campaignId, slug),
+        DisplayName: classEntry.n ?? classId,
+        Description: classEntry.sub ?? '',
+        Bonuses: {},
+        Traits: {},
+        StatConstraints: {},
+        CreatedAt: new Date().toISOString(),
+        UpdatedAt: new Date().toISOString(),
       }
-      if (!dryRun) await db.collection('classes').doc(id).set(payload, { merge: true })
-      console.log(`  class -> ${id}`)
+      if (!dryRun) await writeDocIfNeeded(db, `Campaigns/${campaignId}/Classes/${classId}`, payload)
+      console.log(`  class -> ${classId}`)
     }
 
-    // ------------------------------------------------------------------
-    // Step 4, 5 & 6 — Characters + Participants + Inventories
-    // ------------------------------------------------------------------
+    console.log(`[4/7] Notes ...`)
+    const notesBase = { Entries: {}, UpdatedAt: new Date().toISOString() }
+    if (!dryRun) {
+      await writeDocIfNeeded(db, `Campaigns/${campaignId}/Notes/Gm`, notesBase)
+      await writeDocIfNeeded(db, `Campaigns/${campaignId}/Notes/Shared`, notesBase)
+      await writeDocIfNeeded(db, `Campaigns/${campaignId}/Notes/Collaborative`, notesBase)
+    }
+
     const entries = Object.entries(defaultChars)
-    console.log(`[4/6] Characters (${entries.length})...`)
-    console.log(`[5/6] Participants (${entries.length})...`)
-    console.log(`[6/6] Inventories (${entries.length})...`)
+    console.log(`[5/7] Characters (${entries.length})...`)
+    console.log(`[6/7] Players and state (${entries.length})...`)
+    const rosterCharacters = {}
 
     for (const [characterId, raw] of entries) {
       const ownerUid = resolveOwnerUid(raw, characterId)
-      const { profile, participant, inventory } = mapCharacter(
-        characterId,
-        raw,
-        campaignId,
-        ownerUid,
-      )
-      if (!dryRun) {
-        await db
-          .collection('characters')
-          .doc(profile.id)
-          .set({ ...profile, raceBonusNotes: FieldValue.delete() }, { merge: true })
-        const participantId = `${participant.campaignId}_${participant.uid}`
-        const inventoryId = `${inventory.campaignId}_${inventory.characterId}`
-        await db.collection('participants').doc(participantId).set(participant, { merge: true })
-        await db.collection('inventories').doc(inventoryId).set(inventory, { merge: true })
+      const classId = slugify(raw.classe)
+      const raceId = slugify(raw.race)
+      const now = new Date().toISOString()
+      const primary = {
+        Strength: { Base: toInt(raw.phys, 0), Bonus: 0 },
+        Agility: { Base: toInt(raw.social, 0), Bonus: 0 },
+        Intellect: { Base: toInt(raw.mental, 0), Bonus: 0 },
+        Spirit: { Base: 0, Bonus: 0 },
       }
-      console.log(
-        `  character -> ${profile.id}  |  participant -> ${participant.campaignId}_${participant.uid}  |  inventory -> ${inventory.campaignId}_${inventory.characterId}`,
+      const secondary = parseSecondaryAttributes(raw.competences)
+      const charSheet = {
+        ParentCharacterId: null,
+        ActiveFormId: null,
+        DisplayName: raw.name,
+        Description: raw.notes || '',
+        PictureUrl: toCharacterImagePath(characterId),
+        Gender: toGender(raw.genre),
+        Level: toInt(raw.niveau, 1),
+        Status: 'Alive',
+        ClassId: classId,
+        RaceId: raceId,
+        Statistics: primary,
+        Secondaries: {
+          Power: Number(secondary.puissance ?? 0),
+          Focus: Number(secondary.savoir ?? 0),
+        },
+        Actions: {},
+        Skills: Object.fromEntries(
+          parseSkills(raw.competences).map((skill) => [skill.id, { Description: skill.name, Value: skill.rank }]),
+        ),
+        AdvantageDiceCount: 0,
+        DisadvantageDiceCount: 0,
+        Elements: parseElements(raw.element),
+        Languages: String(raw.langues || '')
+          .split(',')
+          .map((s) => s.trim())
+          .filter(Boolean),
+        PlayerId: ownerUid,
+        CampaignId: campaignId,
+        CreatedAt: now,
+        UpdatedAt: now,
+      }
+
+      const stateDoc = {
+        Health: toInt(raw.pv_max, 0),
+        HealthCurrent: toInt(raw.pv, 0),
+        Mana: toInt(raw.mana_max, 0),
+        ManaCurrent: toInt(raw.mana, 0),
+        PhysicalArmor: 0,
+        PhysicalArmorCurrent: 0,
+        MagicalArmor: 0,
+        MagicalArmorCurrent: 0,
+        PhysicalAttack: 0,
+        MagicalAttack: 0,
+        PhysicalDefense: 0,
+        MagicalDefense: 0,
+        PlayerId: ownerUid,
+        CampaignId: campaignId,
+        UpdatedAt: now,
+      }
+
+      const inventory = migrateInventoryDoc(
+        {
+          uid: ownerUid,
+          campaignId,
+          characterId,
+          items: parseSessionInventory(raw),
+          createdAt: now,
+          updatedAt: now,
+        },
+        { warnTag: 'seedAll' },
       )
+
+      const playerDoc = {
+        Status: 'Approved',
+        Email: ownerUid,
+        Notes: {},
+        CreatedAt: now,
+        UpdatedAt: now,
+      }
+
+      const equipmentDoc = {
+        Armor: inventory.armor ?? [],
+        Weapons: inventory.weapons ?? [],
+        Currency: Number(inventory.gold ?? 0),
+        PlayerId: ownerUid,
+        CampaignId: campaignId,
+        UpdatedAt: now,
+      }
+
+      if (!dryRun) {
+        await writeDocIfNeeded(db, `Campaigns/${campaignId}/Players/${ownerUid}`, playerDoc)
+        await writeDocIfNeeded(db, `Campaigns/${campaignId}/Characters/${characterId}`, charSheet)
+        await writeDocIfNeeded(db, `Campaigns/${campaignId}/Characters/${characterId}/States/Current`, stateDoc)
+        await writeDocIfNeeded(db, `Campaigns/${campaignId}/Characters/${characterId}/Equipment/Main`, equipmentDoc)
+
+        for (const item of inventory.items ?? []) {
+          const itemId = item.itemId || `item-${Date.now()}-${Math.random().toString(16).slice(2)}`
+          await writeDocIfNeeded(db, `Campaigns/${campaignId}/Characters/${characterId}/Items/${itemId}`, {
+            DisplayName: item.name,
+            Description: '',
+            BonusRaw: {},
+            BonusConditional: [],
+            Quantity: Number(item.quantity ?? 1),
+            PlayerId: ownerUid,
+            CampaignId: campaignId,
+            UpdatedAt: now,
+          })
+        }
+      }
+
+      rosterCharacters[characterId] = buildRosterEntry(characterId, raw.name, ownerUid, stateDoc)
+      console.log(`  character -> ${characterId} (${ownerUid})`)
     }
 
-    console.log(`\n✓ Campaign "${slug}" (${campaignId}) seeded.`)
+    console.log(`[7/7] Roster/Summary ...`)
+    if (!dryRun) {
+      await writeDocIfNeeded(db, `Campaigns/${campaignId}/Roster/Summary`, {
+        Characters: rosterCharacters,
+        UpdatedAt: new Date().toISOString(),
+      })
+    }
+
+    console.log(`\n✓ Campaign "${slug}" (${campaignId}) seeded in canonical nested structure.`)
   }
 
   console.log('\nAll done.')

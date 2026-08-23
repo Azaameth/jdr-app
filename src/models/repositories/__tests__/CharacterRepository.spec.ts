@@ -42,7 +42,7 @@ describe('CharacterRepository', () => {
       vi.doMock('../../../firebase/config', () => ({ db: {} }))
     })
 
-    it('maps listCharactersByCampaign docs to { id, ...data } with no field defaulting', async () => {
+    it('reads characters only from the nested campaign collection', async () => {
       firestoreMocks.getDocs.mockResolvedValue({
         docs: [
           {
@@ -55,6 +55,7 @@ describe('CharacterRepository', () => {
       const repo = await import('../CharacterRepository')
       const result = await repo.listCharactersByCampaign('camp-1')
 
+      expect(firestoreMocks.collection).toHaveBeenCalledWith({}, 'Campaigns', 'camp-1', 'Characters')
       expect(result).toEqual([{ id: 'char-1', campaignId: 'camp-1', name: 'Hero' }])
     })
 
@@ -96,6 +97,32 @@ describe('CharacterRepository', () => {
       expect(result).toEqual([
         { id: 'furmiaou', campaignId: 'camp-1', name: 'Furmiaou', parentCharacterId: 'firm' },
       ])
+    })
+
+    it('normalizes canonical Firestore field names into the app shape used by the UI', async () => {
+      firestoreMocks.getDoc.mockResolvedValue({
+        exists: () => true,
+        id: 'char-1',
+        data: () => ({
+          CampaignId: 'camp-1',
+          PlayerId: 'uid-42',
+          ParentCharacterId: 'firm',
+          ActiveFormId: 'furmiaou',
+          DisplayName: 'Kael',
+        }),
+      })
+
+      const repo = await import('../CharacterRepository')
+      const result = await repo.getCharacterById('char-1')
+
+      expect(result).toEqual({
+        id: 'char-1',
+        campaignId: 'camp-1',
+        ownerUid: 'uid-42',
+        parentCharacterId: 'firm',
+        activeFormId: 'furmiaou',
+        name: 'Kael',
+      })
     })
 
     it('updateCharacter strips id and merge-writes the remaining fields plus updatedAt', async () => {
