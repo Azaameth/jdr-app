@@ -6,6 +6,12 @@
     // Extra safety for array and object lookups, but may have false positives.
     "noUncheckedIndexedAccess": true,
 
+    // Required so TypeScript resolves @/* consistently with Vite.
+    "baseUrl": ".",
+
+    // TypeScript 6 deprecates baseUrl; this keeps the config working without warnings.
+    "ignoreDeprecations": "6.0",
+
     // Path mapping for cleaner imports.
     "paths": {
       "@/*": ["./src/*"]

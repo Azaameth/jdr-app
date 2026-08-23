@@ -14,7 +14,10 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for the contribution workflow and
 
 1. **Node version**: pinned via `.node-version`. Install [fnm](https://github.com/Schniz/fnm)
    (or nvm) and run `fnm use` (or `fnm install` first if you don't have that
-   version yet) from the repo root.
+   version yet) from the repo root. This project is intended for Node 22.18+
+   or 24.12+, and newer Firebase CLI/admin tooling is intentionally kept on the
+   supported branch; Node 26 currently triggers `EBADENGINE` warnings from a
+   transitive dependency (`superstatic`).
 2. **Install dependencies**: `npm install`
 3. **Firebase config**: copy `.env.local.example` to `.env.local` and fill in
    the values — ask the project owner for the Web App config (Firebase
@@ -26,6 +29,17 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for the contribution workflow and
 4. **Service account (optional)**: only needed for the admin seed scripts in
    `scripts/` (`npm run seed:*`). Ask the project owner for a key and place
    it at `scripts/keys/serviceAccountKey.json` (gitignored).
+
+## Firebase tooling update
+
+The project was updated to a newer Firebase admin/CLI line after the audit report
+showed transitive vulnerabilities in older dependency chains. The app keeps the
+runtime dependency on `firebase` for the browser SDK, while the tooling packages
+used for admin scripts and local emulation were bumped to the supported versions in
+[package.json](package.json): `firebase-admin` and `firebase-tools`.
+
+If you work on the admin scripts in `scripts/`, keep your local Node version inside
+one of the supported ranges declared in the repo (`22.18+` or `24.12+`).
 
 ## Running things in the background
 
