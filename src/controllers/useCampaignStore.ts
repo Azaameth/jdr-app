@@ -75,7 +75,7 @@ export function useCampaignStore() {
       try {
         await assignCampaignMj(campaignId, gmId)
         campaigns.value = campaigns.value.map((campaign) =>
-          campaign.id === campaignId ? { ...campaign, gmId } : campaign,
+          campaign.id === campaignId ? { ...campaign, GmId: gmId } : campaign,
         )
       } catch (err) {
         error.value = err instanceof Error ? err.message : 'Impossible d’inscrire le MJ.'
@@ -87,7 +87,7 @@ export function useCampaignStore() {
       try {
         await clearCampaignMj(campaignId)
         campaigns.value = campaigns.value.map((campaign) =>
-          campaign.id === campaignId ? { ...campaign, gmId: '' } : campaign,
+          campaign.id === campaignId ? { ...campaign, GmId: '' } : campaign,
         )
       } catch (err) {
         error.value = err instanceof Error ? err.message : 'Impossible de retirer le MJ.'

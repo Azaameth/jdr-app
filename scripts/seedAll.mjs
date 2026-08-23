@@ -55,6 +55,41 @@ function slugify(text) {
     .replace(/(^-|-$)/g, '')
 }
 
+// campaigns-config.json still carries the legacy French status values;
+// map them onto the target Campaign.Status contract (docs/rpg-data-model.md §4.2).
+const CAMPAIGN_STATUS_MAP = {
+  recrutement: 'Recruiting',
+  active: 'Active',
+  terminee: 'Closed',
+}
+
+function mapCampaignStatus(status) {
+  return CAMPAIGN_STATUS_MAP[status] ?? 'Recruiting'
+}
+
+// Class `caps` entries are consistently "Name : Effect" in the fixtures —
+// split reliably instead of guessing at a numeric Bonuses/StatConstraints
+// mapping the source data doesn't actually specify (see NEXTSTEPS.md's
+// migration ledger, Cluster 2: don't invent numbers the fixtures don't have).
+function buildClassTraits(caps) {
+  const traits = {}
+  for (const [index, cap] of (caps ?? []).entries()) {
+    const [name, ...rest] = String(cap).split(' : ')
+    traits[`Cap${index + 1}`] = {
+      Description: name?.trim() ?? '',
+      Value: rest.join(' : ').trim(),
+    }
+  }
+  return traits
+}
+
+// Matches the portrait convention already used by scripts/data/characters.json
+// (e.g. "/images/portraits/azarius.jpg") and the actual files in
+// public/images/portraits/, named exactly by characterId.
+function toCharacterImagePath(characterId) {
+  return `/images/portraits/${characterId}.jpg`
+}
+
 function toInt(value, fallback = 0) {
   const parsed = Number.parseInt(String(value), 10)
   return Number.isNaN(parsed) ? fallback : parsed
@@ -262,18 +297,33 @@ async function main() {
   const racesData = readJson(path.join(base, 'races.json'))
   const classesData = readJson(path.join(base, 'classes.json'))
   const defaultChars = readJson(path.join(base, 'defaultChars.json'))
+  // Legacy dev fixture: defaultChars.json carries no owner/session data at
+  // all, so every character used to collapse onto one shared 'unknown-user'
+  // Player doc (each write clobbering the last). participants.json still has
+  // real distinct per-character uid + session values — use it to give each
+  // seeded character its own owner and a believable starting hp/mana/posture.
+  // NOTE: `characterId`/`session` on the Player doc are a temporary bridge —
+  // the target model (docs/rpg-data-model.md §4.6) keeps Players/{uid} to
+  // just Status/Notes and moves live state to Characters/{id}/States/Current,
+  // but ParticipantRepository/usePlayerStore haven't been migrated to read
+  // from there yet (NEXTSTEPS.md Cluster 3b). Remove these two fields once
+  // 3b ships.
+  const participantsData = readJson(path.join(base, 'participants.json'))
+  const participantsByCharacterId = new Map(participantsData.map((p) => [p.characterId, p]))
 
   console.log(`Project: ${sa.project_id}  |  dry-run: ${dryRun}`)
 
   for (const campaignConfig of campaignsConfig) {
-    const { slug, title, summary, status } = campaignConfig
+    const { slug, title, summary, lore, globalNote, status } = campaignConfig
     const campaignId = slugify(slug)
 
     console.log(`\n[1/7] Campaign "${slug}" -> ${campaignId}`)
     const campaignPayload = {
       DisplayName: title ?? slug,
       Description: summary ?? '',
-      Status: status ?? 'Recruiting',
+      Lore: lore ?? '',
+      GlobalNote: globalNote ?? '',
+      Status: mapCampaignStatus(status),
       GmId: '',
       CreatedAt: new Date().toISOString(),
       UpdatedAt: new Date().toISOString(),
@@ -289,9 +339,12 @@ async function main() {
       const payload = {
         DisplayName: race.n ?? raceId,
         Description: race.sub ?? '',
+        PictureUrl: race.img ?? '',
         Bonuses: {},
         Traits: {},
         StatConstraints: {},
+        Strengths: race.bon ?? [],
+        Weaknesses: race.mal ?? [],
         CreatedAt: new Date().toISOString(),
         UpdatedAt: new Date().toISOString(),
       }
@@ -305,9 +358,13 @@ async function main() {
       const payload = {
         DisplayName: classEntry.n ?? classId,
         Description: classEntry.sub ?? '',
+        PictureUrl: classEntry.img ?? '',
         Bonuses: {},
-        Traits: {},
+        Traits: buildClassTraits(classEntry.caps),
         StatConstraints: {},
+        HealthNote: classEntry.pv ?? '',
+        ManaNote: classEntry.mana ?? '',
+        ArmorNote: classEntry.arm ?? '',
         CreatedAt: new Date().toISOString(),
         UpdatedAt: new Date().toISOString(),
       }
@@ -329,7 +386,8 @@ async function main() {
     const rosterCharacters = {}
 
     for (const [characterId, raw] of entries) {
-      const ownerUid = resolveOwnerUid(raw, characterId)
+      const participantFixture = participantsByCharacterId.get(characterId)
+      const ownerUid = participantFixture?.uid ?? resolveOwnerUid(raw, characterId)
       const classId = slugify(raw.classe)
       const raceId = slugify(raw.race)
       const now = new Date().toISOString()
@@ -409,6 +467,15 @@ async function main() {
         Notes: {},
         CreatedAt: now,
         UpdatedAt: now,
+        // Bridge fields, see the participantsByCharacterId comment above.
+        characterId,
+        session: participantFixture?.session ?? {
+          hp: toInt(raw.pv, 0),
+          maxHp: toInt(raw.pv_max, 0),
+          mana: toInt(raw.mana, 0),
+          maxMana: toInt(raw.mana_max, 0),
+          posture: 'DEFENSIF',
+        },
       }
 
       const equipmentDoc = {

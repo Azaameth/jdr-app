@@ -19,10 +19,17 @@ const mocks = vi.hoisted(() => ({
   subscribeParticipantsByCampaign:
     vi.fn<(campaignId: string, onChange: (participants: Participant[]) => void) => () => void>(),
   updateSessionFields:
-    vi.fn<(participantId: string, fields: Partial<CharacterSessionState>) => Promise<void>>(),
+    vi.fn<
+      (
+        campaignId: string,
+        participantId: string,
+        fields: Partial<CharacterSessionState>,
+      ) => Promise<void>
+    >(),
   updateChildSession:
     vi.fn<
       (
+        campaignId: string,
         participantId: string,
         childCharacterId: string,
         fields: Partial<CharacterSessionState>,
@@ -56,7 +63,7 @@ function makeParticipant(overrides: Partial<Participant> = {}): Participant {
     uid: 'uid-1',
     campaignId: 'camp-1',
     characterId: 'char-1',
-    status: 'approved',
+    status: 'Approved',
     session: {
       hp: 10,
       maxHp: 50,
@@ -411,7 +418,7 @@ describe('usePlayerStore', () => {
       await store.setInjury('char-1', 'puissance', 'jaune')
 
       expect(mocks.getParticipantByCharacterId).toHaveBeenCalledWith('char-1', 'camp-1')
-      expect(mocks.updateSessionFields).toHaveBeenCalledWith('participant-1', {
+      expect(mocks.updateSessionFields).toHaveBeenCalledWith('camp-1', 'participant-1', {
         injuries: { puissance: 'jaune' },
       })
     })
@@ -435,7 +442,7 @@ describe('usePlayerStore', () => {
 
       await store.setInjury('char-1', 'puissance', 'rouge')
 
-      expect(mocks.updateSessionFields).toHaveBeenCalledWith('participant-1', {
+      expect(mocks.updateSessionFields).toHaveBeenCalledWith('camp-1', 'participant-1', {
         injuries: { puissance: 'rouge', finesse: 'rouge' },
       })
     })
@@ -459,7 +466,7 @@ describe('usePlayerStore', () => {
 
       await store.setInjury('char-1', 'puissance', null)
 
-      expect(mocks.updateSessionFields).toHaveBeenCalledWith('participant-1', {
+      expect(mocks.updateSessionFields).toHaveBeenCalledWith('camp-1', 'participant-1', {
         injuries: { finesse: 'jaune' },
       })
     })
@@ -484,10 +491,12 @@ describe('usePlayerStore', () => {
       mocks.getParticipantByCharacterId.mockResolvedValue(makeParticipant())
 
       await store.setAdvantage('char-1', true)
-      expect(mocks.updateSessionFields).toHaveBeenCalledWith('participant-1', { advantage: true })
+      expect(mocks.updateSessionFields).toHaveBeenCalledWith('camp-1', 'participant-1', {
+        advantage: true,
+      })
 
       await store.setDisadvantage('char-1', false)
-      expect(mocks.updateSessionFields).toHaveBeenCalledWith('participant-1', {
+      expect(mocks.updateSessionFields).toHaveBeenCalledWith('camp-1', 'participant-1', {
         disadvantage: false,
       })
     })
@@ -503,7 +512,9 @@ describe('usePlayerStore', () => {
       await store.setChildVitals('firm', 'furmiaou', { hp: 40 })
 
       expect(mocks.getParticipantByCharacterId).toHaveBeenCalledWith('firm', 'camp-1')
-      expect(mocks.updateChildSession).toHaveBeenCalledWith('participant-1', 'furmiaou', { hp: 40 })
+      expect(mocks.updateChildSession).toHaveBeenCalledWith('camp-1', 'participant-1', 'furmiaou', {
+        hp: 40,
+      })
     })
   })
 
@@ -560,12 +571,12 @@ describe('usePlayerStore', () => {
       ])
       mocks.subscribeParticipantsByCampaign.mockImplementation((_campaignId, onChange) => {
         onChange([
-          makeParticipant({ id: 'p1', characterId: 'char-1', status: 'approved' }),
-          makeParticipant({ id: 'p2', characterId: 'char-2', status: 'pending' }),
+          makeParticipant({ id: 'p1', characterId: 'char-1', status: 'Approved' }),
+          makeParticipant({ id: 'p2', characterId: 'char-2', status: 'Pending' }),
           // A participant referencing a child character should never exist per
           // data-model D-02 (children get no participant doc), but the filter
           // must exclude it defensively via parentCharacterId regardless.
-          makeParticipant({ id: 'p3', characterId: 'child-1', status: 'approved' }),
+          makeParticipant({ id: 'p3', characterId: 'child-1', status: 'Approved' }),
         ])
         return () => {}
       })
@@ -598,7 +609,7 @@ describe('usePlayerStore', () => {
         }),
       ])
       mocks.subscribeParticipantsByCampaign.mockImplementation((_campaignId, onChange) => {
-        onChange([makeParticipant({ id: 'p-firm', characterId: 'firm', status: 'approved' })])
+        onChange([makeParticipant({ id: 'p-firm', characterId: 'firm', status: 'Approved' })])
         return () => {}
       })
       const store = usePlayerStore()

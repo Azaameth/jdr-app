@@ -1,6 +1,7 @@
 import {
   collection,
   doc,
+  getDoc,
   getDocs,
   onSnapshot,
   query,
@@ -23,6 +24,15 @@ function getCampaignPlayersCollection(campaignId: string) {
     return null
   }
   return collection(db, 'Campaigns', campaignId, 'Players')
+}
+
+// Doc ID == uid per docs/rpg-data-model.md §4.6 — not an auto-generated id
+// found by querying, which is what this repository used to do.
+function getCampaignPlayerDoc(campaignId: string, uid: string) {
+  if (!db) {
+    return null
+  }
+  return doc(db, 'Campaigns', campaignId, 'Players', uid)
 }
 
 function mapSessionState(raw: Record<string, unknown>): CharacterSessionState {
@@ -53,10 +63,12 @@ function mapParticipant(id: string, raw: Record<string, unknown>): Participant {
 
   return {
     id,
-    uid: String(raw.uid ?? ''),
+    // Doc ID == uid now (see getCampaignPlayerDoc) — fall back to a stored
+    // `uid` field only for any pre-migration doc that doesn't have it.
+    uid: String(raw.uid ?? id),
     campaignId: String(raw.campaignId ?? ''),
     characterId: String(raw.characterId ?? ''),
-    status: (raw.status as ParticipantStatus) ?? 'pending',
+    status: (raw.status as ParticipantStatus) ?? 'Pending',
     session: mapSessionState(rawSession),
     createdAt: raw.createdAt ? String(raw.createdAt) : undefined,
     updatedAt: raw.updatedAt ? String(raw.updatedAt) : undefined,
@@ -91,13 +103,11 @@ export function subscribeParticipantsByCampaign(
 export async function getParticipant(uid: string, campaignId: string): Promise<Participant | null> {
   if (!db) return null
 
-  const nestedRef = getCampaignPlayersCollection(campaignId)
-  if (!nestedRef) return null
+  const playerRef = getCampaignPlayerDoc(campaignId, uid)
+  if (!playerRef) return null
 
-  const q = query(nestedRef, where('uid', '==', uid))
-  const nestedSnapshot = await getDocs(q)
-  const first = nestedSnapshot.docs[0]
-  return first ? mapParticipant(first.id, first.data()) : null
+  const snapshot = await getDoc(playerRef)
+  return snapshot.exists() ? mapParticipant(snapshot.id, snapshot.data()) : null
 }
 
 export async function getParticipantByCharacterId(
@@ -201,6 +211,7 @@ export async function resetTeamSessionToMax(campaignId: string): Promise<number>
 }
 
 export async function updateSessionFields(
+  campaignId: string,
   participantId: string,
   fields: Partial<
     Pick<CharacterSessionState, 'hp' | 'mana' | 'posture' | 'injuries' | 'advantage' | 'disadvantage'>
@@ -233,11 +244,13 @@ export async function updateSessionFields(
     updates['session.disadvantage'] = fields.disadvantage
   }
 
-  const ref = doc(db, 'Participants', participantId)
+  const ref = getCampaignPlayerDoc(campaignId, participantId)
+  if (!ref) return
   await updateDoc(ref, updates)
 }
 
 export async function updateChildSession(
+  campaignId: string,
   participantId: string,
   childCharacterId: string,
   fields: Partial<CharacterSessionState>,
@@ -276,6 +289,7 @@ export async function updateChildSession(
     updates[`${prefix}.disadvantage`] = fields.disadvantage
   }
 
-  const ref = doc(db, 'Participants', participantId)
+  const ref = getCampaignPlayerDoc(campaignId, participantId)
+  if (!ref) return
   await updateDoc(ref, updates)
 }

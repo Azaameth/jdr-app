@@ -46,20 +46,20 @@ watch(
 const editing = ref(false)
 const saving = ref(false)
 const form = reactive({
-  title: '',
-  summary: '',
-  lore: '',
-  globalNote: '',
-  status: 'recrutement' as CampaignStatus,
+  DisplayName: '',
+  Description: '',
+  Lore: '',
+  GlobalNote: '',
+  Status: 'Recruiting' as CampaignStatus,
 })
 
 function startEdit() {
   if (!campaign.value) return
-  form.title = campaign.value.title
-  form.summary = campaign.value.summary
-  form.lore = campaign.value.lore
-  form.globalNote = campaign.value.globalNote
-  form.status = campaign.value.status
+  form.DisplayName = campaign.value.DisplayName
+  form.Description = campaign.value.Description
+  form.Lore = campaign.value.Lore
+  form.GlobalNote = campaign.value.GlobalNote
+  form.Status = campaign.value.Status
   editing.value = true
 }
 
@@ -75,7 +75,11 @@ async function saveEdit() {
 }
 
 async function confirmDelete() {
-  if (!confirm(`Supprimer la campagne "${campaign.value?.title}" ? Cette action est irréversible.`))
+  if (
+    !confirm(
+      `Supprimer la campagne "${campaign.value?.DisplayName}" ? Cette action est irréversible.`,
+    )
+  )
     return
   await campaignStore.removeCampaign(campaignId.value)
   router.push({ name: 'campaign-list' })
@@ -91,27 +95,27 @@ async function confirmDelete() {
 
       <template v-else-if="!editing">
         <div class="header-row">
-          <h1>{{ campaign.title }}</h1>
-          <span class="status-badge">{{ CAMPAIGN_STATUS_LABELS[campaign.status] }}</span>
+          <h1>{{ campaign.DisplayName }}</h1>
+          <span class="status-badge">{{ CAMPAIGN_STATUS_LABELS[campaign.Status] }}</span>
           <div class="actions" v-if="canEdit">
             <button class="btn" @click="startEdit">Modifier</button>
             <button class="btn danger" @click="confirmDelete">Supprimer</button>
           </div>
         </div>
 
-        <section class="card" v-if="campaign.summary">
+        <section class="card" v-if="campaign.Description">
           <h2>Résumé</h2>
-          <p class="body-text">{{ campaign.summary }}</p>
+          <p class="body-text">{{ campaign.Description }}</p>
         </section>
 
-        <section class="card" v-if="campaign.lore">
+        <section class="card" v-if="campaign.Lore">
           <h2>Lore</h2>
-          <p class="body-text lore">{{ campaign.lore }}</p>
+          <p class="body-text lore">{{ campaign.Lore }}</p>
         </section>
 
-        <section class="card" v-if="campaign.globalNote">
+        <section class="card" v-if="campaign.GlobalNote">
           <h2>Note globale</h2>
-          <p class="body-text">{{ campaign.globalNote }}</p>
+          <p class="body-text">{{ campaign.GlobalNote }}</p>
         </section>
 
         <section class="card rules-card" v-if="campaignRules">
@@ -131,8 +135,8 @@ async function confirmDelete() {
         </section>
 
         <section class="card meta">
-          <div><b>MJ :</b> {{ campaign.gmId || 'Non assigné' }}</div>
-          <div><b>Créée le :</b> {{ campaign.createdAt.toDate().toLocaleDateString('fr-FR') }}</div>
+          <div><b>MJ :</b> {{ campaign.GmId || 'Non assigné' }}</div>
+          <div><b>Créée le :</b> {{ campaign.CreatedAt.toDate().toLocaleDateString('fr-FR') }}</div>
         </section>
       </template>
 
@@ -145,27 +149,27 @@ async function confirmDelete() {
         <section class="card form">
           <label>
             Titre
-            <input v-model="form.title" type="text" />
+            <input v-model="form.DisplayName" type="text" />
           </label>
           <label>
             Statut
-            <select v-model="form.status">
-              <option value="recrutement">Recrutement</option>
-              <option value="active">Active</option>
-              <option value="terminee">Terminée</option>
+            <select v-model="form.Status">
+              <option value="Recruiting">Recrutement</option>
+              <option value="Active">Active</option>
+              <option value="Closed">Terminée</option>
             </select>
           </label>
           <label>
             Résumé
-            <textarea v-model="form.summary" rows="3" />
+            <textarea v-model="form.Description" rows="3" />
           </label>
           <label>
             Lore
-            <textarea v-model="form.lore" rows="6" />
+            <textarea v-model="form.Lore" rows="6" />
           </label>
           <label>
             Note globale
-            <textarea v-model="form.globalNote" rows="3" />
+            <textarea v-model="form.GlobalNote" rows="3" />
           </label>
           <div class="form-actions">
             <button class="btn" :disabled="saving" @click="saveEdit">

@@ -34,7 +34,7 @@ function makeParticipant(overrides: Partial<Participant> = {}): Participant {
     uid: 'owner-uid',
     campaignId: 'campaign-1',
     characterId: 'char-1',
-    status: 'approved',
+    status: 'Approved',
     session: {
       hp: 8,
       maxHp: 14,

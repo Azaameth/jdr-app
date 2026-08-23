@@ -19,7 +19,7 @@ const currentCampaign = computed(() =>
   campaignStore.campaigns.value.find((campaign) => campaign.id === campaignId.value),
 )
 
-const campaignTitle = computed(() => currentCampaign.value?.title || 'Campagne')
+const campaignTitle = computed(() => currentCampaign.value?.DisplayName || 'Campagne')
 
 const emptyMessage = computed(() => {
   if (loading.value) {
@@ -73,9 +73,8 @@ function handleImageError(event: Event) {
 async function loadRaces() {
   try {
     await campaignStore.fetchCampaigns()
-    const campaign = currentCampaign.value
 
-    const tagsToTry = [campaign?.slug, campaignId.value].filter(
+    const tagsToTry = [campaignId.value].filter(
       (tag, index, arr): tag is string => Boolean(tag) && arr.indexOf(tag) === index,
     )
 
@@ -90,7 +89,7 @@ async function loadRaces() {
     cards.value = results
     currentIndex.value = 0
 
-    if (!campaign && campaignStore.error.value) {
+    if (!currentCampaign.value && campaignStore.error.value) {
       error.value = campaignStore.error.value
     }
   } catch (err) {
@@ -133,22 +132,26 @@ onMounted(loadRaces)
             <div class="carousel-row">
               <article v-for="card in visibleCards" :key="card.id" class="card">
                 <div class="card-image">
-                  <img :src="imageUrl(card.img)" :alt="card.n" @error="handleImageError" />
+                  <img
+                    :src="imageUrl(card.PictureUrl)"
+                    :alt="card.DisplayName"
+                    @error="handleImageError"
+                  />
                 </div>
                 <div class="card-body">
-                  <strong class="card-title">{{ card.n }}</strong>
-                  <span class="card-subtitle">{{ card.sub }}</span>
+                  <strong class="card-title">{{ card.DisplayName }}</strong>
+                  <span class="card-subtitle">{{ card.Description }}</span>
                   <div class="card-details">
                     <div class="detail-group">
                       <h3>Points forts</h3>
                       <ul>
-                        <li v-for="(item, index) in card.bon" :key="index">{{ item }}</li>
+                        <li v-for="(item, index) in card.Strengths" :key="index">{{ item }}</li>
                       </ul>
                     </div>
                     <div class="detail-group">
                       <h3>Points faibles</h3>
                       <ul>
-                        <li v-for="(item, index) in card.mal" :key="index">{{ item }}</li>
+                        <li v-for="(item, index) in card.Weaknesses" :key="index">{{ item }}</li>
                       </ul>
                     </div>
                   </div>

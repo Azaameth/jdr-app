@@ -15,31 +15,56 @@ describe('Class and Race repository migration', () => {
     vi.clearAllMocks()
   })
 
-  it('reads campaign classes from the nested collection first', async () => {
+  it('reads campaign classes from the nested collection', async () => {
     vi.doMock('../../../firebase/config', () => ({ db: {} }))
     firestoreMocks.getDocs.mockResolvedValue({
       empty: false,
-      docs: [{ id: 'cogneur', data: () => ({ n: 'Cogneur' }) }],
+      docs: [{ id: 'cogneur', data: () => ({ DisplayName: 'Cogneur' }) }],
     })
 
     const { listClassesByCampaign } = await import('../ClassRepository')
     const result = await listClassesByCampaign('camp-1')
 
     expect(firestoreMocks.collection).toHaveBeenCalledWith({}, 'Campaigns', 'camp-1', 'Classes')
-    expect(result).toEqual([{ id: 'cogneur', n: 'Cogneur' }])
+    expect(result).toEqual([
+      {
+        id: 'cogneur',
+        DisplayName: 'Cogneur',
+        Description: '',
+        PictureUrl: '',
+        Bonuses: {},
+        Traits: {},
+        StatConstraints: {},
+        HealthNote: '',
+        ManaNote: '',
+        ArmorNote: '',
+      },
+    ])
   })
 
-  it('reads campaign races from the nested collection first', async () => {
+  it('reads campaign races from the nested collection', async () => {
     vi.doMock('../../../firebase/config', () => ({ db: {} }))
     firestoreMocks.getDocs.mockResolvedValue({
       empty: false,
-      docs: [{ id: 'kitsune', data: () => ({ n: 'Kitsune' }) }],
+      docs: [{ id: 'kitsune', data: () => ({ DisplayName: 'Kitsune' }) }],
     })
 
     const { listRacesByCampaign } = await import('../RaceRepository')
     const result = await listRacesByCampaign('camp-1')
 
     expect(firestoreMocks.collection).toHaveBeenCalledWith({}, 'Campaigns', 'camp-1', 'Races')
-    expect(result).toEqual([{ id: 'kitsune', n: 'Kitsune' }])
+    expect(result).toEqual([
+      {
+        id: 'kitsune',
+        DisplayName: 'Kitsune',
+        Description: '',
+        PictureUrl: '',
+        Bonuses: {},
+        Traits: {},
+        StatConstraints: {},
+        Strengths: [],
+        Weaknesses: [],
+      },
+    ])
   })
 })

@@ -1,4 +1,6 @@
-export type ParticipantStatus = 'pending' | 'approved' | 'rejected'
+// Matches /Campaigns/{campaignId}/Players/{uid}.Status per docs/rpg-data-model.md §4.6
+// ('Denied' replaces legacy's 'rejected' to match the documented enum).
+export type ParticipantStatus = 'Pending' | 'Approved' | 'Denied'
 export type Posture = 'OFFENSIF' | 'DEFENSIF' | 'FOCUS'
 
 // Absence of an entry in `injuries` means the sub-caractéristique is saine

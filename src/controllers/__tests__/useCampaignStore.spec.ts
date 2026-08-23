@@ -21,14 +21,14 @@ vi.mock('../../models/repositories/CampaignRepository', () => mocks)
 function makeCampaign(overrides: Partial<Campaign> = {}): Campaign {
   return {
     id: 'c1',
-    slug: 'c1-slug',
-    title: 'Campagne 1',
-    lore: '',
-    summary: '',
-    globalNote: '',
-    gmId: '',
-    status: 'recrutement',
-    createdAt: Timestamp.now(),
+    DisplayName: 'Campagne 1',
+    Lore: '',
+    Description: '',
+    GlobalNote: '',
+    GmId: '',
+    Status: 'Recruiting',
+    CreatedAt: Timestamp.now(),
+    UpdatedAt: Timestamp.now(),
     ...overrides,
   }
 }
@@ -87,11 +87,11 @@ describe('useCampaignStore', () => {
 
   describe('addCampaign', () => {
     it('optimistically prepends the created campaign to local state on success', async () => {
-      const created = makeCampaign({ id: 'new-1', title: 'Nouvelle campagne' })
+      const created = makeCampaign({ id: 'new-1', DisplayName: 'Nouvelle campagne' })
       mocks.createCampaign.mockResolvedValue(created)
       const store = useCampaignStore()
 
-      const result = await store.addCampaign({ title: 'Nouvelle campagne' })
+      const result = await store.addCampaign({ DisplayName: 'Nouvelle campagne' })
 
       expect(result).toEqual(created)
       expect(store.campaigns.value[0]).toEqual(created)
@@ -101,7 +101,7 @@ describe('useCampaignStore', () => {
       mocks.createCampaign.mockRejectedValue({ code: 'weird' })
       const store = useCampaignStore()
 
-      const result = await store.addCampaign({ title: 'X' })
+      const result = await store.addCampaign({ DisplayName: 'X' })
 
       expect(result).toBeNull()
       expect(store.error.value).toBe('Erreur lors de la création de campagne.')
@@ -111,7 +111,7 @@ describe('useCampaignStore', () => {
       mocks.createCampaign.mockRejectedValue(new Error('quota exceeded'))
       const store = useCampaignStore()
 
-      const result = await store.addCampaign({ title: 'X' })
+      const result = await store.addCampaign({ DisplayName: 'X' })
 
       expect(result).toBeNull()
       expect(store.error.value).toBe('quota exceeded')
@@ -119,15 +119,15 @@ describe('useCampaignStore', () => {
   })
 
   describe('enrollMj', () => {
-    it('optimistically sets gmId on the matching campaign on success', async () => {
-      mocks.createCampaign.mockResolvedValue(makeCampaign({ id: 'c1', gmId: '' }))
+    it('optimistically sets GmId on the matching campaign on success', async () => {
+      mocks.createCampaign.mockResolvedValue(makeCampaign({ id: 'c1', GmId: '' }))
       mocks.assignCampaignMj.mockResolvedValue(undefined)
       const store = useCampaignStore()
-      await store.addCampaign({ title: 'X' })
+      await store.addCampaign({ DisplayName: 'X' })
 
       await store.enrollMj('c1', 'mj-42')
 
-      expect(store.campaigns.value.find((c) => c.id === 'c1')?.gmId).toBe('mj-42')
+      expect(store.campaigns.value.find((c) => c.id === 'c1')?.GmId).toBe('mj-42')
     })
 
     it('sets the French fallback message when the repository throws a non-Error', async () => {
@@ -150,15 +150,15 @@ describe('useCampaignStore', () => {
   })
 
   describe('withdrawMj', () => {
-    it('optimistically clears gmId on the matching campaign on success', async () => {
-      mocks.createCampaign.mockResolvedValue(makeCampaign({ id: 'c1', gmId: 'mj-42' }))
+    it('optimistically clears GmId on the matching campaign on success', async () => {
+      mocks.createCampaign.mockResolvedValue(makeCampaign({ id: 'c1', GmId: 'mj-42' }))
       mocks.clearCampaignMj.mockResolvedValue(undefined)
       const store = useCampaignStore()
-      await store.addCampaign({ title: 'X' })
+      await store.addCampaign({ DisplayName: 'X' })
 
       await store.withdrawMj('c1')
 
-      expect(store.campaigns.value.find((c) => c.id === 'c1')?.gmId).toBe('')
+      expect(store.campaigns.value.find((c) => c.id === 'c1')?.GmId).toBe('')
     })
 
     it('sets the French fallback message when the repository throws a non-Error', async () => {
@@ -182,23 +182,23 @@ describe('useCampaignStore', () => {
 
   describe('editCampaign', () => {
     it('optimistically merges the update input into the matching campaign on success', async () => {
-      mocks.createCampaign.mockResolvedValue(makeCampaign({ id: 'c1', title: 'Old', summary: 'old-sum' }))
+      mocks.createCampaign.mockResolvedValue(makeCampaign({ id: 'c1', DisplayName: 'Old', Description: 'old-sum' }))
       mocks.updateCampaign.mockResolvedValue(undefined)
       const store = useCampaignStore()
-      await store.addCampaign({ title: 'Old' })
+      await store.addCampaign({ DisplayName: 'Old' })
 
-      await store.editCampaign('c1', { title: 'New', summary: 'new-sum' })
+      await store.editCampaign('c1', { DisplayName: 'New', Description: 'new-sum' })
 
       const updated = store.campaigns.value.find((c) => c.id === 'c1')
-      expect(updated?.title).toBe('New')
-      expect(updated?.summary).toBe('new-sum')
+      expect(updated?.DisplayName).toBe('New')
+      expect(updated?.Description).toBe('new-sum')
     })
 
     it('sets the French fallback message when the repository throws a non-Error', async () => {
       mocks.updateCampaign.mockRejectedValue('nope')
       const store = useCampaignStore()
 
-      await store.editCampaign('c1', { title: 'New' })
+      await store.editCampaign('c1', { DisplayName: 'New' })
 
       expect(store.error.value).toBe('Erreur lors de la mise à jour.')
     })
@@ -207,7 +207,7 @@ describe('useCampaignStore', () => {
       mocks.updateCampaign.mockRejectedValue(new Error('conflict'))
       const store = useCampaignStore()
 
-      await store.editCampaign('c1', { title: 'New' })
+      await store.editCampaign('c1', { DisplayName: 'New' })
 
       expect(store.error.value).toBe('conflict')
     })
@@ -218,7 +218,7 @@ describe('useCampaignStore', () => {
       mocks.createCampaign.mockResolvedValue(makeCampaign({ id: 'c1' }))
       mocks.deleteCampaign.mockResolvedValue(undefined)
       const store = useCampaignStore()
-      await store.addCampaign({ title: 'X' })
+      await store.addCampaign({ DisplayName: 'X' })
       expect(store.campaigns.value.some((c) => c.id === 'c1')).toBe(true)
 
       await store.removeCampaign('c1')

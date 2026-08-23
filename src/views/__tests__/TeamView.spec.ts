@@ -68,7 +68,7 @@ function makeParticipant(overrides: Partial<Participant> = {}): Participant {
     uid: 'uid-1',
     campaignId: 'campaign-1',
     characterId: 'char-1',
-    status: 'approved',
+    status: 'Approved',
     session: { hp: 10, maxHp: 10, mana: 4, maxMana: 4, posture: 'FOCUS' },
     ...overrides,
   }

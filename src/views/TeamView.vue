@@ -265,7 +265,7 @@ async function restTeam() {
       <div class="title-row panel-surface title-panel">
         <div class="title-copy">
           <span class="eyebrow">Campagne</span>
-          <h1>Équipe — {{ campaign?.title ?? 'Campagne' }}</h1>
+          <h1>Équipe — {{ campaign?.DisplayName ?? 'Campagne' }}</h1>
         </div>
         <button
           v-if="canRestTeam"

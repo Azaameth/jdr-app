@@ -9,25 +9,23 @@ import {
   query,
   setDoc,
   updateDoc,
-  where,
 } from 'firebase/firestore'
 
 import { db } from '../../firebase/config'
 import type { Campaign, CampaignStatus } from '../types/Campaign'
 
-const CAMPAIGNS_COLLECTION = 'campaigns'
+const CAMPAIGNS_COLLECTION = 'Campaigns'
 
 export interface NewCampaignInput {
-  slug?: string
-  title: string
-  lore?: string
-  summary?: string
-  globalNote?: string
-  gmId?: string
-  status?: CampaignStatus
+  DisplayName: string
+  Description?: string
+  Lore?: string
+  GlobalNote?: string
+  GmId?: string
+  Status?: CampaignStatus
 }
 
-function normalizeCreatedAt(value: unknown): Timestamp {
+function normalizeTimestamp(value: unknown): Timestamp {
   if (value instanceof Timestamp) {
     return value
   }
@@ -45,14 +43,14 @@ function normalizeCreatedAt(value: unknown): Timestamp {
 function mapCampaign(id: string, raw: Record<string, unknown>): Campaign {
   return {
     id,
-    slug: String(raw.slug ?? ''),
-    title: String(raw.title ?? 'Campagne sans titre'),
-    lore: String(raw.lore ?? ''),
-    summary: String(raw.summary ?? ''),
-    globalNote: String(raw.globalNote ?? ''),
-    gmId: String(raw.gmId ?? ''),
-    status: (raw.status as CampaignStatus) ?? 'recrutement',
-    createdAt: normalizeCreatedAt(raw.createdAt),
+    DisplayName: String(raw.DisplayName ?? 'Campagne sans titre'),
+    Description: String(raw.Description ?? ''),
+    Lore: String(raw.Lore ?? ''),
+    GlobalNote: String(raw.GlobalNote ?? ''),
+    GmId: String(raw.GmId ?? ''),
+    Status: (raw.Status as CampaignStatus) ?? 'Recruiting',
+    CreatedAt: normalizeTimestamp(raw.CreatedAt),
+    UpdatedAt: normalizeTimestamp(raw.UpdatedAt),
   }
 }
 
@@ -61,7 +59,7 @@ export async function listCampaigns(): Promise<Campaign[]> {
     return []
   }
 
-  const campaignsQuery = query(collection(db, CAMPAIGNS_COLLECTION), orderBy('createdAt', 'desc'))
+  const campaignsQuery = query(collection(db, CAMPAIGNS_COLLECTION), orderBy('CreatedAt', 'desc'))
   const snapshot = await getDocs(campaignsQuery)
 
   return snapshot.docs.map((item) => mapCampaign(item.id, item.data() as Record<string, unknown>))
@@ -83,15 +81,16 @@ export async function getCampaignById(id: string): Promise<Campaign | null> {
 }
 
 export async function createCampaign(input: NewCampaignInput): Promise<Campaign> {
+  const now = Timestamp.now()
   const payload = {
-    slug: input.slug ?? '',
-    title: input.title,
-    lore: input.lore ?? '',
-    summary: input.summary ?? '',
-    globalNote: input.globalNote ?? '',
-    gmId: input.gmId ?? '',
-    status: input.status ?? 'recrutement',
-    createdAt: Timestamp.now(),
+    DisplayName: input.DisplayName,
+    Description: input.Description ?? '',
+    Lore: input.Lore ?? '',
+    GlobalNote: input.GlobalNote ?? '',
+    GmId: input.GmId ?? '',
+    Status: input.Status ?? 'Recruiting',
+    CreatedAt: now,
+    UpdatedAt: now,
   }
 
   if (!db) {
@@ -112,7 +111,7 @@ export async function assignCampaignMj(campaignId: string, gmId: string): Promis
   }
 
   const campaignRef = doc(db, CAMPAIGNS_COLLECTION, campaignId)
-  await updateDoc(campaignRef, { gmId })
+  await updateDoc(campaignRef, { GmId: gmId, UpdatedAt: Timestamp.now() })
 }
 
 export async function clearCampaignMj(campaignId: string): Promise<void> {
@@ -121,25 +120,15 @@ export async function clearCampaignMj(campaignId: string): Promise<void> {
   }
 
   const campaignRef = doc(db, CAMPAIGNS_COLLECTION, campaignId)
-  await updateDoc(campaignRef, { gmId: '' })
-}
-
-export async function findCampaignBySlug(slug: string): Promise<Campaign | null> {
-  if (!db) return null
-  const q = query(collection(db, CAMPAIGNS_COLLECTION), where('slug', '==', slug))
-  const snapshot = await getDocs(q)
-  if (snapshot.empty) return null
-  const first = snapshot.docs[0]
-  if (!first) return null
-  return mapCampaign(first.id, first.data() as Record<string, unknown>)
+  await updateDoc(campaignRef, { GmId: '', UpdatedAt: Timestamp.now() })
 }
 
 export interface UpdateCampaignInput {
-  title?: string
-  lore?: string
-  summary?: string
-  globalNote?: string
-  status?: CampaignStatus
+  DisplayName?: string
+  Description?: string
+  Lore?: string
+  GlobalNote?: string
+  Status?: CampaignStatus
 }
 
 export async function updateCampaign(
@@ -148,7 +137,7 @@ export async function updateCampaign(
 ): Promise<void> {
   if (!db) return
   const campaignRef = doc(db, CAMPAIGNS_COLLECTION, campaignId)
-  await updateDoc(campaignRef, { ...input })
+  await updateDoc(campaignRef, { ...input, UpdatedAt: Timestamp.now() })
 }
 
 export async function deleteCampaign(campaignId: string): Promise<void> {

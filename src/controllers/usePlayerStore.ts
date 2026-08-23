@@ -165,7 +165,7 @@ export function usePlayerStore() {
         nextInjuries[attr] = state
       }
 
-      await updateSessionFields(participant.id, { injuries: nextInjuries })
+      await updateSessionFields(partyCampaignId.value, participant.id, { injuries: nextInjuries })
     } catch (err) {
       error.value =
         err instanceof Error ? err.message : "Impossible de mettre à jour l'état de session."
@@ -180,7 +180,7 @@ export function usePlayerStore() {
       const participant = await getParticipantByCharacterId(characterId, partyCampaignId.value)
       if (!participant) return
 
-      await updateSessionFields(participant.id, { advantage: value })
+      await updateSessionFields(partyCampaignId.value, participant.id, { advantage: value })
     } catch (err) {
       error.value =
         err instanceof Error ? err.message : "Impossible de mettre à jour l'état de session."
@@ -195,7 +195,7 @@ export function usePlayerStore() {
       const participant = await getParticipantByCharacterId(characterId, partyCampaignId.value)
       if (!participant) return
 
-      await updateSessionFields(participant.id, { disadvantage: value })
+      await updateSessionFields(partyCampaignId.value, participant.id, { disadvantage: value })
     } catch (err) {
       error.value =
         err instanceof Error ? err.message : "Impossible de mettre à jour l'état de session."
@@ -217,7 +217,7 @@ export function usePlayerStore() {
       )
       if (!participant) return
 
-      await updateChildSession(participant.id, childCharacterId, fields)
+      await updateChildSession(partyCampaignId.value, participant.id, childCharacterId, fields)
     } catch (err) {
       error.value =
         err instanceof Error ? err.message : "Impossible de mettre à jour l'état de session."
@@ -271,7 +271,7 @@ export function usePlayerStore() {
     const entries: Array<{ character: CharacterProfile; session: CharacterSessionState }> = []
 
     for (const participant of partyParticipants.value) {
-      if (participant.status !== 'approved') continue
+      if (participant.status !== 'Approved') continue
       const character = charactersById.get(participant.characterId)
       if (!character) continue
       if (character.parentCharacterId) continue // I-C2: children excluded from rosters

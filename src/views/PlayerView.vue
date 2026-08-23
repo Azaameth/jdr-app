@@ -25,7 +25,7 @@ import { useCampaignSessionStore } from '../controllers/useCampaignSessionStore'
 import { useInventoryStore } from '../controllers/useInventoryStore'
 import { usePlayerStore } from '../controllers/usePlayerStore'
 import {
-  getCharacterById,
+  getCharacterByCampaign,
   listChildrenOf,
   updateCharacter,
 } from '../models/repositories/CharacterRepository'
@@ -297,7 +297,7 @@ const selectedRace = computed(() => {
   const normalized = raceId.trim().toLowerCase()
   return (
     races.value.find((race) => race.id === raceId) ??
-    races.value.find((race) => race.n.trim().toLowerCase() === normalized) ??
+    races.value.find((race) => race.DisplayName.trim().toLowerCase() === normalized) ??
     null
   )
 })
@@ -308,15 +308,17 @@ const selectedClass = computed(() => {
   const normalized = classId.trim().toLowerCase()
   return (
     classes.value.find((klass) => klass.id === classId) ??
-    classes.value.find((klass) => klass.n.trim().toLowerCase() === normalized) ??
+    classes.value.find((klass) => klass.DisplayName.trim().toLowerCase() === normalized) ??
     null
   )
 })
 
 // The legacy sheet displayed the raw stored raceId/classId strings; keep that
 // behavior when the id doesn't resolve against the campaign collections.
-const raceDisplayName = computed(() => selectedRace.value?.n ?? character.value?.raceId)
-const classDisplayName = computed(() => selectedClass.value?.n ?? character.value?.classId)
+const raceDisplayName = computed(() => selectedRace.value?.DisplayName ?? character.value?.raceId)
+const classDisplayName = computed(
+  () => selectedClass.value?.DisplayName ?? character.value?.classId,
+)
 
 function clampSessionValue(resource: 'hp' | 'mana', value: number, max: number) {
   const boundedMax = Math.max(0, max)
@@ -647,7 +649,7 @@ async function loadCharacter() {
 
   try {
     const [char, participantRow, , raceList, classList, childList] = await Promise.all([
-      getCharacterById(characterId.value),
+      getCharacterByCampaign(campaignId.value, characterId.value),
       getParticipantByCharacterId(characterId.value, campaignId.value),
       inventoryStore.loadInventory(characterId.value, campaignId.value),
       listRacesByCampaign(campaignId.value),

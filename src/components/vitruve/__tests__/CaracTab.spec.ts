@@ -193,11 +193,14 @@ describe('CaracTab', () => {
   it('renders race bonus/malus entries with checkboxes when race data is present', () => {
     const race: Race = {
       id: 'r1',
-      n: 'Nain',
-      sub: '',
-      img: '',
-      bon: ['Artisanat métal/pierre +20%'],
-      mal: ['Déplacement rapide −10%'],
+      DisplayName: 'Nain',
+      Description: '',
+      PictureUrl: '',
+      Bonuses: {},
+      Traits: {},
+      StatConstraints: {},
+      Strengths: ['Artisanat métal/pierre +20%'],
+      Weaknesses: ['Déplacement rapide −10%'],
     }
     const wrapper = mount(CaracTab, {
       props: {

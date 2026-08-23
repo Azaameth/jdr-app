@@ -142,9 +142,9 @@ function skillEntry(skillId: string, name: string, rank: number): TickEntry {
 // --- Bonus & malus de race --------------------------------------------
 // CharacterProfile carries no per-character race-bonus field (legacy's
 // `race_bonus` free text has no equivalent in the new model). The race
-// document itself (src/models/types/Race.ts) carries `bon`/`mal` string
-// arrays (e.g. "Agilité +20%") — that's the structured data this section
-// renders. Section is omitted entirely when no race data is available.
+// document itself (src/models/types/Race.ts) carries `Strengths`/`Weaknesses`
+// string arrays (e.g. "Agilité +20%") — that's the structured data this
+// section renders. Section is omitted entirely when no race data is available.
 
 interface RaceModifierEntry extends TickEntry {
   kind: 'bonus' | 'malus'
@@ -163,11 +163,11 @@ function parseRaceEntry(text: string): { label: string; value: number; hasValue:
 const raceModifiers = computed<RaceModifierEntry[]>(() => {
   const race = props.race
   if (!race) return []
-  const bonus = (race.bon ?? []).map((text, index) => {
+  const bonus = (race.Strengths ?? []).map((text, index) => {
     const { label, value, hasValue } = parseRaceEntry(text)
     return { key: `race:bonus:${index}`, label, value, hasValue, kind: 'bonus' as const }
   })
-  const malus = (race.mal ?? []).map((text, index) => {
+  const malus = (race.Weaknesses ?? []).map((text, index) => {
     const { label, value, hasValue } = parseRaceEntry(text)
     return { key: `race:malus:${index}`, label, value, hasValue, kind: 'malus' as const }
   })

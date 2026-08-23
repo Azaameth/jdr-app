@@ -2,15 +2,216 @@
 
 Increment ledger for specs that cross CLAUDE.md's high-complexity threshold (~4+ independent acceptance criteria, or spanning state/UI/cross-system coupling). One section per such spec; delete the section once the spec is fully done and merged.
 
-## Locked contracts (Phase 2.2)
+## RPG data-model migration (in progress, started 2026-08-23)
 
-These are locked now, ahead of the features that consume them, per CLAUDE.md's high-complexity-spec policy. Cite from the negotiation and theme specs (not yet started) instead of re-deriving. The inventory schema and the vitruve sheet's alt-form/child-character model, both once sketched here, have since shipped — see their entries below for what's actually implemented.
+The app is mid-migration from the legacy flat Firestore schema to the nested
+per-campaign schema documented in `docs/rpg-data-model.md` /
+`docs/architecture-rpg-data-target.md`. See those docs plus
+`docs/migration-data-plan.md`, `docs/refacto-plan-rpg-data-model.md`,
+`docs/refacto-back-front-plan.md`, and `docs/refacto-acceptance-criteria.md`
+for the full target contract and rationale. **The nested model
+(`/Campaigns/{campaignId}/...`, PascalCase fields) is the authoritative
+target** — this supersedes the "Per-campaign scoping convention" that used
+to be locked in this file (see superseded note below).
 
-### Per-campaign scoping convention
+No live production data needs preserving through this migration —
+`scripts/seedAll.mjs`'s fixtures are the source of truth; reseed rather than
+migrate real documents.
 
-- Default shape: a flat top-level collection, one doc per record, `{ campaignId, ...fields }`, queried via `where('campaignId', '==', campaignId)` — this is what `races`, `classes`, `characters`, `participants`, and `inventories` already do. New list-like campaign-scoped collections (e.g. a future `negotiations` history, if ever needed) follow this shape. Do not nest under `campaigns/{campaignId}/...` subcollections — it would be a second, inconsistent access pattern next to every existing repository.
-- Exception for true one-per-campaign singletons: when a collection can only ever have exactly one live doc per campaign (negotiation's current state, theme config), key the doc directly by `campaignId` as the doc ID — `doc(db, 'negotiations', campaignId)` / `doc(db, 'themeConfigs', campaignId)` — instead of a `{campaignId}` + where-query. This replaces legacy's global singletons (`characters/_negociation`, `shared/design-config`) which clobbered across campaigns/sessions. One active negotiation per campaign is sufficient for a hobby table; revisit only if concurrent negotiations in one campaign become a real need.
-- `firestore.rules` needs new `match /negotiations/{campaignId}` and `match /themeConfigs/{campaignId}` blocks (signed-in read, mj/admin write — same shape as the `campaigns` rule) when Phase 3.4/3.5 implementation lands. Not written yet.
+Work proceeds one **vertical slice** at a time (repository + type + store +
+view + rule for one domain), not one horizontal layer across the whole app —
+each slice must be shippable/mergeable on its own without leaving `main` in
+a broken intermediate state. `/clear` between clusters per CLAUDE.md's
+high-complexity policy.
+
+### Cluster ledger
+
+1. **Campaigns root collection — done (2026-08-23).** Unified on top-level
+   `Campaigns` (was split across flat lowercase `campaigns` vs the seed
+   script's capitalized `Campaigns` — two different collections). PascalCase
+   fields (`DisplayName`, `Description`, `Lore`, `GlobalNote`, `GmId`,
+   `Status: 'Recruiting'|'Active'|'Closed'`, `CreatedAt`, `UpdatedAt`).
+   `Lore`/`GlobalNote` are a deliberate extension beyond the doc's single
+   `Description` field — they're real, actively-edited product content
+   (see `CampaignView.vue`), not something to silently collapse.  Dropped
+   dead `slug`/`findCampaignBySlug` (zero consumers). Files touched:
+   `src/models/types/Campaign.ts`, `src/models/repositories/CampaignRepository.ts`,
+   `src/controllers/useCampaignStore.ts`, `CampaignListView.vue`,
+   `CampaignView.vue`, `CampaignShell.vue`, `ClassCarouselView.vue`/
+   `RaceCarouselView.vue`/`TeamView.vue` (stray `.title` refs),
+   `firestore.rules` (`match /Campaigns/{campaignId}`, same `isMjOrAdmin()`
+   gate as before — not the docs' per-campaign `isGm(cid)` model, which
+   would be a real authorization-scope change, not just a rename),
+   `scripts/seedAll.mjs` (added `Lore`/`GlobalNote`, fixed a real bug where
+   `Status` was written as the raw French legacy value instead of being
+   mapped to `Recruiting`/`Active`/`Closed`).
+   **Not yet deployed**: the updated `firestore.rules` still needs an
+   explicit go-ahead before `firebase deploy --only firestore:rules` against
+   the live project.
+2. **Classes & Races — done (2026-08-23).** Dropped the flat-collection
+   fallback in `ClassRepository`/`RaceRepository` (nested `Campaigns/{id}/
+   Classes|Races` only now). `Class.ts`/`Race.ts` moved off legacy
+   abbreviated fields (`n, sub, img, pv, mana, arm, caps, bon, mal`) to
+   `DisplayName/Description/PictureUrl/Bonuses/Traits/StatConstraints`.
+   `Bonuses`/`StatConstraints` are seeded empty — the source fixtures
+   (`scripts/data/classes.json`/`races.json`) don't specify clean numeric
+   per-stat values (legacy's `pv/mana/arm` and `bon/mal` are free-text,
+   often percentage-based or conditional, e.g. "Agilite +20%", "+2
+   degats") — inventing flat integers to fill them would silently change
+   game balance, so this is left as a real content-authoring task, not a
+   migration mapping task. Preserved the actual content instead as
+   extensions beyond the documented contract: `Class.HealthNote/ManaNote/
+   ArmorNote` (was `pv/mana/arm`), `Class.Traits` (was `caps`, split
+   reliably on the fixtures' consistent "Name : Effect" separator),
+   `Race.Strengths/Weaknesses` (was `bon/mal` — the target's `Traits` map
+   has no strength/weakness polarity, so this stays a dedicated pair of
+   fields rather than being force-fit into `Traits`). Fixed a real data-loss
+   bug in `scripts/seedAll.mjs`: it was writing `Bonuses: {}, Traits: {},
+   StatConstraints: {}` unconditionally, silently dropping every class's
+   `caps` and every race's `bon`/`mal` on seed. Added nested
+   `Campaigns/{id}/Classes|Races` blocks to `firestore.rules` (signed-in
+   read, no client write — Admin-SDK-seeded only, mirrors the flat legacy
+   rule). Touched: `src/models/types/Class.ts`, `Race.ts`,
+   `ClassRepository.ts`, `RaceRepository.ts`, `ClassCarouselView.vue`,
+   `RaceCarouselView.vue`, `PlayerView.vue`/`CaracTab.vue` (two more legacy
+   `.n`/`.bon`/`.mal` consumers found via type-check, outside the carousels),
+   `scripts/seedAll.mjs`, `firestore.rules`.
+   **Follow-up noted, not actioned**: the flat top-level `races`/`classes`
+   collections (and `scripts/uploadStaticDataAdmin.mjs`/`uploadStaticData.mjs`/
+   `pullLiveDataAdmin.mjs`, which still read/write them) now have zero
+   remaining app consumers — candidates for deletion in a later cleanup
+   pass, out of scope here.
+3. **Players / character live state — split into 3a (done) and 3b (queued)
+   given the size and gameplay stakes (real, actively-played HP/mana/posture/
+   injuries — see CLAUDE.md's high-complexity policy).**
+
+   **3a — bug fixes + doc-keying + rules, done (2026-08-23).** Found and
+   fixed a live, currently-shipping bug: `setInjury`/`setAdvantage`/
+   `setDisadvantage`/`setChildVitals` (via `ParticipantRepository.
+   updateSessionFields`/`updateChildSession`) were writing to a flat
+   capital-`Participants` collection that nothing reads — every one of
+   those writes was silently discarded; the app always showed stale
+   injury/advantage/disadvantage state. Fixed to write the same nested
+   `Campaigns/{id}/Players` doc the app reads from. Also fixed
+   `Campaigns/{id}/Players/{uid}` to actually be keyed by `uid` as its doc
+   ID (per `rpg-data-model.md` §4.6) instead of an auto-generated id found
+   by querying `where('uid','==',...)` — `seedAll.mjs` already did this
+   correctly; only the repository's read path (`getParticipant`) hadn't
+   caught up. `ParticipantStatus` recased to the documented enum
+   (`'Pending'|'Approved'|'Denied'`, was `'pending'|'approved'|'rejected'`).
+   Added full `firestore.rules` coverage for `Campaigns/{id}/Players`,
+   `Characters` (incl. the FR-012 owner-can-only-edit-`backstory` restriction,
+   mirrored from the flat legacy rule), `States/Current`, `Equipment/Main`,
+   `Items/{itemId}` — all of it was previously falling through to
+   default-deny. Touched: `Participant.ts`, `ParticipantRepository.ts`,
+   `usePlayerStore.ts`, `firestore.rules`, plus
+   `usePlayerStore.spec.ts`/`ParticipantRepository.spec.ts`/
+   `PlayerView.spec.ts`/`VitruveSheet.spec.ts`/`TeamView.spec.ts` (status
+   casing + new function signatures). **Did not** touch `session`/
+   `childSessions` shape, `Posture`/`InjuryState`/`SecondaryAttributeName`,
+   or any view — those are unchanged and still work exactly as before,
+   just now backed by a correct write path.
+
+   **Found while manually verifying against the Firestore emulator (2026-08-23),
+   fixed in the same pass**: `scripts/seedAll.mjs`'s character loop had no
+   real per-character owner data to draw from (`defaultChars.json` carries
+   no uid/email at all), so `resolveOwnerUid` fell back to one shared
+   `'unknown-user'` constant for all 5 characters — every `Campaigns/{id}/
+   Players/{ownerUid}` write used the same doc ID and clobbered the
+   previous one, leaving only one (arbitrary, last-processed) character
+   with a Player doc at all. Worse, the doc it wrote was in the *pure*
+   target shape (`Status`/`Email`/`Notes` only) — correct per the docs, but
+   `ParticipantRepository`/`usePlayerStore` haven't been migrated to stop
+   reading `characterId`/`session` from that doc yet (that's Cluster 3b),
+   so every character appeared to have no live state and didn't show up in
+   the team roster at all. Fixed by having `seedAll.mjs` read the
+   previously-unused `scripts/data/participants.json` (which already has
+   real distinct per-character `uid` + `session` values left over from the
+   legacy fixture) to give each character its own owner and starting
+   hp/mana/posture, and by adding `characterId`/`session` onto the
+   `playerDoc` payload as an explicit, commented **bridge** — remove those
+   two fields once Cluster 3b ships and the app reads live state from
+   `States/Current` instead.
+
+   **3b — retire `session`/`childSessions` onto per-character `States/
+   Current`, queued.** The actual architecture change: move live combat
+   state off `Participant.session`/`childSessions` and onto
+   `Campaigns/{id}/Characters/{characterId}/States/Current` — one doc per
+   character, including each transformation (already its own `Characters`
+   doc via `parentCharacterId`), via the already-built but still-orphaned
+   `useCharacterStateStore`/`CharacterStateRepository`. Real design
+   decision this needs, decided in principle already (extend, don't drop,
+   matching the Cluster 1/2 precedent) but not yet implemented: `posture`
+   (`OFFENSIF`/`DEFENSIF`/`FOCUS`), `injuries` (per-secondary-attribute
+   jaune/rouge), and `advantage`/`disadvantage` have **no equivalent
+   anywhere in the target docs** — `CharacterStateDocument`/`States/Current`
+   only has Health/Mana/Armor/Attack/Defense pools. Plan is to add them as
+   extension fields on `CharacterStateDocument` (English/PascalCase casing
+   to match the rest of the target model — e.g. `Posture: 'Offensive'|
+   'Defensive'|'Focus'`, `Injuries`, `Advantage`, `Disadvantage`), fully
+   preserving current behavior. Touches a lot of surface once started:
+   `usePlayerStore.ts` (`party` assembly needs to join `Characters` +
+   per-character `States/Current` instead of `Players`+`characterId`),
+   `PlayerView.vue`, `ChildSheetTab.vue`, `PartyStatus.vue`, `TeamView.vue`,
+   `AdvantageToggles.vue`, and the test files that lock in the current
+   `session.*`/`childSessions.<id>.*` shape (`usePlayerStore.spec.ts`,
+   `ParticipantRepository.spec.ts`, `PlayerView.spec.ts`,
+   `ChildSheetTab.spec.ts`, `PartyStatus.spec.ts`, `AdvantageToggles.spec.ts`,
+   `TeamView.spec.ts`) — do this as its own session, not bundled with
+   anything else.
+4. **Equipment / inventory unification — queued.** `Equipment/Main` is
+   currently written by two incompatible schemas: legacy `InventoryRepository`/
+   `useInventoryStore` (camelCase, actively used by `PlayerView.vue`/
+   `ChildSheetTab.vue`) and target-shaped `EquipmentRepository`/
+   `useEquipmentStore` (PascalCase, currently unused by any view). Needs a
+   product decision first: the target's terse `GearEntry` schema doesn't
+   model the already-shipped categorized-backpack/dons feature
+   (`BackpackGrid.vue`, `DonList.vue`, `src/utils/inventoryText.ts`) —
+   extend the target schema to cover it, or scale back the feature.
+5. **`firestore.rules` full coverage — mostly done.** `Campaigns` root
+   (Cluster 1), nested `Classes`/`Races` (Cluster 2), and nested `Players`/
+   `Characters`/`States/Current`/`Equipment/Main`/`Items` (Cluster 3a) are
+   covered. Still falling through to the default-deny rule: `CampaignRules`
+   (write path is a stub anyway, see Cluster 6), `Roster` (mj/admin-or-none,
+   trivial once Cluster 7 lands), `Notes`. Land the rest once those
+   collections are stable.
+6. **`CampaignRules` write path — queued.** `CampaignRulesRepository.setCampaignRules`
+   is currently a deliberate no-op stub (read-only). Needs a real write path
+   + an editing UI once a store/view actually needs to mutate it.
+7. **`Roster/Summary` materialization — queued.** Currently only ever
+   written by the seed script — no live materialization exists. Needs an
+   explicit decision: real Cloud Functions (no Functions infra exists in
+   this repo today) vs. a client-side recompute convention, appropriate for
+   this hobby-scale project.
+8. **`CharacterRepository` cleanup — partially done.** `PlayerView.vue`'s
+   only live call to `getCharacterById` (the flat, never-seeded `Characters`
+   singleton) has been replaced with `getCharacterByCampaign` (the correct
+   nested lookup) — found because it was blocking every character sheet
+   from loading at all under real `firestore.rules` enforcement (confirmed
+   against the emulator: `PERMISSION_DENIED` — "false for 'get' @ L213",
+   the default-deny catch-all — since that flat collection has zero rule
+   coverage and zero seeded data). `getCharacterById` itself is still
+   defined in `CharacterRepository.ts` (no other call sites) — remove it
+   and the camelCase/PascalCase dual-alias mapping in `mapCharacter` once
+   every producer/consumer is nested + PascalCase, still queued.
+
+### Superseded: old "Per-campaign scoping convention" lock
+
+The following was locked in an earlier phase and is now **superseded** by
+the nested-model decision above — kept here only so old citations don't
+dangle:
+
+> Default shape: a flat top-level collection, one doc per record,
+> `{ campaignId, ...fields }`, queried via `where('campaignId', '==',
+> campaignId)` [...] Do not nest under `campaigns/{campaignId}/...`
+> subcollections — it would be a second, inconsistent access pattern next
+> to every existing repository.
+
+Any future `negotiations`/`themeConfigs`-style singleton should instead
+follow the nested model: `Campaigns/{campaignId}/Negotiations/Current` /
+`Campaigns/{campaignId}/ThemeConfig/Main`, matching the rest of the target
+collection map — not the flat `doc(db, 'negotiations', campaignId)` shape
+this section used to prescribe.
 
 ### Typed inventory schema
 

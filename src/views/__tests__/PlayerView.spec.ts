@@ -26,7 +26,7 @@ vi.mock('../../controllers/useInventoryStore', () => ({
 }))
 
 vi.mock('../../models/repositories/CharacterRepository', () => ({
-  getCharacterById: vi.fn<() => Promise<CharacterProfile | null>>(async () => currentCharacter),
+  getCharacterByCampaign: vi.fn<() => Promise<CharacterProfile | null>>(async () => currentCharacter),
   updateCharacter: vi.fn<() => Promise<void>>(async () => {}),
   // WP03: usePlayerStore().subscribeParty (needed for setInjury to have a
   // campaign context) calls listCharactersByCampaign internally.
@@ -183,7 +183,7 @@ function makeParticipant(overrides: Partial<Participant> = {}): Participant {
     uid: 'owner-uid',
     campaignId: 'campaign-1',
     characterId: 'char-1',
-    status: 'approved',
+    status: 'Approved',
     session: { hp: 10, maxHp: 10, mana: 5, maxMana: 5, posture: 'FOCUS' },
     ...overrides,
   }
@@ -779,7 +779,12 @@ describe('PlayerView — child character tabs & raw editor (WP06)', () => {
       .trigger('click')
     await flushPromises()
 
-    expect(mockUpdateChildSession).toHaveBeenCalledWith('participant-1', 'furmiaou', { hp: 41 })
+    expect(mockUpdateChildSession).toHaveBeenCalledWith(
+      'campaign-1',
+      'participant-1',
+      'furmiaou',
+      { hp: 41 },
+    )
   })
 
   it('falls back to the Fiche tab when the active child tab disappears on the SAME character (spec edge case)', async () => {
