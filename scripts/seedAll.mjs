@@ -460,7 +460,9 @@ async function main() {
   process.exit(0)
 }
 
-main().catch((err) => {
-  console.error('Seed failed:', err?.message ?? err)
-  process.exit(1)
-})
+if (import.meta.url === `file://${process.argv[1]}`) {
+  main().catch((err) => {
+    console.error('Seed failed:', err?.message ?? err)
+    process.exit(1)
+  })
+}

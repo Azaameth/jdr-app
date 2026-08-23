@@ -5,12 +5,19 @@ import type { CharacterInventory, InventoryItem, WeaponArmorItem } from '../../m
 const mocks = vi.hoisted(() => ({
   getInventoryByCharacterId:
     vi.fn<(characterId: string, campaignId: string) => Promise<CharacterInventory | null>>(),
-  updateInventoryItems: vi.fn<(inventoryId: string, items: InventoryItem[]) => Promise<boolean>>(),
+  updateInventoryItems:
+    vi.fn<(campaignId: string, characterId: string, items: InventoryItem[]) => Promise<boolean>>(),
   updateInventoryEquipment:
     vi.fn<
-      (inventoryId: string, kind: 'weapons' | 'armor', list: WeaponArmorItem[]) => Promise<boolean>
+      (
+        campaignId: string,
+        characterId: string,
+        kind: 'weapons' | 'armor',
+        list: WeaponArmorItem[],
+      ) => Promise<boolean>
     >(),
-  updateInventoryGold: vi.fn<(inventoryId: string, gold: number) => Promise<boolean>>(),
+  updateInventoryGold:
+    vi.fn<(campaignId: string, characterId: string, gold: number) => Promise<boolean>>(),
   campaignRulesInventory: vi.fn<() => unknown>(),
 }))
 
@@ -135,12 +142,17 @@ describe('useInventoryStore', () => {
 
       expect(result).toBe(true)
       expect(mocks.updateInventoryItems).toHaveBeenCalledWith(
-        'inv-1',
+        'camp-1',
+        'char-1',
         expect.arrayContaining([
           expect.objectContaining({ name: 'Rations', quantity: 3, category: 'nourriture' }),
         ]),
       )
-      const [, persistedItems] = mocks.updateInventoryItems.mock.calls[0] as [string, InventoryItem[]]
+      const [, , persistedItems] = mocks.updateInventoryItems.mock.calls[0] as [
+        string,
+        string,
+        InventoryItem[],
+      ]
       expect(persistedItems[0]?.itemId).toBeTruthy()
       expect(store.inventory.value?.items).toHaveLength(1)
     })
@@ -162,7 +174,7 @@ describe('useInventoryStore', () => {
       })
 
       expect(result).toBe(true)
-      expect(mocks.updateInventoryItems).toHaveBeenCalledWith('inv-1', [
+      expect(mocks.updateInventoryItems).toHaveBeenCalledWith('camp-1', 'char-1', [
         { itemId: 'i-1', name: 'Kit médical', quantity: 5, category: 'soins' },
       ])
       expect(store.inventory.value?.items).toEqual([
@@ -216,7 +228,7 @@ describe('useInventoryStore', () => {
       const result = await store.removeBackpackItem('i-1')
 
       expect(result).toBe(true)
-      expect(mocks.updateInventoryItems).toHaveBeenCalledWith('inv-1', [items[1]])
+      expect(mocks.updateInventoryItems).toHaveBeenCalledWith('camp-1', 'char-1', [items[1]])
       expect(store.inventory.value?.items).toEqual([items[1]])
     })
   })
@@ -236,7 +248,8 @@ describe('useInventoryStore', () => {
 
       expect(result).toBe(true)
       expect(mocks.updateInventoryEquipment).toHaveBeenCalledWith(
-        'inv-1',
+        'camp-1',
+        'char-1',
         'weapons',
         expect.arrayContaining([
           expect.objectContaining({ name: 'Vieille épée', damageDie: 'D4', damageBonus: -1 }),
@@ -305,7 +318,7 @@ describe('useInventoryStore', () => {
       })
 
       expect(result).toBe(true)
-      expect(mocks.updateInventoryEquipment).toHaveBeenCalledWith('inv-1', 'armor', [
+      expect(mocks.updateInventoryEquipment).toHaveBeenCalledWith('camp-1', 'char-1', 'armor', [
         {
           itemId: 'a-1',
           name: 'Bouclier',
@@ -343,7 +356,7 @@ describe('useInventoryStore', () => {
       const result = await store.removeEquipmentItem('weapons', 'w-1')
 
       expect(result).toBe(true)
-      expect(mocks.updateInventoryEquipment).toHaveBeenCalledWith('inv-1', 'weapons', [])
+      expect(mocks.updateInventoryEquipment).toHaveBeenCalledWith('camp-1', 'char-1', 'weapons', [])
       expect(store.inventory.value?.weapons).toEqual([])
     })
   })
@@ -358,7 +371,7 @@ describe('useInventoryStore', () => {
       const result = await store.setGold(50)
 
       expect(result).toBe(true)
-      expect(mocks.updateInventoryGold).toHaveBeenCalledWith('inv-1', 50)
+      expect(mocks.updateInventoryGold).toHaveBeenCalledWith('camp-1', 'char-1', 50)
       expect(store.inventory.value?.gold).toBe(50)
     })
 

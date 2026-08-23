@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs'
+
 function buildCampaignRules() {
   return {
     Statistics: {
@@ -213,19 +215,19 @@ export function migrateLegacyCampaignData({
 
 if (import.meta.url === `file://${process.argv[1]}`) {
   const campaigns = JSON.parse(
-    require('fs').readFileSync(new URL('./data/campaigns-config.json', import.meta.url), 'utf8'),
+    readFileSync(new URL('./data/campaigns-config.json', import.meta.url), 'utf8'),
   )
   const characters = JSON.parse(
-    require('fs').readFileSync(new URL('./data/characters.json', import.meta.url), 'utf8'),
+    readFileSync(new URL('./data/characters.json', import.meta.url), 'utf8'),
   )
   const participants = JSON.parse(
-    require('fs').readFileSync(new URL('./data/participants.json', import.meta.url), 'utf8'),
+    readFileSync(new URL('./data/participants.json', import.meta.url), 'utf8'),
   )
   const inventories = JSON.parse(
-    require('fs').readFileSync(new URL('./data/inventories.json', import.meta.url), 'utf8'),
+    readFileSync(new URL('./data/inventories.json', import.meta.url), 'utf8'),
   )
-  const classes = JSON.parse(require('fs').readFileSync(new URL('./data/classes.json', import.meta.url), 'utf8'))
-  const races = JSON.parse(require('fs').readFileSync(new URL('./data/races.json', import.meta.url), 'utf8'))
+  const classes = JSON.parse(readFileSync(new URL('./data/classes.json', import.meta.url), 'utf8'))
+  const races = JSON.parse(readFileSync(new URL('./data/races.json', import.meta.url), 'utf8'))
 
   const plan = migrateLegacyCampaignData({
     campaigns,
