@@ -27,7 +27,7 @@ describe('CharacterRepository', () => {
       const repo = await import('../CharacterRepository')
 
       expect(await repo.listCharactersByCampaign('camp-1')).toEqual([])
-      expect(await repo.getCharacterById('char-1')).toBeNull()
+      expect(await repo.getCharacterByCampaign('camp-1', 'char-1')).toBeNull()
       expect(await repo.listChildrenOf('camp-1', 'firm')).toEqual([])
       expect(await repo.updateCharacter('char-1', { backstory: 'x' })).toBeUndefined()
 
@@ -42,12 +42,12 @@ describe('CharacterRepository', () => {
       vi.doMock('../../../firebase/config', () => ({ db: {} }))
     })
 
-    it('reads characters only from the nested campaign collection', async () => {
+    it('reads characters from the nested campaign collection', async () => {
       firestoreMocks.getDocs.mockResolvedValue({
         docs: [
           {
             id: 'char-1',
-            data: () => ({ campaignId: 'camp-1', name: 'Hero' }),
+            data: () => ({ CampaignId: 'camp-1', DisplayName: 'Hero' }),
           },
         ],
       })
@@ -59,34 +59,40 @@ describe('CharacterRepository', () => {
       expect(result).toEqual([{ id: 'char-1', campaignId: 'camp-1', name: 'Hero' }])
     })
 
-    it('returns null from getCharacterById when the doc does not exist', async () => {
+    it('returns null from getCharacterByCampaign when the doc does not exist', async () => {
       firestoreMocks.getDoc.mockResolvedValue({ exists: () => false })
 
       const repo = await import('../CharacterRepository')
-      const result = await repo.getCharacterById('missing')
+      const result = await repo.getCharacterByCampaign('camp-1', 'missing')
 
       expect(result).toBeNull()
     })
 
-    it('maps getCharacterById to { id, ...data } when the doc exists', async () => {
+    it('maps getCharacterByCampaign to the nested doc path and { id, ...data }', async () => {
       firestoreMocks.getDoc.mockResolvedValue({
         exists: () => true,
         id: 'char-1',
-        data: () => ({ campaignId: 'camp-1', name: 'Hero', level: 3 }),
+        data: () => ({ CampaignId: 'camp-1', DisplayName: 'Hero', Level: 3 }),
       })
 
       const repo = await import('../CharacterRepository')
-      const result = await repo.getCharacterById('char-1')
+      const result = await repo.getCharacterByCampaign('camp-1', 'char-1')
 
+      expect(firestoreMocks.doc).toHaveBeenCalledWith({}, 'Campaigns', 'camp-1', 'Characters', 'char-1')
       expect(result).toEqual({ id: 'char-1', campaignId: 'camp-1', name: 'Hero', level: 3 })
     })
 
-    it('listChildrenOf maps docs to { id, ...data } with no field defaulting', async () => {
+    it('listChildrenOf maps docs to the app shape, passing through fields with no alias unmodified', async () => {
       firestoreMocks.getDocs.mockResolvedValue({
         docs: [
           {
             id: 'furmiaou',
-            data: () => ({ campaignId: 'camp-1', name: 'Furmiaou', parentCharacterId: 'firm' }),
+            data: () => ({
+              CampaignId: 'camp-1',
+              DisplayName: 'Furmiaou',
+              ParentCharacterId: 'firm',
+              Elements: ['Nature'],
+            }),
           },
         ],
       })
@@ -95,11 +101,17 @@ describe('CharacterRepository', () => {
       const result = await repo.listChildrenOf('camp-1', 'firm')
 
       expect(result).toEqual([
-        { id: 'furmiaou', campaignId: 'camp-1', name: 'Furmiaou', parentCharacterId: 'firm' },
+        {
+          id: 'furmiaou',
+          campaignId: 'camp-1',
+          name: 'Furmiaou',
+          parentCharacterId: 'firm',
+          Elements: ['Nature'],
+        },
       ])
     })
 
-    it('normalizes canonical Firestore field names into the app shape used by the UI', async () => {
+    it('normalizes canonical PascalCase Firestore field names into the camelCase app shape', async () => {
       firestoreMocks.getDoc.mockResolvedValue({
         exists: () => true,
         id: 'char-1',
@@ -113,7 +125,7 @@ describe('CharacterRepository', () => {
       })
 
       const repo = await import('../CharacterRepository')
-      const result = await repo.getCharacterById('char-1')
+      const result = await repo.getCharacterByCampaign('camp-1', 'char-1')
 
       expect(result).toEqual({
         id: 'char-1',

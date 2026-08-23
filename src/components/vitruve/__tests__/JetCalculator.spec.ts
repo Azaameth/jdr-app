@@ -9,20 +9,25 @@ import { useTickState } from '../tickState'
 // conceivably reach and assert none of them are ever invoked, even after a
 // full round of user interaction (category switch, mod steps, reset).
 const characterRepoMocks = {
-  getCharacterById: vi.fn<() => Promise<null>>(),
+  getCharacterByCampaign: vi.fn<() => Promise<null>>(),
   updateCharacter: vi.fn<() => Promise<void>>(),
   listCharactersByCampaign: vi.fn<() => Promise<[]>>(),
 }
 vi.mock('../../../models/repositories/CharacterRepository', () => characterRepoMocks)
 
 const participantRepoMocks = {
-  getParticipantByCharacterId: vi.fn<() => Promise<null>>(),
-  setParticipantSessionByCharacterId: vi.fn<() => Promise<null>>(),
-  updateSessionFields: vi.fn<() => Promise<void>>(),
-  updateChildSession: vi.fn<() => Promise<void>>(),
+  getParticipant: vi.fn<() => Promise<null>>(),
   subscribeParticipantsByCampaign: vi.fn<() => () => void>(),
 }
 vi.mock('../../../models/repositories/ParticipantRepository', () => participantRepoMocks)
+
+const characterStateRepoMocks = {
+  getCharacterState: vi.fn<() => Promise<null>>(),
+  subscribeCharacterState: vi.fn<() => () => void>(),
+  updateCharacterState: vi.fn<() => Promise<void>>(),
+  resetTeamStatesToMax: vi.fn<() => Promise<number>>(),
+}
+vi.mock('../../../models/repositories/CharacterStateRepository', () => characterStateRepoMocks)
 
 const playerStoreMocks = {
   setAdvantage: vi.fn<() => Promise<void>>(),
@@ -49,6 +54,7 @@ function allMockFns() {
   return [
     ...Object.values(characterRepoMocks),
     ...Object.values(participantRepoMocks),
+    ...Object.values(characterStateRepoMocks),
     ...Object.values(playerStoreMocks),
   ]
 }

@@ -219,17 +219,20 @@ high-complexity policy.
    explicit decision: real Cloud Functions (no Functions infra exists in
    this repo today) vs. a client-side recompute convention, appropriate for
    this hobby-scale project.
-8. **`CharacterRepository` cleanup — partially done.** `PlayerView.vue`'s
-   only live call to `getCharacterById` (the flat, never-seeded `Characters`
-   singleton) has been replaced with `getCharacterByCampaign` (the correct
-   nested lookup) — found because it was blocking every character sheet
-   from loading at all under real `firestore.rules` enforcement (confirmed
-   against the emulator: `PERMISSION_DENIED` — "false for 'get' @ L213",
-   the default-deny catch-all — since that flat collection has zero rule
-   coverage and zero seeded data). `getCharacterById` itself is still
-   defined in `CharacterRepository.ts` (no other call sites) — remove it
-   and the camelCase/PascalCase dual-alias mapping in `mapCharacter` once
-   every producer/consumer is nested + PascalCase, still queued.
+8. **`CharacterRepository` cleanup — done (2026-08-23).** `getCharacterById`
+   (the flat, never-seeded `Characters` singleton — `PlayerView.vue`'s only
+   caller was swapped to `getCharacterByCampaign` back in Cluster 3a)
+   removed entirely: confirmed zero remaining call sites (both real
+   producers, `scripts/seedAll.mjs` and `scripts/migrateLegacyCampaignData.mjs`,
+   write exclusively PascalCase into the nested `Characters` collection).
+   `mapCharacter`'s camelCase/PascalCase dual-alias fallback simplified to
+   PascalCase-only for the same reason — the "any other field" passthrough
+   loop (for genuinely unmapped fields like `Statistics`/`Skills`) is
+   unaffected. Updated `CharacterRepository.spec.ts` (dropped the
+   camelCase-input case, rewrote the rest against `getCharacterByCampaign`)
+   and `JetCalculator.spec.ts`'s defensive "never touches Firestore" mock
+   list, which had drifted to reference several functions Cluster 3b had
+   already removed from `ParticipantRepository`.
 
 ### Superseded: old "Per-campaign scoping convention" lock
 

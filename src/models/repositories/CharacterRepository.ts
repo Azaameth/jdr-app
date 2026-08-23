@@ -3,36 +3,37 @@ import { collection, doc, getDoc, getDocs, query, updateDoc, where } from 'fireb
 import { db } from '../../firebase/config'
 import type { CharacterProfile } from '../types/Character'
 
+// Every producer (scripts/seedAll.mjs, scripts/migrateLegacyCampaignData.mjs)
+// writes exclusively PascalCase into the nested Characters collection — the
+// camelCase fallback this used to carry (for a flat legacy shape) was removed
+// once that was confirmed (NEXTSTEPS.md migration ledger, Cluster 8).
 function mapCharacter(docSnap: { id: string; data: () => Record<string, unknown> }): CharacterProfile {
   const raw = docSnap.data() as Record<string, unknown>
   const normalized: Record<string, unknown> = { id: docSnap.id }
 
-  const fieldAliases: Array<[string, string[]]> = [
-    ['campaignId', ['CampaignId', 'campaignId']],
-    ['ownerUid', ['PlayerId', 'ownerUid']],
-    ['name', ['DisplayName', 'name']],
-    ['raceId', ['RaceId', 'raceId']],
-    ['classId', ['ClassId', 'classId']],
-    ['gender', ['Gender', 'gender']],
-    ['level', ['Level', 'level']],
-    ['parentCharacterId', ['ParentCharacterId', 'parentCharacterId']],
-    ['activeFormId', ['ActiveFormId', 'activeFormId']],
-    ['img', ['PictureUrl', 'pictureUrl', 'img']],
-    ['backstory', ['Backstory', 'backstory']],
+  const fieldAliases: Array<[string, string]> = [
+    ['campaignId', 'CampaignId'],
+    ['ownerUid', 'PlayerId'],
+    ['name', 'DisplayName'],
+    ['raceId', 'RaceId'],
+    ['classId', 'ClassId'],
+    ['gender', 'Gender'],
+    ['level', 'Level'],
+    ['parentCharacterId', 'ParentCharacterId'],
+    ['activeFormId', 'ActiveFormId'],
+    ['img', 'PictureUrl'],
+    ['backstory', 'Backstory'],
   ]
 
-  for (const [targetKey, aliases] of fieldAliases) {
-    const value = aliases.map((alias) => raw[alias]).find((candidate) => candidate !== undefined)
-    if (value !== undefined) {
-      normalized[targetKey] = value
+  for (const [targetKey, sourceKey] of fieldAliases) {
+    if (raw[sourceKey] !== undefined) {
+      normalized[targetKey] = raw[sourceKey]
     }
   }
 
+  const aliasedSourceKeys = new Set(fieldAliases.map(([, sourceKey]) => sourceKey))
   for (const [key, value] of Object.entries(raw)) {
-    if (key in normalized) continue
-    if (['CampaignId', 'campaignId', 'PlayerId', 'ownerUid', 'DisplayName', 'name', 'ParentCharacterId', 'parentCharacterId', 'ActiveFormId', 'activeFormId', 'RaceId', 'raceId', 'ClassId', 'classId', 'Gender', 'gender', 'Level', 'level', 'PictureUrl', 'pictureUrl', 'Backstory', 'backstory'].includes(key)) {
-      continue
-    }
+    if (aliasedSourceKeys.has(key)) continue
     normalized[key] = value
   }
 
@@ -54,14 +55,6 @@ export async function listCharactersByCampaign(campaignId: string): Promise<Char
 
   const snapshot = await getDocs(getCampaignCharactersCollection(campaignId))
   return snapshot.docs.map((docSnap) => mapCharacter(docSnap))
-}
-
-export async function getCharacterById(id: string): Promise<CharacterProfile | null> {
-  if (!db) return null
-  const ref = doc(db, 'Characters', id)
-  const snap = await getDoc(ref)
-  if (!snap.exists()) return null
-  return mapCharacter({ id: snap.id, data: () => snap.data() as Record<string, unknown> })
 }
 
 export async function getCharacterByCampaign(
