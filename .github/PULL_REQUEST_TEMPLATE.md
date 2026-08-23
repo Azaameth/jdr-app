@@ -17,4 +17,5 @@
 
 - [ ] Pas de secret, cle Firebase ou donnee personnelle ajoute(e)
 - [ ] Les donnees de seed, les regles Firestore et la documentation ont ete mis a jour si necessaire
+- [ ] `CHANGELOG.md` a ete mis a jour si le changement est visible pour les utilisateurs
 - [ ] La migration legacy a ete verifiee dans `MIGRATION_BACKLOG.md` si elle est concernee

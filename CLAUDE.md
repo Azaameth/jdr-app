@@ -21,13 +21,17 @@ This app is a rewrite of a single-file monolith (`legacy-reference/index.html`, 
 
 `legacy-reference/index.html` is ~4200 lines — grep it or delegate to a subagent to pull the relevant section instead of reading the whole file when consulting it as a spec.
 
+The target Firestore schema for the in-progress data-model migration is designed across six docs in `docs/` — see `docs/README.md` for what each one covers; `docs/rpg-data-model.md` is the authoritative schema.
+
 ## Conventions
 
-- **Stores** (`src/controllers/use*Store.ts`): hand-rolled singleton composables — module-scope `ref`/`computed` + a factory function returning computed properties and async methods. This is the committed pattern; Pinia was installed but never used beyond registration and has been removed. Follow the existing pattern (see `useCampaignStore.ts`) for new stores, including the `error.value = err instanceof Error ? err.message : '<French fallback>'` shape on every catch.
+- **Stores** (`src/controllers/use*Store.ts`): hand-rolled singleton composables — module-scope `ref`/`computed` + a factory function returning computed properties and async methods. This is the committed pattern; Pinia was installed but never used beyond registration and has been removed (see `docs/decisions/0001-hand-rolled-stores-over-pinia.md`). Follow the existing pattern (see `useCampaignStore.ts`) for new stores, including the `error.value = err instanceof Error ? err.message : '<French fallback>'` shape on every catch.
 - **Repositories** (`src/models/repositories/*Repository.ts`): plain async functions per Firestore collection, no classes. Every function starts with `if (!db) return …` so the app still works (read-only/no-op) when Firebase isn't configured — e.g. GitHub Pages builds without secrets. Map Firestore docs with `{ id: doc.id, ...doc.data() }`, not a blind cast.
 - **Live subscriptions**: repository-level `subscribe*` functions (e.g. `subscribeParticipantsByCampaign`, `subscribeCampaignSession`) wrap Firestore `onSnapshot` and return its `Unsubscribe` handle (`() => void`); when `!db` they return a no-op unsubscribe and never invoke the callback. Stores own the listener lifecycle: keep the `Unsubscribe` in a module-scope variable, expose idempotent `subscribeX(id)` (re-attaching to the same id is a no-op; a different id detaches the previous listener first) and `unsubscribeX()` methods — see `usePlayerStore.subscribeParty`/`unsubscribeParty` and `useCampaignSessionStore.subscribe`/`unsubscribe`.
 - User-facing strings are French; keep new ones consistent with the existing tone (see error messages in `useAuthStore.ts`, `useCampaignStore.ts`).
-- Role-based access (`user.role`: `admin` / `mj` / `joueur`) gates both routes (`router.beforeEach` in `src/router/index.ts`) and in-view checks (e.g. `PlayerView.vue` only lets a `joueur` see their own character, resolved via `usePlayerStore().resolveCharacterId`). `firestore.rules` enforces the same model server-side (a user can never write their own `role`; only `mj`/`admin` can write campaigns) — see README.md's "Known follow-ups" for its deployment status.
+- Role-based access (`user.role`: `admin` / `mj` / `joueur`) gates both routes (`router.beforeEach` in `src/router/index.ts`) and in-view checks (e.g. `PlayerView.vue` only lets a `joueur` see their own character, resolved via `usePlayerStore().resolveCharacterId`). `firestore.rules` enforces the same model server-side (a user can never write their own `role`; only `mj`/`admin` can write campaigns) and is deployed to production automatically (`.github/workflows/deploy.yml` redeploys it whenever the file changes). See `docs/decisions/0002-role-based-access-admin-mj-joueur.md` for why the model is shaped this way.
+
+Irreversible architectural choices are logged in `docs/decisions/` — check there before re-litigating one.
 
 ## Data seeding
 

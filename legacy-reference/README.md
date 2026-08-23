@@ -10,12 +10,22 @@ section here for the intended behavior/content, then implement it properly
 against the current architecture (Pinia-less composable stores, the
 repository layer, Firestore) — don't copy the markup/JS as-is.
 
-Known unported features (see the migration backlog for current status):
+**`MIGRATION_BACKLOG.md` is the source of truth for what's shipped vs. unported
+— this file only points at where each feature's legacy spec lives.**
+
+Still unported (see `MIGRATION_BACKLOG.md` for the full open list, including
+newer pages like Adventure Dice, Economy, Create a Character, Rules, 12
+Kingdoms, History, and NPCs & Factions):
+
+- Negotiation / balance mechanic (`#s-negociation`)
+- Theme & design editor (sidebar + design editor modals)
+
+Shipped, but the legacy section is still the reference for original intent if
+you need it (see `MIGRATION_BACKLOG.md`'s "Already covered by the current app"
+for what actually landed and where):
 
 - Character sheet layout ("vitruve" — search `Layout vitruve JDR`)
 - Faction/caste browser ("classeur" tabs — La Rose Noire, L'Ordre du Savoir,
   Téméraires, Paysans, Nobles, Marchands, Fonctionnaires, Religieux)
 - Cosmology tree (Déïques / Légendaires / Effroyables / Rares / Communes)
-- Negotiation / balance mechanic
-- Theme & design editor (sidebar + design editor modals)
 - Inventory slots & "dons" (gifts) system

@@ -12,6 +12,7 @@
 - Les evolutions issues du prototype consultent la section concernee de `legacy-reference/index.html`, sans recopier son implementation.
 - Les changements touchant l'etat, l'interface et Firestore commencent par verrouiller le contrat dans `NEXTSTEPS.md`, conformement a `CLAUDE.md`.
 - Ne commitez jamais `.env.local`, une cle de service ou des donnees de production.
+- Les changements visibles pour les utilisateurs ajoutent une entree dans `CHANGELOG.md`.
 
 ## Verification locale
 
