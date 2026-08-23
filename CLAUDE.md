@@ -17,9 +17,7 @@ Campaign manager for "La Tour des Sorciers", a homebrew French tabletop RPG. Vue
 
 ## Migration context
 
-This app is a rewrite of a single-file monolith (`legacy-reference/index.html`, ~4200 lines of inline HTML/CSS/JS). That file is kept as the behavioral reference for features not yet ported — see `legacy-reference/README.md` for the list and pointers to the relevant sections. When migrating a feature from it, treat it as a spec of intended behavior, not code to copy.
-
-spec-kitty (`.kittify/`) tracks the remaining migration work as missions. Check there (or the migration backlog) before starting new feature work. See README.md's "Working with spec-kitty" section for the concrete command sequence and gotchas discovered running the first mission end-to-end (worktrees don't share gitignored files, the analysis gate is enforced, etc.).
+This app is a rewrite of a single-file monolith (`legacy-reference/index.html`, ~4200 lines of inline HTML/CSS/JS). That file is kept as the behavioral reference for features not yet ported — see `legacy-reference/README.md` for the list and pointers to the relevant sections. When migrating a feature from it, treat it as a spec of intended behavior, not code to copy. Check `MIGRATION_BACKLOG.md` before starting new feature work.
 
 `legacy-reference/index.html` is ~4200 lines — grep it or delegate to a subagent to pull the relevant section instead of reading the whole file when consulting it as a spec.
 
