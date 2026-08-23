@@ -211,16 +211,14 @@ describe('ChildSheetTab', () => {
         canEdit: false,
         equipment: [
           {
-            itemId: 'a-1',
-            name: 'Collier runique',
-            equipped: true,
-            statBonus: { stat: 'armorMagique', amount: 1 },
+            EntryId: 'a-1',
+            DisplayName: 'Collier runique',
+            BonusRaw: { MagicalArmor: 1 },
           },
           {
-            itemId: 'a-2',
-            name: 'Griffes renforcées',
-            equipped: true,
-            statBonus: { stat: 'armorPhysique', amount: 4 },
+            EntryId: 'a-2',
+            DisplayName: 'Griffes renforcées',
+            BonusRaw: { PhysicalArmor: 4 },
           },
         ],
       },

@@ -195,6 +195,41 @@ function parseSessionInventory(raw) {
   })
 }
 
+// classifyInventory.mjs still classifies into the legacy WeaponArmorItem
+// vocabulary (damageDie/damageBonus/armorRating/statNote) — the target
+// GearEntry schema (docs/rpg-data-model.md §4.9) has no mechanic for those at
+// all (see the equipment-stats-dice mechanics note: gear only affects base
+// stats via a flat, human-assigned BonusRaw, never an automated damage/armor
+// roll). Preserve the legacy annotation as descriptive prose instead of
+// silently dropping it — BonusRaw stays empty until a human assigns a real
+// value.
+function legacyGearAnnotation(item) {
+  const parts = []
+  if (item.damageDie) {
+    const bonus =
+      typeof item.damageBonus === 'number'
+        ? `/${item.damageBonus >= 0 ? '+' : ''}${item.damageBonus}`
+        : ''
+    parts.push(`${item.damageDie}${bonus}`)
+  }
+  if (typeof item.armorRating === 'number') {
+    parts.push(`RD${item.armorRating}`)
+  }
+  if (item.statNote) {
+    parts.push(item.statNote)
+  }
+  return parts.join(' — ')
+}
+
+function toGearEntry(item) {
+  const description = legacyGearAnnotation(item)
+  return {
+    EntryId: item.itemId,
+    DisplayName: item.name,
+    ...(description ? { Description: description } : {}),
+  }
+}
+
 function toGender(value) {
   const n = normalize(value)
   if (n === 'homme') return 'Homme'
@@ -469,8 +504,8 @@ async function main() {
       }
 
       const equipmentDoc = {
-        Armor: inventory.armor ?? [],
-        Weapons: inventory.weapons ?? [],
+        Armor: (inventory.armor ?? []).map(toGearEntry),
+        Weapons: (inventory.weapons ?? []).map(toGearEntry),
         Currency: Number(inventory.gold ?? 0),
         PlayerId: ownerUid,
         CampaignId: campaignId,
@@ -487,9 +522,6 @@ async function main() {
           const itemId = item.itemId || `item-${Date.now()}-${Math.random().toString(16).slice(2)}`
           await writeDocIfNeeded(db, `Campaigns/${campaignId}/Characters/${characterId}/Items/${itemId}`, {
             DisplayName: item.name,
-            Description: '',
-            BonusRaw: {},
-            BonusConditional: [],
             Quantity: Number(item.quantity ?? 1),
             PlayerId: ownerUid,
             CampaignId: campaignId,

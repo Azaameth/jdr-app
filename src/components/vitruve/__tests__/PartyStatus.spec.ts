@@ -6,7 +6,7 @@ import type { CharacterStateDocument } from '../../../models/repositories/Charac
 
 // PartyStatus consumes usePlayerStore().party directly (singleton composable
 // — no data props). Mock the store module the same way PlayerView.spec.ts
-// mocks useAuthStore/useInventoryStore.
+// mocks useAuthStore/useEquipmentStore.
 const mockParty =
   vi.fn<() => Array<{ character: CharacterProfile; state: CharacterStateDocument }>>()
 vi.mock('../../../controllers/usePlayerStore', () => ({

@@ -2,9 +2,10 @@ import { afterEach, describe, it, expect, vi, beforeEach } from 'vitest'
 import { computed, ref } from 'vue'
 import { flushPromises, mount } from '@vue/test-utils'
 import type { CharacterProfile } from '../../models/types/Character'
-import type { CharacterInventory, WeaponArmorItem } from '../../models/types/Inventory'
 import type { Participant } from '../../models/types/Participant'
 import type { CharacterStateDocument } from '../../models/repositories/CharacterStateRepository'
+import type { CharacterEquipmentDocument, GearEntry } from '../../models/repositories/EquipmentRepository'
+import type { BagItemDocument } from '../../models/repositories/ItemRepository'
 import type { User } from '../../models/types/User'
 
 vi.mock('vue-router', async () => {
@@ -20,9 +21,9 @@ vi.mock('../../controllers/useAuthStore', () => ({
   useAuthStore: () => mockAuthState(),
 }))
 
-const mockInventoryState = vi.fn<() => ReturnType<typeof makeInventoryStore>>()
-vi.mock('../../controllers/useInventoryStore', () => ({
-  useInventoryStore: () => mockInventoryState(),
+const mockEquipmentState = vi.fn<() => ReturnType<typeof makeEquipmentStore>>()
+vi.mock('../../controllers/useEquipmentStore', () => ({
+  useEquipmentStore: () => mockEquipmentState(),
 }))
 
 vi.mock('../../models/repositories/CharacterRepository', () => ({
@@ -86,6 +87,11 @@ vi.mock('../../models/repositories/ClassRepository', () => ({
 vi.mock('../../models/repositories/RaceRepository', () => ({
   listRacesByCampaign: vi.fn<() => Promise<unknown[]>>(async () => []),
 }))
+// loadCharacter() also fetches CampaignRules (for MaxItems/MaxArmorSlots/
+// MaxWeaponSlots caps) — avoid a real Firestore network call.
+vi.mock('../../models/repositories/CampaignRulesRepository', () => ({
+  getCampaignRules: vi.fn<() => Promise<null>>(async () => null),
+}))
 
 import PlayerView from '../PlayerView.vue'
 import { usePlayerStore } from '../../controllers/usePlayerStore'
@@ -111,9 +117,10 @@ function makeAuthStore(user: User | null) {
   }
 }
 
-function makeInventoryStore(
-  inventory: CharacterInventory | null,
-  childInventoriesMap?: Record<string, CharacterInventory>,
+function makeEquipmentStore(
+  equipment: CharacterEquipmentDocument,
+  items: BagItemDocument[] = [],
+  childEquipmentMap?: Record<string, CharacterEquipmentDocument>,
 ) {
   // `errorRef` backs the `error` computed so tests covering the T016 save/delete
   // wiring (review cycle 1 feedback) can flip the store's error mid-test via
@@ -124,28 +131,31 @@ function makeInventoryStore(
   const errorRef = ref<string | null>(null)
   // Reactive so tests can mutate equipment mid-test (e.g. simulate an
   // unequip) and observe PlayerView's effective-max watchers react, the same
-  // way saveEquipmentItem/removeEquipmentItem mutate the real store's ref.
-  const inventoryRef = ref<CharacterInventory | null>(inventory)
+  // way saveEquippedItem/removeEquippedItem mutate the real store's ref.
+  const equipmentRef = ref<CharacterEquipmentDocument>(equipment)
+  const itemsRef = ref<BagItemDocument[]>(items)
   return {
-    inventory: computed(() => inventoryRef.value),
-    // WP02: mirrors the real store's childInventories cache — defaults to `{}`
+    equipment: computed(() => equipmentRef.value),
+    items: computed(() => itemsRef.value),
+    // WP02: mirrors the real store's childEquipment cache — defaults to `{}`
     // so every pre-existing single-argument call site keeps working unchanged.
-    childInventories: computed(() => childInventoriesMap ?? {}),
-    loading: computed(() => false),
+    childEquipment: computed(() => childEquipmentMap ?? {}),
     error: computed(() => errorRef.value),
-    loadInventory: vi.fn<() => Promise<CharacterInventory | null>>(async () => inventoryRef.value),
-    saveBackpackItem: vi.fn<() => Promise<boolean>>(async () => true),
-    removeBackpackItem: vi.fn<() => Promise<boolean>>(async () => true),
-    saveEquipmentItem: vi.fn<() => Promise<boolean>>(async () => true),
-    removeEquipmentItem: vi.fn<() => Promise<boolean>>(async () => true),
-    setGold: vi.fn<() => Promise<boolean>>(async () => true),
-    freeSlots: vi.fn<() => number>(() => 0),
-    loadChildInventories: vi.fn<() => Promise<void>>(async () => {}),
+    subscribe: vi.fn<() => void>(),
+    unsubscribe: vi.fn<() => void>(),
+    loadChildEquipment: vi.fn<() => Promise<void>>(async () => {}),
+    saveBagItem: vi.fn<() => Promise<boolean>>(async () => true),
+    removeBagItem: vi.fn<() => Promise<boolean>>(async () => true),
+    saveEquippedItem: vi.fn<() => Promise<boolean>>(async () => true),
+    removeEquippedItem: vi.fn<() => Promise<boolean>>(async () => true),
+    equip: vi.fn<() => Promise<boolean>>(async () => true),
+    unequip: vi.fn<() => Promise<boolean>>(async () => true),
+    setCurrency: vi.fn<() => Promise<boolean>>(async () => true),
     setError: (message: string | null) => {
       errorRef.value = message
     },
-    setInventory: (next: CharacterInventory | null) => {
-      inventoryRef.value = next
+    setEquipment: (next: CharacterEquipmentDocument) => {
+      equipmentRef.value = next
     },
   }
 }
@@ -174,16 +184,13 @@ function makeCharacter(overrides: Partial<CharacterProfile> = {}): CharacterProf
   }
 }
 
-function makeInventory(overrides: Partial<CharacterInventory> = {}): CharacterInventory {
+function makeEquipment(overrides: Partial<CharacterEquipmentDocument> = {}): CharacterEquipmentDocument {
   return {
-    id: 'inv-1',
-    uid: 'owner-uid',
-    campaignId: 'campaign-1',
-    characterId: 'char-1',
-    items: [],
-    weapons: [],
-    armor: [],
-    gold: 0,
+    Armor: [],
+    Weapons: [],
+    Currency: 0,
+    PlayerId: 'owner-uid',
+    CampaignId: 'campaign-1',
     ...overrides,
   }
 }
@@ -243,7 +250,7 @@ describe('PlayerView — inventory slot editing permissions (T015/T017)', () => 
     mockAuthState.mockReturnValue(
       makeAuthStore({ uid: 'owner-uid', displayName: 'J', email: '', photoURL: '', role: 'joueur' }),
     )
-    mockInventoryState.mockReturnValue(makeInventoryStore(makeInventory({ uid: 'owner-uid' })))
+    mockEquipmentState.mockReturnValue(makeEquipmentStore(makeEquipment({ PlayerId: 'owner-uid' })))
 
     const wrapper = mount(PlayerView, { props: { campaignId: 'campaign-1', characterId: 'char-1' } })
     await flushPromises()
@@ -262,7 +269,7 @@ describe('PlayerView — inventory slot editing permissions (T015/T017)', () => 
     mockAuthState.mockReturnValue(
       makeAuthStore({ uid: 'mj-uid', displayName: 'MJ', email: '', photoURL: '', role: 'mj' }),
     )
-    mockInventoryState.mockReturnValue(makeInventoryStore(makeInventory({ uid: 'owner-uid' })))
+    mockEquipmentState.mockReturnValue(makeEquipmentStore(makeEquipment({ PlayerId: 'owner-uid' })))
 
     const wrapper = mount(PlayerView, { props: { campaignId: 'campaign-1', characterId: 'char-1' } })
     await flushPromises()
@@ -275,55 +282,18 @@ describe('PlayerView — inventory slot editing permissions (T015/T017)', () => 
     }
   })
 
-  it('denies edit affordances when the viewer is not the inventory owner and not mj/admin', async () => {
-    // Character ownership matches the joueur (passes the pre-existing view guard),
-    // but the loaded inventory belongs to a different uid — canEditInventory must
-    // key off the inventory's uid, not merely "is this my character page".
-    mockAuthState.mockReturnValue(
-      makeAuthStore({ uid: 'owner-uid', displayName: 'J', email: '', photoURL: '', role: 'joueur' }),
-    )
-    mockInventoryState.mockReturnValue(makeInventoryStore(makeInventory({ uid: 'someone-else' })))
-
-    const wrapper = mount(PlayerView, { props: { campaignId: 'campaign-1', characterId: 'char-1' } })
-    await flushPromises()
-    await selectTab(wrapper, 'Inventaire')
-
-    const slotElements = wrapper.findAll('.backpack-grid .slot')
-    expect(slotElements.length).toBeGreaterThan(0)
-    for (const slot of slotElements) {
-      expect(slot.element.tagName).toBe('DIV')
-    }
-  })
-
   it('denies edit affordances (and view access entirely) for a joueur viewing another character', async () => {
     currentCharacter = makeCharacter({ ownerUid: 'someone-else' })
     mockAuthState.mockReturnValue(
       makeAuthStore({ uid: 'owner-uid', displayName: 'J', email: '', photoURL: '', role: 'joueur' }),
     )
-    mockInventoryState.mockReturnValue(makeInventoryStore(makeInventory({ uid: 'someone-else' })))
+    mockEquipmentState.mockReturnValue(makeEquipmentStore(makeEquipment({ PlayerId: 'someone-else' })))
 
     const wrapper = mount(PlayerView, { props: { campaignId: 'campaign-1', characterId: 'char-1' } })
     await flushPromises()
 
     expect(wrapper.text()).toContain('Accès refusé')
     expect(wrapper.find('.backpack-grid').exists()).toBe(false)
-  })
-
-  it('renders no edit affordance in degraded no-backend mode (no inventory loaded)', async () => {
-    mockAuthState.mockReturnValue(
-      makeAuthStore({ uid: 'owner-uid', displayName: 'J', email: '', photoURL: '', role: 'joueur' }),
-    )
-    mockInventoryState.mockReturnValue(makeInventoryStore(null))
-
-    const wrapper = mount(PlayerView, { props: { campaignId: 'campaign-1', characterId: 'char-1' } })
-    await flushPromises()
-    await selectTab(wrapper, 'Inventaire')
-
-    const slotElements = wrapper.findAll('.backpack-grid .slot')
-    expect(slotElements.length).toBeGreaterThan(0)
-    for (const slot of slotElements) {
-      expect(slot.element.tagName).toBe('DIV')
-    }
   })
 })
 
@@ -332,9 +302,9 @@ describe('PlayerView — inventory slot editing permissions (T015/T017)', () => 
 // *display* was tested in isolation (InventorySlotModal.spec.ts) and only
 // permission gating was tested here. These cases mount PlayerView, drive a
 // real slot-click → modal → submit/delete round trip, and assert the correct
-// useInventoryStore method is invoked with the right payload and that the
+// useEquipmentStore method is invoked with the right payload and that the
 // modal opens/closes/stays-open correctly on success/failure.
-describe('PlayerView — inventory slot save/delete store integration (T016, review cycle 1)', () => {
+describe('PlayerView — equipment slot save/delete store integration (T016, review cycle 1)', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     currentCharacter = makeCharacter()
@@ -348,14 +318,6 @@ describe('PlayerView — inventory slot save/delete store integration (T016, rev
     )
   }
 
-  function findCategorySection(wrapper: ReturnType<typeof mount>, headerPrefix: string) {
-    const section = wrapper
-      .findAll('.category')
-      .find((candidate) => candidate.find('.category-header').text().startsWith(headerPrefix))
-    if (!section) throw new Error(`category section "${headerPrefix}" not found`)
-    return section
-  }
-
   function findWeaponArmorList(wrapper: ReturnType<typeof mount>, title: string) {
     const list = wrapper
       .findAll('.weapon-armor-list')
@@ -364,24 +326,24 @@ describe('PlayerView — inventory slot save/delete store integration (T016, rev
     return list
   }
 
-  function firstSlot(container: ReturnType<typeof findCategorySection>) {
+  function firstSlot(container: ReturnType<typeof findWeaponArmorList>) {
     const slot = container.findAll('.slot')[0]
     if (!slot) throw new Error('expected at least one .slot element')
     return slot
   }
 
-  it('opens the modal via slot-click, calls saveBackpackItem with the right payload, and closes on success', async () => {
+  it('opens the modal via slot-click, calls saveBagItem with the right payload, and closes on success', async () => {
     mountAsOwner()
-    const store = makeInventoryStore(makeInventory({ uid: 'owner-uid', items: [] }))
-    mockInventoryState.mockReturnValue(store)
+    const store = makeEquipmentStore(makeEquipment({ PlayerId: 'owner-uid' }), [])
+    mockEquipmentState.mockReturnValue(store)
 
     const wrapper = mount(PlayerView, { props: { campaignId: 'campaign-1', characterId: 'char-1' } })
     await flushPromises()
     await selectTab(wrapper, 'Inventaire')
 
-    // Munitions (max 2 slots) has an empty slot to click for "add" while items is [].
-    const munitionsSlot = firstSlot(findCategorySection(wrapper, 'Munitions'))
-    await munitionsSlot.trigger('click')
+    const backpackSlot = wrapper.findAll('.backpack-grid .slot')[0]
+    if (!backpackSlot) throw new Error('expected at least one backpack slot')
+    await backpackSlot.trigger('click')
     await flushPromises()
     expect(wrapper.find('.inventory-slot-form').exists()).toBe(true)
 
@@ -389,37 +351,36 @@ describe('PlayerView — inventory slot save/delete store integration (T016, rev
     await wrapper.find('form.inventory-slot-form').trigger('submit')
     await flushPromises()
 
-    expect(store.saveBackpackItem).toHaveBeenCalledWith({
-      itemId: undefined,
-      name: 'Silex',
-      category: 'munitions',
-      quantity: 1,
+    expect(store.saveBagItem).toHaveBeenCalledWith({
+      EntryId: undefined,
+      DisplayName: 'Silex',
+      Quantity: 1,
     })
     // Success → modal closes (both `open` and `context` reset in PlayerView).
     expect(wrapper.find('.inventory-slot-form').exists()).toBe(false)
   })
 
-  it('commits a gold input edit by calling inventoryStore.setGold with the parsed value', async () => {
+  it('commits a currency input edit by calling equipmentStore.setCurrency with the parsed value', async () => {
     mountAsOwner()
-    const store = makeInventoryStore(makeInventory({ uid: 'owner-uid', gold: 10 }))
-    mockInventoryState.mockReturnValue(store)
+    const store = makeEquipmentStore(makeEquipment({ PlayerId: 'owner-uid', Currency: 10 }))
+    mockEquipmentState.mockReturnValue(store)
 
     const wrapper = mount(PlayerView, { props: { campaignId: 'campaign-1', characterId: 'char-1' } })
     await flushPromises()
     await selectTab(wrapper, 'Inventaire')
 
-    const goldInput = wrapper.find('.gold-input')
-    await goldInput.setValue('75')
-    await goldInput.trigger('blur')
+    const currencyInput = wrapper.find('.currency-input')
+    await currencyInput.setValue('75')
+    await currencyInput.trigger('blur')
     await flushPromises()
 
-    expect(store.setGold).toHaveBeenCalledWith(75)
+    expect(store.setCurrency).toHaveBeenCalledWith(75)
   })
 
-  it('opens the modal for an equipment slot, calls saveEquipmentItem with the parsed payload, and closes on success', async () => {
+  it('opens the modal for an equipment slot, calls saveEquippedItem with the parsed payload, and closes on success', async () => {
     mountAsOwner()
-    const store = makeInventoryStore(makeInventory({ uid: 'owner-uid' }))
-    mockInventoryState.mockReturnValue(store)
+    const store = makeEquipmentStore(makeEquipment({ PlayerId: 'owner-uid' }))
+    mockEquipmentState.mockReturnValue(store)
 
     const wrapper = mount(PlayerView, { props: { campaignId: 'campaign-1', characterId: 'char-1' } })
     await flushPromises()
@@ -431,60 +392,58 @@ describe('PlayerView — inventory slot save/delete store integration (T016, rev
     expect(wrapper.find('.inventory-slot-form').exists()).toBe(true)
 
     await wrapper.find('#inv-slot-name').setValue('Épée courte')
-    await wrapper.find('#inv-slot-stat').setValue('D6')
+    await wrapper.find('.bonus-add').trigger('click')
+    await wrapper.find('.bonus-stat').setValue('PhysicalAttack')
+    await wrapper.find('.bonus-amount').setValue('3')
     await wrapper.find('form.inventory-slot-form').trigger('submit')
     await flushPromises()
 
-    expect(store.saveEquipmentItem).toHaveBeenCalledWith('weapons', {
-      itemId: undefined,
-      name: 'Épée courte',
-      damageDie: 'D6',
+    expect(store.saveEquippedItem).toHaveBeenCalledWith('Weapons', {
+      EntryId: undefined,
+      DisplayName: 'Épée courte',
+      BonusRaw: { PhysicalAttack: 3 },
     })
     expect(wrapper.find('.inventory-slot-form').exists()).toBe(false)
   })
 
-  it('calls removeBackpackItem on delete and closes the modal on success', async () => {
+  it('calls removeBagItem on delete and closes the modal on success', async () => {
     mountAsOwner()
-    const store = makeInventoryStore(
-      makeInventory({
-        uid: 'owner-uid',
-        items: [{ itemId: 'item-1', name: 'Ration', category: 'nourriture', quantity: 1 }],
-      }),
-    )
-    mockInventoryState.mockReturnValue(store)
+    const store = makeEquipmentStore(makeEquipment({ PlayerId: 'owner-uid' }), [
+      {
+        EntryId: 'item-1',
+        DisplayName: 'Ration',
+        Quantity: 1,
+        PlayerId: 'owner-uid',
+        CampaignId: 'campaign-1',
+      },
+    ])
+    mockEquipmentState.mockReturnValue(store)
 
     const wrapper = mount(PlayerView, { props: { campaignId: 'campaign-1', characterId: 'char-1' } })
     await flushPromises()
     await selectTab(wrapper, 'Inventaire')
 
-    const nourritureSlot = firstSlot(findCategorySection(wrapper, 'Nourriture'))
-    await nourritureSlot.trigger('click')
+    const filledSlot = wrapper.find('.backpack-grid .slot:not(.slot-empty)')
+    await filledSlot.trigger('click')
     await flushPromises()
 
     expect(wrapper.find('.inventory-slot-delete').exists()).toBe(true)
     await wrapper.find('.inventory-slot-delete').trigger('click')
     await flushPromises()
 
-    expect(store.removeBackpackItem).toHaveBeenCalledWith('item-1')
+    expect(store.removeBagItem).toHaveBeenCalledWith('item-1')
     expect(wrapper.find('.inventory-slot-form').exists()).toBe(false)
   })
 
-  it('calls removeEquipmentItem on delete and closes the modal on success', async () => {
+  it('calls removeEquippedItem on delete and closes the modal on success', async () => {
     mountAsOwner()
-    const store = makeInventoryStore(
-      makeInventory({
-        uid: 'owner-uid',
-        armor: [
-          {
-            itemId: 'armor-1',
-            name: 'Cuirasse',
-            equipped: true,
-            statBonus: { stat: 'armorPhysique', amount: 4 },
-          },
-        ],
+    const store = makeEquipmentStore(
+      makeEquipment({
+        PlayerId: 'owner-uid',
+        Armor: [{ EntryId: 'armor-1', DisplayName: 'Cuirasse', BonusRaw: { PhysicalArmor: 4 } }],
       }),
     )
-    mockInventoryState.mockReturnValue(store)
+    mockEquipmentState.mockReturnValue(store)
 
     const wrapper = mount(PlayerView, { props: { campaignId: 'campaign-1', characterId: 'char-1' } })
     await flushPromises()
@@ -498,36 +457,37 @@ describe('PlayerView — inventory slot save/delete store integration (T016, rev
     await wrapper.find('.inventory-slot-delete').trigger('click')
     await flushPromises()
 
-    expect(store.removeEquipmentItem).toHaveBeenCalledWith('armor', 'armor-1')
+    expect(store.removeEquippedItem).toHaveBeenCalledWith('Armor', 'armor-1')
     expect(wrapper.find('.inventory-slot-form').exists()).toBe(false)
   })
 
-  it('keeps the modal open and surfaces the store error when saveBackpackItem rejects (category-full case)', async () => {
+  it('keeps the modal open and surfaces the store error when saveBagItem rejects (slot-cap case)', async () => {
     mountAsOwner()
-    const store = makeInventoryStore(makeInventory({ uid: 'owner-uid', items: [] }))
-    const capMessage = 'Catégorie pleine : aucun emplacement libre.'
-    store.saveBackpackItem.mockImplementation(async () => {
+    const store = makeEquipmentStore(makeEquipment({ PlayerId: 'owner-uid' }), [])
+    const capMessage = 'Capacité du sac atteinte : 30/30.'
+    store.saveBagItem.mockImplementation(async () => {
       // Mirrors what the real store does on the cap-rejection path (see
-      // useInventoryStore.ts's CATEGORY_FULL_ERROR): set the French error and
-      // resolve `false` without persisting anything.
+      // useEquipmentStore.ts's saveBagItem): set the French error and resolve
+      // `false` without persisting anything.
       store.setError(capMessage)
       return false
     })
-    mockInventoryState.mockReturnValue(store)
+    mockEquipmentState.mockReturnValue(store)
 
     const wrapper = mount(PlayerView, { props: { campaignId: 'campaign-1', characterId: 'char-1' } })
     await flushPromises()
     await selectTab(wrapper, 'Inventaire')
 
-    const munitionsSlot = firstSlot(findCategorySection(wrapper, 'Munitions'))
-    await munitionsSlot.trigger('click')
+    const backpackSlot = wrapper.findAll('.backpack-grid .slot')[0]
+    if (!backpackSlot) throw new Error('expected at least one backpack slot')
+    await backpackSlot.trigger('click')
     await flushPromises()
 
     await wrapper.find('#inv-slot-name').setValue('Carreau')
     await wrapper.find('form.inventory-slot-form').trigger('submit')
     await flushPromises()
 
-    expect(store.saveBackpackItem).toHaveBeenCalledTimes(1)
+    expect(store.saveBagItem).toHaveBeenCalledTimes(1)
     // Failure → modal stays open (neither `open` nor `context` reset) and the
     // French store error is visible via the `errorMessage` prop.
     expect(wrapper.find('.inventory-slot-form').exists()).toBe(true)
@@ -552,7 +512,7 @@ describe('PlayerView — vitruve tab host (T010/T013)', () => {
     mockAuthState.mockReturnValue(
       makeAuthStore({ uid: 'owner-uid', displayName: 'J', email: '', photoURL: '', role: 'joueur' }),
     )
-    mockInventoryState.mockReturnValue(makeInventoryStore(makeInventory({ uid: 'owner-uid' })))
+    mockEquipmentState.mockReturnValue(makeEquipmentStore(makeEquipment({ PlayerId: 'owner-uid' })))
   }
 
   it('met à jour la fiche affichée quand la souscription de son état de personnage livre un nouvel état (DRIFT-1)', async () => {
@@ -700,14 +660,14 @@ describe('PlayerView — child character tabs & raw editor (WP06)', () => {
     mockAuthState.mockReturnValue(
       makeAuthStore({ uid: 'owner-uid', displayName: 'J', email: '', photoURL: '', role: 'joueur' }),
     )
-    mockInventoryState.mockReturnValue(makeInventoryStore(makeInventory({ uid: 'owner-uid' })))
+    mockEquipmentState.mockReturnValue(makeEquipmentStore(makeEquipment({ PlayerId: 'owner-uid' })))
   }
 
   function mountAsMj() {
     mockAuthState.mockReturnValue(
       makeAuthStore({ uid: 'mj-uid', displayName: 'MJ', email: '', photoURL: '', role: 'mj' }),
     )
-    mockInventoryState.mockReturnValue(makeInventoryStore(makeInventory({ uid: 'owner-uid' })))
+    mockEquipmentState.mockReturnValue(makeEquipmentStore(makeEquipment({ PlayerId: 'owner-uid' })))
   }
 
   it('adds one tab per child, labeled with the child name', async () => {
@@ -898,31 +858,16 @@ describe('PlayerView — child character tabs & raw editor (WP06)', () => {
     mockAuthState.mockReturnValue(
       makeAuthStore({ uid: 'owner-uid', displayName: 'J', email: '', photoURL: '', role: 'joueur' }),
     )
-    const parentInventory = makeInventory({
-      uid: 'owner-uid',
-      armor: [
-        {
-          itemId: 'parent-ring',
-          name: 'Anneau du Parent',
-          equipped: true,
-          statBonus: { stat: 'maxMana', amount: 4 },
-        },
-      ],
+    const parentEquipmentDoc = makeEquipment({
+      PlayerId: 'owner-uid',
+      Armor: [{ EntryId: 'parent-ring', DisplayName: 'Anneau du Parent', BonusRaw: { Mana: 4 } }],
     })
-    const childInventory = makeInventory({
-      id: 'inv-furmiaou',
-      characterId: 'furmiaou',
-      armor: [
-        {
-          itemId: 'child-ring',
-          name: 'Griffe Enchantée',
-          equipped: true,
-          statBonus: { stat: 'maxHp', amount: 10 },
-        },
-      ],
+    const childEquipmentDoc = makeEquipment({
+      PlayerId: 'owner-uid',
+      Armor: [{ EntryId: 'child-ring', DisplayName: 'Griffe Enchantée', BonusRaw: { Health: 10 } }],
     })
-    mockInventoryState.mockReturnValue(
-      makeInventoryStore(parentInventory, { furmiaou: childInventory }),
+    mockEquipmentState.mockReturnValue(
+      makeEquipmentStore(parentEquipmentDoc, [], { furmiaou: childEquipmentDoc }),
     )
     currentChildren = [furmiaou]
 
@@ -931,19 +876,19 @@ describe('PlayerView — child character tabs & raw editor (WP06)', () => {
 
     // Parent side (still on a base tab): VitruveSheet must carry only the
     // parent's own armor — never the child's.
-    const parentEquipment = wrapper.findComponent(VitruveSheet).props('equipment') as WeaponArmorItem[]
-    expect(parentEquipment).toEqual(parentInventory.armor)
-    expect(parentEquipment.some((item) => item.itemId === 'child-ring')).toBe(false)
+    const parentEquipment = wrapper.findComponent(VitruveSheet).props('equipment') as GearEntry[]
+    expect(parentEquipment).toEqual(parentEquipmentDoc.Armor)
+    expect(parentEquipment.some((item) => item.EntryId === 'child-ring')).toBe(false)
 
     // Switch to the child tab: ChildSheetTab must carry only the child's own
     // armor — never the parent's. This is the assertion that fails if
-    // activeChildEquipment is ever changed to read `inventoryStore.inventory`
-    // instead of `inventoryStore.childInventories.value[child.id]`.
+    // activeChildEquipment is ever changed to read `equipmentStore.equipment`
+    // instead of `equipmentStore.childEquipment.value[child.id]`.
     await selectTab(wrapper, 'Furmiaou')
     const childTab = wrapper.findComponent(ChildSheetTab)
-    const childEquipment = childTab.props('equipment') as WeaponArmorItem[]
-    expect(childEquipment).toEqual(childInventory.armor)
-    expect(childEquipment.some((item) => item.itemId === 'parent-ring')).toBe(false)
+    const childEquipment = childTab.props('equipment') as GearEntry[]
+    expect(childEquipment).toEqual(childEquipmentDoc.Armor)
+    expect(childEquipment.some((item) => item.EntryId === 'parent-ring')).toBe(false)
   })
 })
 
@@ -961,28 +906,21 @@ describe('PlayerView — max-stat clamp uses the equipment-adjusted effective ma
     currentStates = {}
   })
 
-  function mountAsOwner(inventory: CharacterInventory) {
+  function mountAsOwner(equipment: CharacterEquipmentDocument) {
     mockAuthState.mockReturnValue(
       makeAuthStore({ uid: 'owner-uid', displayName: 'J', email: '', photoURL: '', role: 'joueur' }),
     )
-    const store = makeInventoryStore(inventory)
-    mockInventoryState.mockReturnValue(store)
+    const store = makeEquipmentStore(equipment)
+    mockEquipmentState.mockReturnValue(store)
     return store
   }
 
   it('lets mana rise above the raw stored Mana once an equipped item grants a bonus', async () => {
     currentStates['char-1'] = makeState({ Health: 10, HealthCurrent: 10, Mana: 4, ManaCurrent: 4 })
     mountAsOwner(
-      makeInventory({
-        uid: 'owner-uid',
-        armor: [
-          {
-            itemId: 'ring',
-            name: 'Anneau de Mana',
-            equipped: true,
-            statBonus: { stat: 'maxMana', amount: 4 },
-          },
-        ],
+      makeEquipment({
+        PlayerId: 'owner-uid',
+        Armor: [{ EntryId: 'ring', DisplayName: 'Anneau de Mana', BonusRaw: { Mana: 4 } }],
       }),
     )
 
@@ -1004,16 +942,9 @@ describe('PlayerView — max-stat clamp uses the equipment-adjusted effective ma
   it('pulls current mana DOWN to the new effective max when a bonus item is unequipped', async () => {
     currentStates['char-1'] = makeState({ Health: 10, HealthCurrent: 10, Mana: 4, ManaCurrent: 8 })
     const store = mountAsOwner(
-      makeInventory({
-        uid: 'owner-uid',
-        armor: [
-          {
-            itemId: 'ring',
-            name: 'Anneau de Mana',
-            equipped: true,
-            statBonus: { stat: 'maxMana', amount: 4 },
-          },
-        ],
+      makeEquipment({
+        PlayerId: 'owner-uid',
+        Armor: [{ EntryId: 'ring', DisplayName: 'Anneau de Mana', BonusRaw: { Mana: 4 } }],
       }),
     )
 
@@ -1023,7 +954,7 @@ describe('PlayerView — max-stat clamp uses the equipment-adjusted effective ma
     // Effective max was 8 (4 base + 4 ring), current mana sits right at it.
     // Unequip the ring: effective max drops back to 4 — current mana (8) is
     // now above the new ceiling and must be pulled down automatically.
-    store.setInventory(makeInventory({ uid: 'owner-uid', armor: [] }))
+    store.setEquipment(makeEquipment({ PlayerId: 'owner-uid', Armor: [] }))
     await flushPromises()
 
     expect(mockUpdateCharacterState).toHaveBeenCalledWith('campaign-1', 'char-1', {
@@ -1033,24 +964,17 @@ describe('PlayerView — max-stat clamp uses the equipment-adjusted effective ma
 
   it('does NOT bump current mana up on its own when the effective max increases (re-equip)', async () => {
     currentStates['char-1'] = makeState({ Health: 10, HealthCurrent: 10, Mana: 4, ManaCurrent: 2 })
-    const store = mountAsOwner(makeInventory({ uid: 'owner-uid', armor: [] }))
+    const store = mountAsOwner(makeEquipment({ PlayerId: 'owner-uid', Armor: [] }))
 
     const wrapper = mount(PlayerView, { props: { campaignId: 'campaign-1', characterId: 'char-1' } })
     await flushPromises()
 
     // Equip a +4 mana ring: effective max rises from 4 to 8. Current mana (2)
     // is well under both ceilings — no automatic write should happen.
-    store.setInventory(
-      makeInventory({
-        uid: 'owner-uid',
-        armor: [
-          {
-            itemId: 'ring',
-            name: 'Anneau de Mana',
-            equipped: true,
-            statBonus: { stat: 'maxMana', amount: 4 },
-          },
-        ],
+    store.setEquipment(
+      makeEquipment({
+        PlayerId: 'owner-uid',
+        Armor: [{ EntryId: 'ring', DisplayName: 'Anneau de Mana', BonusRaw: { Mana: 4 } }],
       }),
     )
     await flushPromises()

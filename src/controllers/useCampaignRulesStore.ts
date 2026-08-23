@@ -27,7 +27,9 @@ export function useCampaignRulesStore() {
 
   return {
     rules: computed(() => rules.value),
-    inventory: computed(() => rules.value?.Inventory ?? null),
+    maxItems: computed(() => rules.value?.MaxItems ?? null),
+    maxArmorSlots: computed(() => rules.value?.MaxArmorSlots ?? null),
+    maxWeaponSlots: computed(() => rules.value?.MaxWeaponSlots ?? null),
     loading: computed(() => loading.value),
     error: computed(() => error.value),
     fetchCampaignRules,

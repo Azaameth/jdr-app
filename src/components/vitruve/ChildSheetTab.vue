@@ -2,12 +2,12 @@
 import { computed } from 'vue'
 import type { CharacterProfile } from '../../models/types/Character'
 import type { CharacterStateDocument } from '../../models/repositories/CharacterStateRepository'
-import type { WeaponArmorItem } from '../../models/types/Inventory'
+import type { GearEntry } from '../../models/repositories/EquipmentRepository'
 import type { InjuryState, SecondaryAttributeName } from '../../models/types/Participant'
 import CaracCategoryBlock, { type CaracCategorySub } from './CaracCategoryBlock.vue'
 import { adjustedCategoryPct } from './tickState'
 import { JET_CATEGORY_META, type JetCategory } from './jetFormula'
-import { computeArmorTotal, computeEffectiveMaxStat } from '../../utils/effectiveStats'
+import { computeArmorTotal, computeEffectiveStat } from '../../utils/effectiveStats'
 
 // Child-character mini-sheet (FR-015): "Forme" tab for a child (transformation,
 // e.g. Furmiaou) of the currently displayed character. Generalizes legacy's
@@ -20,7 +20,7 @@ const props = defineProps<{
   child: CharacterProfile
   state: CharacterStateDocument | null
   canEdit: boolean
-  equipment?: WeaponArmorItem[]
+  equipment?: GearEntry[]
 }>()
 
 const emit = defineEmits<{
@@ -103,13 +103,13 @@ function cycleInjury(attr: SecondaryAttributeName) {
 // Effective max HP/Mana (FR-004/FR-005): base state max plus bonuses from
 // this child's OWN equipped items only — never the parent's (SC-004,
 // research.md D3). `props.equipment` is sourced by PlayerView from
-// `useInventoryStore().childInventories.value[child.id]`, isolated from the
-// parent's singleton `inventory` ref.
+// `useEquipmentStore().childEquipment.value[child.id]`, isolated from the
+// parent's singleton `equipment` ref.
 const effectiveMaxHp = computed(() =>
-  computeEffectiveMaxStat(state.value.Health, props.equipment ?? [], 'maxHp'),
+  computeEffectiveStat(state.value.Health, props.equipment ?? [], 'Health'),
 )
 const effectiveMaxMana = computed(() =>
-  computeEffectiveMaxStat(state.value.Mana, props.equipment ?? [], 'maxMana'),
+  computeEffectiveStat(state.value.Mana, props.equipment ?? [], 'Mana'),
 )
 const armorTotal = computed(() => computeArmorTotal(props.equipment ?? []))
 

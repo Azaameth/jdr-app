@@ -2,8 +2,8 @@
 import { computed, ref, watch } from 'vue'
 import type { CharacterProfile } from '../../models/types/Character'
 import type { CharacterStateDocument } from '../../models/repositories/CharacterStateRepository'
-import type { WeaponArmorItem } from '../../models/types/Inventory'
-import { computeArmorTotal, computeEffectiveMaxStat } from '../../utils/effectiveStats'
+import type { GearEntry } from '../../models/repositories/EquipmentRepository'
+import { computeArmorTotal, computeEffectiveStat } from '../../utils/effectiveStats'
 
 const props = withDefaults(
   defineProps<{
@@ -14,7 +14,7 @@ const props = withDefaults(
     canEditSession: boolean
     sessionLoading?: 'hp' | 'mana' | 'posture' | null
     sessionError?: string
-    equipment?: WeaponArmorItem[]
+    equipment?: GearEntry[]
   }>(),
   {
     raceName: undefined,
@@ -45,12 +45,12 @@ const state = computed(() => props.state)
 const effectiveMaxHp = computed(() => {
   const s = state.value
   if (!s) return 0
-  return computeEffectiveMaxStat(s.Health, props.equipment, 'maxHp')
+  return computeEffectiveStat(s.Health, props.equipment, 'Health')
 })
 const effectiveMaxMana = computed(() => {
   const s = state.value
   if (!s) return 0
-  return computeEffectiveMaxStat(s.Mana, props.equipment, 'maxMana')
+  return computeEffectiveStat(s.Mana, props.equipment, 'Mana')
 })
 const armorTotal = computed(() => computeArmorTotal(props.equipment))
 

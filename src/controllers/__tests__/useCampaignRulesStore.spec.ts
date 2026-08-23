@@ -36,16 +36,6 @@ describe('useCampaignRulesStore', () => {
       MaxItems: 20,
       MaxArmorSlots: 2,
       MaxWeaponSlots: 2,
-      Inventory: {
-        nbSlotWeapon: 3,
-        nbSlotArmor: 3,
-        nbSlotOther: 20,
-        currencyName: "Pièce d'or",
-        Other: [
-          { id: 1, name: 'Matériel de camp', slots: 15 },
-          { id: 2, name: 'Matériel de soin', slots: 15 },
-        ],
-      },
     }
 
     rulesMocks.getCampaignRules.mockResolvedValue(rules)
@@ -55,7 +45,9 @@ describe('useCampaignRulesStore', () => {
     await store.fetchCampaignRules('campaign-1')
 
     expect(store.rules.value).toEqual(rules)
-    expect(store.inventory.value).toEqual(rules.Inventory)
+    expect(store.maxItems.value).toBe(20)
+    expect(store.maxArmorSlots.value).toBe(2)
+    expect(store.maxWeaponSlots.value).toBe(2)
     expect(rulesMocks.getCampaignRules).toHaveBeenCalledWith('campaign-1')
   })
 

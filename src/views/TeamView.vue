@@ -9,14 +9,10 @@ import {
   getCharacterState,
   resetTeamStatesToMax,
 } from '../models/repositories/CharacterStateRepository'
-import { listInventoriesByCampaign } from '../models/repositories/InventoryRepository'
+import { listEquipmentByCampaign } from '../models/repositories/EquipmentRepository'
 import type { SecondaryAttributes } from '../models/types/Character'
 import type { Posture } from '../models/types/Participant'
-import {
-  computeArmorTotal,
-  computeEffectiveMaxStat,
-  type ArmorTotal,
-} from '../utils/effectiveStats'
+import { computeArmorTotal, computeEffectiveStat, type ArmorTotal } from '../utils/effectiveStats'
 
 const route = useRoute()
 const router = useRouter()
@@ -190,9 +186,9 @@ async function loadPlayers() {
   loadingState.value = true
   errorState.value = ''
   try {
-    const [characters, inventories] = await Promise.all([
+    const [characters, equipmentDocs] = await Promise.all([
       listCharactersByCampaign(campaignId.value),
-      listInventoriesByCampaign(campaignId.value),
+      listEquipmentByCampaign(campaignId.value),
     ])
     // Transformations stay nested under their parent sheet and are excluded from
     // the team roster rows.
@@ -201,14 +197,14 @@ async function loadPlayers() {
       playable.map((character) => getCharacterState(campaignId.value, character.id)),
     )
     const stateByCharacterId = new Map(playable.map((character, index) => [character.id, states[index]]))
-    const inventoryByCharacterId = new Map(
-      inventories.map((inventory) => [inventory.characterId, inventory]),
+    const equipmentByCharacterId = new Map(
+      equipmentDocs.map((equipmentDoc) => [equipmentDoc.characterId, equipmentDoc]),
     )
 
     playerRows.value = playable.map((character) => {
       const state = stateByCharacterId.get(character.id)
-      const inventory = inventoryByCharacterId.get(character.id)
-      const equipment = inventory ? [...inventory.weapons, ...inventory.armor] : []
+      const equipmentDoc = equipmentByCharacterId.get(character.id)
+      const equipment = equipmentDoc ? [...equipmentDoc.Weapons, ...equipmentDoc.Armor] : []
       return {
         uid: character.ownerUid,
         characterId: character.id,
@@ -217,9 +213,9 @@ async function loadPlayers() {
         classId: character.classId,
         level: character.level,
         hp: state?.HealthCurrent ?? 0,
-        maxHp: computeEffectiveMaxStat(state?.Health ?? 0, equipment, 'maxHp'),
+        maxHp: computeEffectiveStat(state?.Health ?? 0, equipment, 'Health'),
         mana: state?.ManaCurrent ?? 0,
-        maxMana: computeEffectiveMaxStat(state?.Mana ?? 0, equipment, 'maxMana'),
+        maxMana: computeEffectiveStat(state?.Mana ?? 0, equipment, 'Mana'),
         posture: state?.Posture ?? '—',
         secondary: character.attributes.secondary,
         armor: computeArmorTotal(equipment),

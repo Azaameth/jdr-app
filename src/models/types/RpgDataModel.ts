@@ -18,20 +18,6 @@ export interface SecondaryStatDefinition {
   Formula: string
 }
 
-export interface CampaignInventorySlotGroup {
-  id: number
-  name: string
-  slots: number
-}
-
-export interface CampaignInventoryRule {
-  nbSlotWeapon: number
-  nbSlotArmor: number
-  nbSlotOther: number
-  currencyName: string
-  Other: CampaignInventorySlotGroup[]
-}
-
 export interface CampaignRulesDocument {
   Statistics: {
     Primary: PrimaryStatDefinition[]
@@ -55,7 +41,6 @@ export interface CampaignRulesDocument {
   MaxItems: number
   MaxArmorSlots: number
   MaxWeaponSlots: number
-  Inventory?: CampaignInventoryRule
 }
 
 export interface CharacterStatBlock {
@@ -116,31 +101,12 @@ function isSecondaryStatDefinition(value: unknown): value is SecondaryStatDefini
   )
 }
 
-function isCampaignInventorySlotGroup(value: unknown): value is CampaignInventorySlotGroup {
-  if (!isRecord(value)) return false
-  return hasNumber(value.id) && typeof value.name === 'string' && hasNumber(value.slots)
-}
-
-function isCampaignInventoryRule(value: unknown): value is CampaignInventoryRule {
-  if (!isRecord(value)) return false
-  return (
-    hasNumber(value.nbSlotWeapon) &&
-    hasNumber(value.nbSlotArmor) &&
-    hasNumber(value.nbSlotOther) &&
-    typeof value.currencyName === 'string' &&
-    Array.isArray(value.Other) &&
-    value.Other.every(isCampaignInventorySlotGroup)
-  )
-}
-
 export function isCampaignRulesDocument(value: unknown): value is CampaignRulesDocument {
   if (!isRecord(value)) return false
 
   const statistics = value.Statistics
   const dice = value.Dice
   const characterCreation = value.CharacterCreation
-
-  const inventoryValid = value.Inventory === undefined || isCampaignInventoryRule(value.Inventory)
 
   return (
     isRecord(statistics) &&
@@ -167,8 +133,7 @@ export function isCampaignRulesDocument(value: unknown): value is CampaignRulesD
     hasNumber(value.DisadvantageDiceCount) &&
     hasNumber(value.MaxItems) &&
     hasNumber(value.MaxArmorSlots) &&
-    hasNumber(value.MaxWeaponSlots) &&
-    inventoryValid
+    hasNumber(value.MaxWeaponSlots)
   )
 }
 

@@ -198,16 +198,14 @@ describe('VitruveSheet', () => {
         sessionLoading: null,
         equipment: [
           {
-            itemId: 'a-1',
-            name: "Robe d'Arcaniste",
-            equipped: true,
-            statBonus: { stat: 'armorMagique', amount: 2 },
+            EntryId: 'a-1',
+            DisplayName: "Robe d'Arcaniste",
+            BonusRaw: { MagicalArmor: 2 },
           },
           {
-            itemId: 'a-2',
-            name: 'Bouclier',
-            equipped: true,
-            statBonus: { stat: 'armorPhysique', amount: 3 },
+            EntryId: 'a-2',
+            DisplayName: 'Bouclier',
+            BonusRaw: { PhysicalArmor: 3 },
           },
         ],
       },

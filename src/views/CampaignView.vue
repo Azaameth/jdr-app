@@ -125,8 +125,8 @@ async function confirmDelete() {
             <div><b>Devise :</b> {{ campaignRules.CurrencyName }}</div>
             <div><b>Stats :</b> {{ primaryStats.length }}</div>
             <div><b>Bonus :</b> {{ campaignRules.AdvantageDiceCount }}</div>
-            <div v-if="campaignRules.Inventory">
-              <b>Inventaire :</b> {{ campaignRules.Inventory.nbSlotWeapon }} armes / {{ campaignRules.Inventory.nbSlotArmor }} armures / {{ campaignRules.Inventory.currencyName }}
+            <div>
+              <b>Inventaire :</b> {{ campaignRules.MaxWeaponSlots }} armes / {{ campaignRules.MaxArmorSlots }} armures / {{ campaignRules.MaxItems }} objets
             </div>
           </div>
           <ul v-if="primaryStats.length" class="stats-list">

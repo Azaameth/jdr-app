@@ -7,6 +7,7 @@ import DonList from '../components/DonList.vue'
 import InventorySlotModal, {
   type InventorySlotContext,
   type InventorySlotDeletePayload,
+  type InventorySlotMovePayload,
   type InventorySlotSavePayload,
 } from '../components/InventorySlotModal.vue'
 import AdvantageToggles from '../components/vitruve/AdvantageToggles.vue'
@@ -21,8 +22,9 @@ import { useTickState } from '../components/vitruve/tickState'
 import VitruveSheet from '../components/vitruve/VitruveSheet.vue'
 import WeaponArmorList from '../components/WeaponArmorList.vue'
 import { useAuthStore } from '../controllers/useAuthStore'
+import { useCampaignRulesStore } from '../controllers/useCampaignRulesStore'
 import { useCampaignSessionStore } from '../controllers/useCampaignSessionStore'
-import { useInventoryStore } from '../controllers/useInventoryStore'
+import { useEquipmentStore } from '../controllers/useEquipmentStore'
 import { usePlayerStore } from '../controllers/usePlayerStore'
 import {
   getCharacterByCampaign,
@@ -33,12 +35,13 @@ import {
   getCharacterState,
   type CharacterStateDocument,
 } from '../models/repositories/CharacterStateRepository'
+import type { GearEntry } from '../models/repositories/EquipmentRepository'
+import type { BagItemDocument } from '../models/repositories/ItemRepository'
 import { listClassesByCampaign } from '../models/repositories/ClassRepository'
 import { listRacesByCampaign } from '../models/repositories/RaceRepository'
-import { computeEffectiveMaxStat } from '../utils/effectiveStats'
+import { computeEffectiveStat } from '../utils/effectiveStats'
 import type { CharacterAttributes, CharacterGift, CharacterProfile } from '../models/types/Character'
 import type { Class } from '../models/types/Class'
-import type { InventoryCategory, InventoryItem, WeaponArmorItem } from '../models/types/Inventory'
 import type { InjuryState, Posture, SecondaryAttributeName } from '../models/types/Participant'
 import type { Race } from '../models/types/Race'
 
@@ -57,7 +60,8 @@ const route = useRoute()
 const authStore = useAuthStore()
 const playerStore = usePlayerStore()
 const campaignSessionStore = useCampaignSessionStore()
-const inventoryStore = useInventoryStore()
+const equipmentStore = useEquipmentStore()
+const campaignRulesStore = useCampaignRulesStore()
 const campaignId = computed(() => props.campaignId ?? (route.params.id as string))
 const characterId = computed(() => props.characterId ?? (route.params.characterId as string))
 
@@ -71,16 +75,16 @@ const characterState = ref<CharacterStateDocument | null>(null)
 // each child is its own Character doc with its own States/Current, so this
 // is populated the same way as `characterState`, just for a different id.
 const childState = ref<CharacterStateDocument | null>(null)
-const inventory = computed(() => inventoryStore.inventory.value)
-const weapons = computed(() => inventory.value?.weapons ?? [])
-const armor = computed(() => inventory.value?.armor ?? [])
-const backpackItems = computed(() => inventory.value?.items ?? [])
+const equipment = computed(() => equipmentStore.equipment.value)
+const weapons = computed(() => equipment.value.Weapons)
+const armor = computed(() => equipment.value.Armor)
+const backpackItems = computed(() => equipmentStore.items.value)
 const equippedItems = computed(() => [...weapons.value, ...armor.value])
 const effectiveMaxHp = computed(() =>
-  computeEffectiveMaxStat(characterState.value?.Health ?? 0, equippedItems.value, 'maxHp'),
+  computeEffectiveStat(characterState.value?.Health ?? 0, equippedItems.value, 'Health'),
 )
 const effectiveMaxMana = computed(() =>
-  computeEffectiveMaxStat(characterState.value?.Mana ?? 0, equippedItems.value, 'maxMana'),
+  computeEffectiveStat(characterState.value?.Mana ?? 0, equippedItems.value, 'Mana'),
 )
 const races = ref<Race[]>([])
 const classes = ref<Class[]>([])
@@ -90,17 +94,6 @@ const forbidden = ref(false)
 const sessionLoading = ref<'hp' | 'mana' | 'posture' | null>(null)
 const sessionError = ref('')
 
-// Slot editing: only the inventory's owner (character's uid) or an mj/admin
-// may open the modal in edit mode (FR-009). Everyone else — including all
-// viewers when Firebase isn't configured (no inventory loaded) — sees no
-// edit affordance, enforced both here and by the display components' render.
-const canEditInventory = computed(() => {
-  const inv = inventory.value
-  const currentUser = authStore.user.value
-  if (!inv || !currentUser) return false
-  return inv.uid === currentUser.uid || authStore.isMj.value || authStore.isAdmin.value
-})
-
 // The session (PV/Mana) steppers were previously unconditionally enabled
 // whenever a participant session existed (the page-level forbidden guard
 // already restricts viewers to the character's owner or an mj/admin).
@@ -109,9 +102,11 @@ const canEditInventory = computed(() => {
 // same visibility as pre-WP02 — no permission regression.
 const canEditSession = computed(() => Boolean(characterState.value))
 
-// Owner or mj/admin may edit the Fiche's histoire and cycle Caractéristiques
-// injury squares — same predicate shape as canEditInventory above, mirrored
-// per WP03's instruction rather than inventing a new helper shape.
+// Owner or mj/admin may edit the Fiche's histoire, cycle Caractéristiques
+// injury squares, and edit the equipment/inventory tab — firestore.rules'
+// Equipment/Main and Items write rules key off the CHARACTER doc's PlayerId
+// (ownsThisCharacter()), not anything on the equipment doc itself, so one
+// predicate covers all three.
 const canEditCharacter = computed(() => {
   const char = character.value
   const currentUser = authStore.user.value
@@ -161,21 +156,21 @@ const activeChild = computed<CharacterProfile | null>(() => {
   return children.value.find((child) => child.id === activeTab.value) ?? null
 })
 
-// Child equipment is read from the child-specific inventory cache, never from
-// the parent's singleton inventory.
-const activeChildEquipment = computed<WeaponArmorItem[]>(() => {
+// Child equipment is read from the child-specific equipment cache, never from
+// the parent's singleton equipment.
+const activeChildEquipment = computed<GearEntry[]>(() => {
   const child = activeChild.value
   if (!child) return []
-  const inv = inventoryStore.childInventories.value[child.id]
-  if (!inv) return []
-  return [...inv.weapons, ...inv.armor]
+  const doc = equipmentStore.childEquipment.value[child.id]
+  if (!doc) return []
+  return [...doc.Weapons, ...doc.Armor]
 })
 
 const activeChildEffectiveMaxHp = computed(() => {
   const child = activeChild.value
   if (!child) return null
   const base = childState.value ?? EMPTY_CHILD_STATE
-  return computeEffectiveMaxStat(base.Health, activeChildEquipment.value, 'maxHp')
+  return computeEffectiveStat(base.Health, activeChildEquipment.value, 'Health')
 })
 
 const EMPTY_ATTRIBUTES: CharacterAttributes = {
@@ -229,14 +224,14 @@ watch(
 const slotModalOpen = ref(false)
 const slotModalContext = ref<InventorySlotContext | null>(null)
 
-function openBackpackSlot(payload: { category: InventoryCategory; item?: InventoryItem }) {
-  if (!canEditInventory.value) return
-  slotModalContext.value = { kind: 'backpack', category: payload.category, item: payload.item }
+function openBackpackSlot(item?: BagItemDocument) {
+  if (!canEditCharacter.value) return
+  slotModalContext.value = { kind: 'bag', item }
   slotModalOpen.value = true
 }
 
-function openEquipmentSlot(payload: { kind: 'weapons' | 'armor'; item?: WeaponArmorItem }) {
-  if (!canEditInventory.value) return
+function openEquipmentSlot(payload: { kind: 'Armor' | 'Weapons'; item?: GearEntry }) {
+  if (!canEditCharacter.value) return
   slotModalContext.value = { kind: payload.kind, item: payload.item }
   slotModalOpen.value = true
 }
@@ -261,26 +256,37 @@ function closeDonModal() {
 
 async function handleSlotSave(payload: InventorySlotSavePayload) {
   const success =
-    payload.kind === 'backpack'
-      ? await inventoryStore.saveBackpackItem(payload.item)
-      : await inventoryStore.saveEquipmentItem(payload.kind, payload.item)
+    payload.kind === 'bag'
+      ? await equipmentStore.saveBagItem(payload.item)
+      : await equipmentStore.saveEquippedItem(payload.kind, payload.item)
 
-  // On failure (e.g. category-full rejection), keep the modal open so the
-  // French error surfaced by the store is visible via `errorMessage`.
+  // On failure (e.g. slot-cap rejection), keep the modal open so the French
+  // error surfaced by the store is visible via `errorMessage`.
   if (success) {
     closeSlotModal()
   }
 }
 
-async function handleUpdateGold(value: number) {
-  await inventoryStore.setGold(value)
+async function handleUpdateCurrency(value: number) {
+  await equipmentStore.setCurrency(value)
 }
 
 async function handleSlotDelete(payload: InventorySlotDeletePayload) {
   const success =
-    payload.kind === 'backpack'
-      ? await inventoryStore.removeBackpackItem(payload.itemId)
-      : await inventoryStore.removeEquipmentItem(payload.kind, payload.itemId)
+    payload.kind === 'bag'
+      ? await equipmentStore.removeBagItem(payload.entryId)
+      : await equipmentStore.removeEquippedItem(payload.kind, payload.entryId)
+
+  if (success) {
+    closeSlotModal()
+  }
+}
+
+async function handleSlotMove(payload: InventorySlotMovePayload) {
+  const success =
+    payload.direction === 'equip'
+      ? await equipmentStore.equip(payload.kind, payload.entryId)
+      : await equipmentStore.unequip(payload.kind, payload.entryId)
 
   if (success) {
     closeSlotModal()
@@ -467,9 +473,9 @@ async function adjustChildHp(childId: string, delta: number) {
   if (!campaignId.value) return
 
   const previous = childState.value ?? EMPTY_CHILD_STATE
-  const childInv = inventoryStore.childInventories.value[childId]
-  const childEquipment = childInv ? [...childInv.weapons, ...childInv.armor] : []
-  const maxHp = computeEffectiveMaxStat(previous.Health, childEquipment, 'maxHp')
+  const childDoc = equipmentStore.childEquipment.value[childId]
+  const childEquipment = childDoc ? [...childDoc.Weapons, ...childDoc.Armor] : []
+  const maxHp = computeEffectiveStat(previous.Health, childEquipment, 'Health')
   const next = clampSessionValue('hp', previous.HealthCurrent + delta, maxHp)
   if (next === previous.HealthCurrent && childState.value) return
 
@@ -607,6 +613,7 @@ async function loadCharacter() {
     childError.value = ''
     playerStore.unsubscribeParty()
     campaignSessionStore.unsubscribe()
+    equipmentStore.unsubscribe()
     loading.value = false
     return
   }
@@ -621,12 +628,13 @@ async function loadCharacter() {
   childError.value = ''
   playerStore.subscribeParty(campaignId.value)
   campaignSessionStore.subscribe(campaignId.value)
+  equipmentStore.subscribe(campaignId.value, characterId.value)
 
   try {
     const [char, stateRow, , raceList, classList, childList] = await Promise.all([
       getCharacterByCampaign(campaignId.value, characterId.value),
       getCharacterState(campaignId.value, characterId.value),
-      inventoryStore.loadInventory(characterId.value, campaignId.value),
+      campaignRulesStore.fetchCampaignRules(campaignId.value),
       listRacesByCampaign(campaignId.value),
       listClassesByCampaign(campaignId.value),
       listChildrenOf(campaignId.value, characterId.value),
@@ -638,7 +646,7 @@ async function loadCharacter() {
     races.value = raceList
     classes.value = classList
     children.value = childList
-    await inventoryStore.loadChildInventories(
+    await equipmentStore.loadChildEquipment(
       childList.map((c) => c.id),
       campaignId.value,
     )
@@ -723,6 +731,7 @@ async function handleRawEditorSaved() {
 onBeforeUnmount(() => {
   playerStore.unsubscribeParty()
   campaignSessionStore.unsubscribe()
+  equipmentStore.unsubscribe()
 })
 </script>
 
@@ -822,16 +831,18 @@ onBeforeUnmount(() => {
             <div class="grid-2 weapon-armor-grid">
               <WeaponArmorList
                 title="Armes"
-                kind="weapons"
+                kind="Weapons"
                 :items="weapons"
-                :editable="canEditInventory"
+                :max-slots="campaignRulesStore.maxWeaponSlots.value"
+                :editable="canEditCharacter"
                 @slot-click="openEquipmentSlot"
               />
               <WeaponArmorList
                 title="Armures & Protections"
-                kind="armor"
+                kind="Armor"
                 :items="armor"
-                :editable="canEditInventory"
+                :max-slots="campaignRulesStore.maxArmorSlots.value"
+                :editable="canEditCharacter"
                 @slot-click="openEquipmentSlot"
               />
             </div>
@@ -839,10 +850,11 @@ onBeforeUnmount(() => {
             <h2>Sac à dos</h2>
             <BackpackGrid
               :items="backpackItems"
-              :gold="inventory?.gold ?? 0"
-              :editable="canEditInventory"
+              :max-items="campaignRulesStore.maxItems.value"
+              :currency="equipment.Currency"
+              :editable="canEditCharacter"
               @slot-click="openBackpackSlot"
-              @update-gold="handleUpdateGold"
+              @update-currency="handleUpdateCurrency"
             />
           </section>
 
@@ -875,10 +887,11 @@ onBeforeUnmount(() => {
       v-if="slotModalContext"
       :open="slotModalOpen"
       :context="slotModalContext"
-      :error-message="inventoryStore.error.value"
+      :error-message="equipmentStore.error.value"
       @close="closeSlotModal"
       @save="handleSlotSave"
       @delete="handleSlotDelete"
+      @move="handleSlotMove"
     />
 
     <DonDetailModal :open="donModalOpen" :gift="donModalGift" @close="closeDonModal" />

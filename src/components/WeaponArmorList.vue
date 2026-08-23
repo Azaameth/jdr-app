@@ -1,45 +1,69 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import type { WeaponArmorItem } from '../models/types/Inventory'
-import { formatWeaponArmorStat, weaponArmorStatLabel } from '../utils/inventoryText'
+import type { GearEntry } from '../models/repositories/EquipmentRepository'
 
 const props = withDefaults(
   defineProps<{
     title: string
-    kind: 'weapons' | 'armor'
-    items: WeaponArmorItem[]
+    kind: 'Armor' | 'Weapons'
+    items: GearEntry[]
+    maxSlots?: number | null
     editable?: boolean
   }>(),
   {
+    maxSlots: null,
     editable: true,
   },
 )
 
 const emit = defineEmits<{
-  'slot-click': [payload: { kind: 'weapons' | 'armor'; item?: WeaponArmorItem }]
+  'slot-click': [payload: { kind: 'Armor' | 'Weapons'; item?: GearEntry }]
 }>()
 
 const MIN_SLOTS = 3
 
-function badgeLabel(item: WeaponArmorItem): string {
-  return weaponArmorStatLabel(item, props.kind)
+const BONUS_LABELS: Record<string, string> = {
+  Health: 'PV',
+  Mana: 'MANA',
+  PhysicalArmor: 'AP',
+  MagicalArmor: 'AM',
+  PhysicalAttack: 'ATQ.PHY',
+  MagicalAttack: 'ATQ.MAG',
+  PhysicalDefense: 'DEF.PHY',
+  MagicalDefense: 'DEF.MAG',
 }
 
-const slots = computed<Array<WeaponArmorItem | null>>(() => {
-  const filled: Array<WeaponArmorItem | null> = [...props.items]
-  const emptyCount = Math.max(0, MIN_SLOTS - filled.length)
+/** e.g. { PhysicalArmor: 2, Health: 1 } → "+2 AP, +1 PV"; '' when no BonusRaw. */
+function bonusSummary(item: GearEntry): string {
+  const entries = Object.entries(item.BonusRaw ?? {})
+  if (entries.length === 0) return ''
+  return entries
+    .map(([stat, amount]) => {
+      const sign = amount >= 0 ? '+' : '-'
+      return `${sign}${Math.abs(amount)} ${BONUS_LABELS[stat] ?? stat}`
+    })
+    .join(', ')
+}
+
+function conditionalTitle(item: GearEntry): string | undefined {
+  const conditional = item.BonusConditional ?? []
+  if (conditional.length === 0) return undefined
+  return conditional.map((c) => c.Name).join(', ')
+}
+
+const slotCap = computed(() => props.maxSlots ?? MIN_SLOTS)
+
+const slots = computed<Array<GearEntry | null>>(() => {
+  const filled: Array<GearEntry | null> = [...props.items]
+  const emptyCount = Math.max(0, slotCap.value - filled.length)
   return [...filled, ...Array.from({ length: emptyCount }, () => null)]
 })
 
-function slotKey(entry: WeaponArmorItem | null, index: number): string {
-  return entry ? entry.itemId : `empty-${props.kind}-${index}`
+function slotKey(entry: GearEntry | null, index: number): string {
+  return entry ? entry.EntryId : `empty-${props.kind}-${index}`
 }
 
-function badgeValue(item: WeaponArmorItem): string {
-  return formatWeaponArmorStat(item)
-}
-
-function handleSlotClick(item?: WeaponArmorItem) {
+function handleSlotClick(item?: GearEntry) {
   if (!props.editable) return
   emit('slot-click', { kind: props.kind, item })
 }
@@ -57,14 +81,12 @@ function handleSlotClick(item?: WeaponArmorItem) {
         class="slot"
         :class="{ 'slot-empty': !entry }"
         :aria-label="entry ? undefined : 'Emplacement libre'"
+        :title="entry ? conditionalTitle(entry) : undefined"
         @click="handleSlotClick(entry ?? undefined)"
       >
         <template v-if="entry">
-          <span class="slot-name">{{ entry.name }}</span>
-          <span v-if="badgeValue(entry)" class="stat-badge">
-            <span class="stat-value">{{ badgeValue(entry) }}</span>
-            <span class="stat-label">{{ badgeLabel(entry) }}</span>
-          </span>
+          <span class="slot-name">{{ entry.DisplayName }}</span>
+          <span v-if="bonusSummary(entry)" class="stat-badge">{{ bonusSummary(entry) }}</span>
         </template>
         <span v-else class="slot-dash" aria-hidden="true">–</span>
       </component>
@@ -127,22 +149,10 @@ function handleSlotClick(item?: WeaponArmorItem) {
   border-radius: 8px;
   padding: 0.3rem 0.6rem;
   text-align: center;
-  min-width: 56px;
-}
-.stat-value {
-  display: block;
-  font-size: 0.9rem;
+  font-size: 0.7rem;
   font-weight: 700;
   color: #f0c96a;
   white-space: nowrap;
-}
-.stat-label {
-  display: block;
-  font-size: 0.6rem;
-  letter-spacing: 0.08em;
-  color: #c9a84c;
-  opacity: 0.85;
-  margin-top: 0.1rem;
 }
 .slot-dash {
   color: #806840;

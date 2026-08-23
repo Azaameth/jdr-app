@@ -195,15 +195,87 @@ high-complexity policy.
    real Auth-emulator token that an owner can write `Posture`/`Injuries` on
    their own character's `States/Current` doc, and that `Players/{uid}`
    comes back in the exact documented shape.
-4. **Equipment / inventory unification — queued.** `Equipment/Main` is
-   currently written by two incompatible schemas: legacy `InventoryRepository`/
-   `useInventoryStore` (camelCase, actively used by `PlayerView.vue`/
-   `ChildSheetTab.vue`) and target-shaped `EquipmentRepository`/
-   `useEquipmentStore` (PascalCase, currently unused by any view). Needs a
-   product decision first: the target's terse `GearEntry` schema doesn't
-   model the already-shipped categorized-backpack/dons feature
-   (`BackpackGrid.vue`, `DonList.vue`, `src/utils/inventoryText.ts`) —
-   extend the target schema to cover it, or scale back the feature.
+4. **Equipment / inventory unification — done (2026-08-23).** `Equipment/Main`
+   was written by two incompatible schemas: legacy `InventoryRepository`/
+   `useInventoryStore` (camelCase, categorized backpack + `damageDie`/
+   `statNote`/`statBonus` weapon-armor fields, actively used by
+   `PlayerView.vue`/`ChildSheetTab.vue`) and target-shaped
+   `EquipmentRepository`/`useEquipmentStore` (PascalCase `GearEntry`,
+   built earlier but wired into no view). **Explicit product decision: scale
+   back to the documented `GearEntry` schema, not extend it** — a deliberate
+   reversal of every prior cluster's "extend to preserve the feature"
+   precedent. Confirmed via a user-provided mechanics spec (saved as project
+   memory `equipment-stats-dice-mechanic`) that this isn't just a storage
+   reshape: the target model has no automated weapon-damage-roll or
+   category-capacity mechanic at all — equipped gear only ever contributes
+   flat `BonusRaw` additions to base stats (`Health`/`Mana`/`PhysicalArmor`/
+   `MagicalArmor`/`PhysicalAttack`/`MagicalAttack`/`PhysicalDefense`/
+   `MagicalDefense`) during a (still-unbuilt, Cluster 7) materialization
+   pass, and never touches the dice/probability engine — so `damageDie`/
+   `damageBonus`/`statNote`/backpack `InventoryCategory` grouping have no
+   home in the scaled-back model, not even as a fold-into-`Description`
+   compromise for the *mechanic* (though free-text annotations are preserved
+   as `Description` prose where they existed, so no information is silently
+   dropped).
+
+   Deleted entirely: `src/models/types/Inventory.ts`,
+   `InventoryRepository.ts` (+spec), `useInventoryStore.ts` (+spec), and the
+   legacy-shape half of `src/utils/inventoryText.ts`
+   (`parseWeaponArmorText`/`formatWeaponArmorStat`/`weaponArmorStatLabel`;
+   kept `parseQuantityText`/`parseLegacyGiftText`, which are gift-text
+   helpers unrelated to equipment, out of scope). Trimmed
+   `RpgDataModel.ts`'s `CampaignRulesDocument`: dropped the bolted-on legacy
+   `Inventory?: CampaignInventoryRule` (`nbSlotWeapon`/`nbSlotArmor`/`Other`
+   groups) — the documented flat `MaxItems`/`MaxArmorSlots`/`MaxWeaponSlots`
+   caps were already present at the top level and are now the only cap
+   source (`useCampaignRulesStore` exposes them as `maxItems`/
+   `maxArmorSlots`/`maxWeaponSlots` computeds, replacing the old `inventory`
+   computed).
+
+   Extended the already-target-shaped `EquipmentRepository.ts` with the
+   §5.3 equip/unequip "two-write move" as a real `runTransaction` between
+   `Items/{itemId}` and `Equipment/Main`'s array (`equipItem`/`unequipItem`),
+   plus a campaign-wide `listEquipmentByCampaign` (replaces
+   `InventoryRepository.listInventoriesByCampaign` for `TeamView.vue`).
+   Rewrote `useEquipmentStore.ts` (was orphaned scaffolding) with slot-cap
+   validation against the `CampaignRules` maxes on every add/equip path.
+   Rewrote `BackpackGrid.vue` (flat capped list, no category grouping),
+   `WeaponArmorList.vue` (`GearEntry[]`, cap via `maxSlots` prop, badge is a
+   `BonusRaw`-summary string instead of a damage/armor stat), and
+   `InventorySlotModal.vue` (`DisplayName`/`Description`/`Quantity` (bag
+   only) + repeatable `BonusRaw`/`BonusConditional` rows, plus new
+   equip/unequip move buttons). Rewrote `src/utils/effectiveStats.ts`
+   (`computeEffectiveStat`/`computeArmorTotal` now sum `GearEntry.BonusRaw`
+   instead of the old `statBonus` shape) and rewired every consumer
+   (`VitruveSheet.vue`, `ChildSheetTab.vue`, `PlayerView.vue`, `TeamView.vue`)
+   off `useInventoryStore`/`WeaponArmorItem` onto `useEquipmentStore`/
+   `GearEntry`. `PlayerView.vue`'s `canEditInventory` predicate (which keyed
+   off the equipment doc's `uid`, racy against the doc's live listener not
+   having fired yet) was folded into the existing `canEditCharacter`
+   predicate — firestore.rules' `Equipment/Main`/`Items` write rules already
+   key off the **character** doc's `PlayerId` (`ownsThisCharacter()`), never
+   anything on the equipment doc itself, so one predicate now correctly
+   covers histoire/injuries/equipment editing alike.
+   Fixed `scripts/seedAll.mjs`: it wrote `Equipment/Main`'s `Armor`/`Weapons`
+   straight from `classifyInventory.mjs`'s legacy-shaped output (the exact
+   two-schema collision above, just moved into the seed script) — added a
+   `toGearEntry` mapper that carries any legacy `damageDie`/`armorRating`/
+   `statNote` annotation over as `Description` prose (lossless) with
+   `BonusRaw` left empty for a human to fill in later, never guessed.
+   `scripts/migrateLegacyCampaignData.mjs` was already GearEntry-clean
+   (writes empty `Armor`/`Weapons`, doesn't attempt to carry over legacy gear
+   at all) — no fix needed there.
+   **Not touched, flagged for later**: `scripts/migrateLiveInventoriesAdmin.mjs`
+   still classifies into the legacy vocabulary, but it targets the flat
+   top-level `inventories` collection the app stopped reading before this
+   cluster (pre-existing dead tooling, not something this cluster broke).
+   Verified: type-check/lint/406 unit tests green (30 pre-existing tests
+   needed rewriting for the new shapes; 2 removed outright because they
+   tested equipment-doc-based edit permission, a check that no longer exists
+   now that `canEditCharacter` covers it). Not yet manually verified against
+   the emulator (no rule changes were needed — `Equipment/Main`/`Items`
+   rules from Cluster 3a already cover the new equip/unequip transaction
+   writes) or against `npm run seed:all`/`npm run dev` in a browser.
 5. **`firestore.rules` full coverage — done (2026-08-23).** Added the three
    remaining nested collections per `docs/rpg-data-model.md` §4.3/§4.4/§4.10/
    §7: `CampaignRules/Main` (read: signed-in; write: mj/admin — matches the
@@ -265,13 +337,27 @@ follow the nested model: `Campaigns/{campaignId}/Negotiations/Current` /
 collection map — not the flat `doc(db, 'negotiations', campaignId)` shape
 this section used to prescribe.
 
-### Typed inventory schema
+### Typed inventory schema — superseded, see Cluster 4 above
+
+**Retired in Cluster 4 (2026-08-23).** `src/models/types/Inventory.ts` (`InventoryCategory`, `InventoryItem`, `WeaponArmorItem`, `CharacterInventory`, `BACKPACK_MAX_SLOTS`) is deleted. The categorized-backpack-slots + hybrid structured/freeform weapon-armor-stat design described below was a real, shipped feature (`inventory-slots-dons-01KXRF5M`) — the explicit product decision in Cluster 4 was to scale back to the documented `GearEntry` schema rather than extend the target model to preserve it. `src/models/repositories/EquipmentRepository.ts`/`ItemRepository.ts` (`GearEntry`/`BagItemDocument`) are the schema now; cite those in future specs instead of this section.
+
+<details>
+<summary>Original schema (retired)</summary>
 
 **Implemented** — see `src/models/types/Inventory.ts` (`InventoryCategory`, `InventoryItem`, `WeaponArmorItem`, `CharacterInventory`, `BACKPACK_MAX_SLOTS`), shipped via spec-kitty mission `inventory-slots-dons-01KXRF5M`. The two pieces once conflated under "inventory" — capped backpack category slots and the uncapped weapons/armor lists with their hybrid structured/freeform stat fields — are both real types there now; the legacy-string parser (including the `WeaponArmorItem.statNote` fallback for annotations like `(RD2 vs proj. magiques)` and `(Armure impossible — Oracle)`) lives in `src/utils/inventoryText.ts`. Cite that code in future specs instead of re-deriving the schema here. The dead `InventoryItem`/`InventoryItemType` that used to duplicate this by name in `src/models/types/Character.ts` has been retired — `Inventory.ts` is the single source now.
 
-### Equipment stat effects
+</details>
+
+### Equipment stat effects — superseded, see Cluster 4 above
+
+**Retired in Cluster 4 (2026-08-23).** `computeEffectiveMaxStat`/`useInventoryStore`'s `childInventories` cache are gone. `src/utils/effectiveStats.ts` now exposes `computeEffectiveStat`/`computeArmorTotal` summing `GearEntry.BonusRaw` (keyed by the documented base-stat vocabulary: `Health`/`Mana`/`PhysicalArmor`/`MagicalArmor`/`PhysicalAttack`/`MagicalAttack`/`PhysicalDefense`/`MagicalDefense`) instead of the retired `WeaponArmorItem.statBonus` shape; the equivalent cache is `useEquipmentStore`'s `childEquipment`.
+
+<details>
+<summary>Original writeup (retired)</summary>
 
 **Implemented** — see `src/models/types/Inventory.ts` (`WeaponArmorItem.equipped`, `WeaponArmorItem.statBonus`), `src/utils/effectiveStats.ts` (`computeEffectiveMaxStat`), and `src/controllers/useInventoryStore.ts` (the `childInventories` cache + `loadChildInventories`), shipped via spec-kitty mission `equipment-stat-effects-01KY2MYD`. Roll-total (`jetTotal`) bonuses remain out of scope (spec.md C-001) — see `MIGRATION_BACKLOG.md` item 4 for the fuller writeup.
+
+</details>
 
 ### Alt-form/transformation data model — superseded, see "Vitruve character sheet" below
 
