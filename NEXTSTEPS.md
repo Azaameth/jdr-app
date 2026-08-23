@@ -340,11 +340,85 @@ high-complexity policy.
    `MaxItems`) and preserved untouched fields (`MaxArmorSlots`) — proving
    `{ merge: true }` behaves as the store's patch-preserving contract
    requires, not a destructive overwrite.
-7. **`Roster/Summary` materialization — queued.** Currently only ever
-   written by the seed script — no live materialization exists. Needs an
-   explicit decision: real Cloud Functions (no Functions infra exists in
-   this repo today) vs. a client-side recompute convention, appropriate for
-   this hobby-scale project.
+7. **`Roster/Summary` materialization — done (2026-08-23), first Cloud Functions
+   infra in this repo.** **Explicit product decision, asked directly**: real
+   Cloud Functions (docs/rpg-data-model.md §5.4's documented design) vs. a
+   client-side recompute convention. Chose real Cloud Functions, despite the
+   larger scope (new `functions/` package, and — separately, not done here —
+   the live Firebase project will need the Blaze pay-as-you-go plan before
+   this can ever be deployed; Firestore-triggered functions require it
+   regardless of actual usage volume, and no billing-plan mention existed
+   anywhere in this repo before this cluster).
+
+   **Scope, deliberately narrower than the full §5.4 pipeline**: §5.4 describes
+   four materialization steps (effective primaries from Class/Race Bonuses,
+   secondary-statistic formulas, Health/Mana-formula + Class/Race base-stat
+   bonuses, clamp-and-mirror). Steps 1-3 have no caller anywhere in the app
+   today — no character-creation flow exists, `Statistics.Secondary` and
+   `CharacterCreation`'s formulas are unconsumed (confirmed again during
+   Cluster 6's scoping). Building formula evaluation now would be pure
+   speculative infrastructure. The only "materialization" that's real today is
+   Cluster 4's equipment `BonusRaw` → base-stat fold, done ad hoc client-side
+   in `src/utils/effectiveStats.ts`. So this cluster's Function does exactly
+   that (and only that) server-side, into `Roster/Summary`, matching what
+   `TeamView.vue` already computes and displays — nothing more.
+
+   `functions/` is a standalone npm package (own `package.json`/`tsconfig.json`,
+   builds to `lib/`, gitignored) — kept out of the root `type-check`/`lint`
+   pipeline (`eslint.config.ts`'s `globalIgnores` now excludes `functions/**`)
+   since it has its own tsconfig project and its own `npm run build`/
+   `type-check` as its correctness gate, the same way `scripts/` sits outside
+   the app's Vue/TS project. `functions/src/effectiveStats.ts` is a hand-kept
+   duplicate of the two stats (`Health`/`Mana`) `src/utils/effectiveStats.ts`
+   actually needs — cross-package imports aren't worth the build complexity
+   for one 4-line pure function; flagged in a comment to promote to a shared
+   package if it ever needs to grow.
+
+   `functions/src/index.ts` exports three `onDocumentWritten` triggers —
+   `Campaigns/{id}/Characters/{cid}`, `.../States/Current`, `.../Equipment/Main`
+   — all calling one `materializeCharacter(campaignId, characterId)`: reads
+   the Character/State/Equipment docs, computes effective Health/Mana the same
+   way `TeamView.vue` does, and merge-writes just that one `Characters.<id>`
+   map entry (plus `UpdatedAt`) into `Roster/Summary` — never a whole-document
+   overwrite, so campaigns with many characters don't clobber each other's
+   entries on every write. Transformations (`ParentCharacterId` set) are
+   excluded — not their own roster row, mirroring `TeamView.vue`'s own
+   `!character.parentCharacterId` filter — and a deleted Character doc, or one
+   that becomes a transformation, clears any existing entry via
+   `FieldValue.delete()` rather than leaving a stale one.
+
+   No `firestore.rules` change needed — Cluster 5 already set
+   `Roster/Summary` to `write: false` for every client role, which is exactly
+   correct: the Admin SDK a Cloud Function runs under bypasses Security Rules
+   entirely, so client-side "no one can write this" and "the Function writes
+   this" are simultaneously true by construction, not a conflict to reconcile.
+
+   **Not done, explicitly out of scope**: wiring `TeamView.vue` to actually
+   *read* `Roster/Summary` (via the already-built but still-orphaned
+   `useRosterStore`/`subscribeRosterSummary`) instead of its current N+2 live
+   reads. `Roster/Summary`'s documented schema doesn't cover everything
+   `TeamView.vue` shows (`Posture`, the secondary-attribute leaderboards,
+   race/class labels, armor *max* totals) — switching over now would either
+   mean silently extending §4.4's schema with undocumented fields (a scope
+   decision as significant as Cluster 4's GearEntry scale-back, not something
+   to fold into "add a function") or a half-migration that keeps most of the
+   per-character reads anyway. Left as the natural next increment once that
+   schema-extension question is answered.
+
+   Verified: `functions/`'s own `tsc` build is clean; root `type-check`/
+   `lint`/411 unit tests still green with `functions/` excluded from both.
+   Verified against a real, fully local Functions+Firestore emulator pair
+   (no Blaze plan involved — local emulation never requires it): a throwaway
+   script wrote real Character/States/Equipment docs via the Admin SDK and
+   confirmed, end-to-end through the actual deployed triggers (not a mocked
+   handler call), that (1) creating a Character materializes `DisplayName`/
+   `Status` immediately, (2) a `States/Current` write materializes base
+   `Health`/`Mana`/current values, (3) a subsequent `Equipment/Main` write
+   re-materializes `Health`/`Mana` with the equipped `BonusRaw` folded in
+   (verified `Health 50→65`, `Mana 20→25` for `+15`/`+5` gear), (4) a
+   transformation's `ParentCharacterId` correctly keeps it out of
+   `Roster/Summary` entirely, and (5) deleting the parent character clears
+   its entry.
 8. **`CharacterRepository` cleanup — done (2026-08-23).** `getCharacterById`
    (the flat, never-seeded `Characters` singleton — `PlayerView.vue`'s only
    caller was swapped to `getCharacterByCampaign` back in Cluster 3a)

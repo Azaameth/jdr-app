@@ -51,3 +51,6 @@ scripts/keys/*.json
 
 # Live-migration backups (production data snapshots)
 scripts/backups/
+
+# Cloud Functions build output
+functions/lib/
