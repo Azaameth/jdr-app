@@ -32,7 +32,7 @@ describe('Legacy campaign migration plan', () => {
     )
 
     expect(plan.campaigns[0]?.path).toBe('Campaigns/camp-1')
-    expect(plan.rules.data.Statistics.Primary[0]).toMatchObject({ Key: 'Strength' })
+    expect(plan.rules.data.Statistics.Primary[0]).toMatchObject({ Key: 'Force' })
     expect(plan.characters[0]?.path).toBe('Campaigns/camp-1/Characters/azarius')
     expect(plan.players[0]?.path).toBe('Campaigns/camp-1/Players/u1')
     expect(plan.equipment[0]?.path).toBe('Campaigns/camp-1/Characters/azarius/Equipment/Main')

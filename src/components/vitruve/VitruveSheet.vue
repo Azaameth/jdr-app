@@ -36,7 +36,7 @@ const subtitle = computed(() => {
   if (props.raceName) segments.push(props.raceName)
   if (props.className) segments.push(props.className)
   segments.push(`Niv.${props.character.level}`)
-  if (props.character.elements.length) segments.push(props.character.elements.join(' · '))
+  if (props.character.elements?.length) segments.push(props.character.elements.join(' · '))
   return segments.join(' · ')
 })
 

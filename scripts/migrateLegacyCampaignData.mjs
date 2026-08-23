@@ -4,14 +4,17 @@ function buildCampaignRules() {
   return {
     Statistics: {
       Primary: [
-        { Key: 'Strength', Label: 'Force', Min: 0, Max: 20 },
-        { Key: 'Agility', Label: 'Agilité', Min: 0, Max: 20 },
-        { Key: 'Intellect', Label: 'Intellect', Min: 0, Max: 20 },
-        { Key: 'Spirit', Label: 'Esprit', Min: 0, Max: 20 },
+        { Key: 'Force', Label: 'Force', Min: 0, Max: 100 },
+        { Key: 'Social', Label: 'Social', Min: 0, Max: 100 },
+        { Key: 'Mental', Label: 'Mental', Min: 0, Max: 100 },
       ],
       Secondary: [
-        { Key: 'Power', Label: 'Puissance', LinkedPrimary: 'Strength', Formula: 'Strength * 0.5' },
-        { Key: 'Focus', Label: 'Concentration', LinkedPrimary: 'Intellect', Formula: 'Intellect * 0.5' },
+        { Key: 'Puissance', Label: 'Puissance', LinkedPrimary: 'Force', Formula: 'Force * 0.1' },
+        { Key: 'Finesse', Label: 'Finesse', LinkedPrimary: 'Force', Formula: 'Force * 0.1' },
+        { Key: 'Aura', Label: 'Aura', LinkedPrimary: 'Social', Formula: 'Social * 0.1' },
+        { Key: 'Relation', Label: 'Relation', LinkedPrimary: 'Social', Formula: 'Social * 0.1' },
+        { Key: 'Instinct', Label: 'Instinct', LinkedPrimary: 'Mental', Formula: 'Mental * 0.1' },
+        { Key: 'Savoir', Label: 'Savoir', LinkedPrimary: 'Mental', Formula: 'Mental * 0.1' },
       ],
     },
     Dice: {
@@ -21,8 +24,8 @@ function buildCampaignRules() {
       CriticalThreshold: 1,
     },
     CharacterCreation: {
-      HealthMaxFormula: '20 + Strength * 2',
-      ManaMaxFormula: '10 + Spirit * 3',
+      HealthMaxFormula: '20 + Force * 2',
+      ManaMaxFormula: '10 + Mental * 3',
       PointBuyBudget: 20,
       FormulaRounding: 'RoundDown',
     },
@@ -61,14 +64,17 @@ function normalizeCharacter(character, campaignId) {
       ClassId: character.classId ?? '',
       RaceId: character.raceId ?? '',
       Statistics: {
-        Strength: { Base: Number(character.attributes?.primary?.force ?? 0), Bonus: 0 },
-        Agility: { Base: Number(character.attributes?.primary?.social ?? 0), Bonus: 0 },
-        Intellect: { Base: Number(character.attributes?.primary?.mental ?? 0), Bonus: 0 },
-        Spirit: { Base: 0, Bonus: 0 },
+        Force: { Base: Number(character.attributes?.primary?.force ?? 0), Bonus: 0 },
+        Social: { Base: Number(character.attributes?.primary?.social ?? 0), Bonus: 0 },
+        Mental: { Base: Number(character.attributes?.primary?.mental ?? 0), Bonus: 0 },
       },
       Secondaries: {
-        Power: Number(character.attributes?.secondary?.puissance ?? 0),
-        Focus: Number(character.attributes?.secondary?.savoir ?? 0),
+        Puissance: Number(character.attributes?.secondary?.puissance ?? 0),
+        Finesse: Number(character.attributes?.secondary?.finesse ?? 0),
+        Aura: Number(character.attributes?.secondary?.aura ?? 0),
+        Relation: Number(character.attributes?.secondary?.relation ?? 0),
+        Instinct: Number(character.attributes?.secondary?.instinct ?? 0),
+        Savoir: Number(character.attributes?.secondary?.savoir ?? 0),
       },
       PlayerId: character.ownerUid ?? 'unknown-user',
       CampaignId: campaignId,

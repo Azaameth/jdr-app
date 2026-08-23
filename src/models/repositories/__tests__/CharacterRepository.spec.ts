@@ -42,6 +42,11 @@ describe('CharacterRepository', () => {
       vi.doMock('../../../firebase/config', () => ({ db: {} }))
     })
 
+    const EMPTY_ATTRIBUTES = {
+      primary: { force: 0, social: 0, mental: 0 },
+      secondary: { puissance: 0, finesse: 0, aura: 0, relation: 0, instinct: 0, savoir: 0 },
+    }
+
     it('reads characters from the nested campaign collection', async () => {
       firestoreMocks.getDocs.mockResolvedValue({
         docs: [
@@ -56,7 +61,16 @@ describe('CharacterRepository', () => {
       const result = await repo.listCharactersByCampaign('camp-1')
 
       expect(firestoreMocks.collection).toHaveBeenCalledWith({}, 'Campaigns', 'camp-1', 'Characters')
-      expect(result).toEqual([{ id: 'char-1', campaignId: 'camp-1', name: 'Hero' }])
+      expect(result).toEqual([
+        {
+          id: 'char-1',
+          campaignId: 'camp-1',
+          name: 'Hero',
+          attributes: EMPTY_ATTRIBUTES,
+          skills: [],
+          gifts: [],
+        },
+      ])
     })
 
     it('returns null from getCharacterByCampaign when the doc does not exist', async () => {
@@ -79,10 +93,18 @@ describe('CharacterRepository', () => {
       const result = await repo.getCharacterByCampaign('camp-1', 'char-1')
 
       expect(firestoreMocks.doc).toHaveBeenCalledWith({}, 'Campaigns', 'camp-1', 'Characters', 'char-1')
-      expect(result).toEqual({ id: 'char-1', campaignId: 'camp-1', name: 'Hero', level: 3 })
+      expect(result).toEqual({
+        id: 'char-1',
+        campaignId: 'camp-1',
+        name: 'Hero',
+        level: 3,
+        attributes: EMPTY_ATTRIBUTES,
+        skills: [],
+        gifts: [],
+      })
     })
 
-    it('listChildrenOf maps docs to the app shape, passing through fields with no alias unmodified', async () => {
+    it('listChildrenOf maps docs to the app shape, passing through genuinely unmapped fields unmodified', async () => {
       firestoreMocks.getDocs.mockResolvedValue({
         docs: [
           {
@@ -92,6 +114,7 @@ describe('CharacterRepository', () => {
               DisplayName: 'Furmiaou',
               ParentCharacterId: 'firm',
               Elements: ['Nature'],
+              Actions: { charge: { Description: 'Fonce', Value: 1 } },
             }),
           },
         ],
@@ -106,7 +129,11 @@ describe('CharacterRepository', () => {
           campaignId: 'camp-1',
           name: 'Furmiaou',
           parentCharacterId: 'firm',
-          Elements: ['Nature'],
+          elements: ['Nature'],
+          Actions: { charge: { Description: 'Fonce', Value: 1 } },
+          attributes: EMPTY_ATTRIBUTES,
+          skills: [],
+          gifts: [],
         },
       ])
     })
@@ -121,6 +148,15 @@ describe('CharacterRepository', () => {
           ParentCharacterId: 'firm',
           ActiveFormId: 'furmiaou',
           DisplayName: 'Kael',
+          Elements: ['Feu'],
+          Languages: ['Commun'],
+          Statistics: {
+            Force: { Base: 40, Bonus: 5 },
+            Social: { Base: 10, Bonus: 0 },
+            Mental: { Base: 20, Bonus: 0 },
+          },
+          Secondaries: { Puissance: 3, Finesse: 1, Aura: 0, Relation: 0, Instinct: 2, Savoir: 4 },
+          Skills: { 'skill-1': { Description: 'Survie', Value: 2 } },
         }),
       })
 
@@ -134,7 +170,42 @@ describe('CharacterRepository', () => {
         parentCharacterId: 'firm',
         activeFormId: 'furmiaou',
         name: 'Kael',
+        elements: ['Feu'],
+        languages: ['Commun'],
+        attributes: {
+          primary: { force: 45, social: 10, mental: 20 },
+          secondary: { puissance: 3, finesse: 1, aura: 0, relation: 0, instinct: 2, savoir: 4 },
+        },
+        skills: [{ id: 'skill-1', name: 'Survie', rank: 2, domain: 'general' }],
+        gifts: [],
+        // Statistics/Secondaries/Skills also pass through verbatim under
+        // their raw PascalCase keys (kept for genuinely unmapped consumers,
+        // e.g. NEXTSTEPS.md Cluster 8's note) alongside the new derived
+        // camelCase fields above — this isn't a duplicate bug, both coexist.
+        Statistics: {
+          Force: { Base: 40, Bonus: 5 },
+          Social: { Base: 10, Bonus: 0 },
+          Mental: { Base: 20, Bonus: 0 },
+        },
+        Secondaries: { Puissance: 3, Finesse: 1, Aura: 0, Relation: 0, Instinct: 2, Savoir: 4 },
+        Skills: { 'skill-1': { Description: 'Survie', Value: 2 } },
       })
+    })
+
+    it('never throws when Elements/Statistics/Secondaries/Skills are absent (fresh or raw-edited character)', async () => {
+      firestoreMocks.getDoc.mockResolvedValue({
+        exists: () => true,
+        id: 'char-1',
+        data: () => ({ CampaignId: 'camp-1', DisplayName: 'Nouveau' }),
+      })
+
+      const repo = await import('../CharacterRepository')
+      const result = await repo.getCharacterByCampaign('camp-1', 'char-1')
+
+      expect(result?.elements).toBeUndefined()
+      expect(result?.attributes).toEqual(EMPTY_ATTRIBUTES)
+      expect(result?.skills).toEqual([])
+      expect(result?.gifts).toEqual([])
     })
 
     it('updateCharacter strips id and merge-writes the remaining fields plus updatedAt', async () => {

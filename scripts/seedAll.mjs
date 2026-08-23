@@ -271,14 +271,17 @@ function buildCampaignRules() {
   return {
     Statistics: {
       Primary: [
-        { Key: 'Strength', Label: 'Force', Min: 0, Max: 20 },
-        { Key: 'Agility', Label: 'Agilité', Min: 0, Max: 20 },
-        { Key: 'Intellect', Label: 'Intellect', Min: 0, Max: 20 },
-        { Key: 'Spirit', Label: 'Esprit', Min: 0, Max: 20 },
+        { Key: 'Force', Label: 'Force', Min: 0, Max: 100 },
+        { Key: 'Social', Label: 'Social', Min: 0, Max: 100 },
+        { Key: 'Mental', Label: 'Mental', Min: 0, Max: 100 },
       ],
       Secondary: [
-        { Key: 'Power', Label: 'Puissance', LinkedPrimary: 'Strength', Formula: 'Strength * 0.5' },
-        { Key: 'Focus', Label: 'Concentration', LinkedPrimary: 'Intellect', Formula: 'Intellect * 0.5' },
+        { Key: 'Puissance', Label: 'Puissance', LinkedPrimary: 'Force', Formula: 'Force * 0.1' },
+        { Key: 'Finesse', Label: 'Finesse', LinkedPrimary: 'Force', Formula: 'Force * 0.1' },
+        { Key: 'Aura', Label: 'Aura', LinkedPrimary: 'Social', Formula: 'Social * 0.1' },
+        { Key: 'Relation', Label: 'Relation', LinkedPrimary: 'Social', Formula: 'Social * 0.1' },
+        { Key: 'Instinct', Label: 'Instinct', LinkedPrimary: 'Mental', Formula: 'Mental * 0.1' },
+        { Key: 'Savoir', Label: 'Savoir', LinkedPrimary: 'Mental', Formula: 'Mental * 0.1' },
       ],
     },
     Dice: {
@@ -288,8 +291,8 @@ function buildCampaignRules() {
       CriticalThreshold: 1,
     },
     CharacterCreation: {
-      HealthMaxFormula: '20 + Strength * 2 + Class.Bonuses.Health',
-      ManaMaxFormula: '10 + Spirit * 3 + Class.Bonuses.Mana',
+      HealthMaxFormula: '20 + Force * 2 + Class.Bonuses.Health',
+      ManaMaxFormula: '10 + Mental * 3 + Class.Bonuses.Mana',
       PointBuyBudget: 20,
       FormulaRounding: 'RoundDown',
     },
@@ -424,10 +427,9 @@ async function main() {
       const raceId = slugify(raw.race)
       const now = new Date().toISOString()
       const primary = {
-        Strength: { Base: toInt(raw.phys, 0), Bonus: 0 },
-        Agility: { Base: toInt(raw.social, 0), Bonus: 0 },
-        Intellect: { Base: toInt(raw.mental, 0), Bonus: 0 },
-        Spirit: { Base: 0, Bonus: 0 },
+        Force: { Base: toInt(raw.phys, 0), Bonus: 0 },
+        Social: { Base: toInt(raw.social, 0), Bonus: 0 },
+        Mental: { Base: toInt(raw.mental, 0), Bonus: 0 },
       }
       const secondary = parseSecondaryAttributes(raw.competences)
       const charSheet = {
@@ -443,8 +445,12 @@ async function main() {
         RaceId: raceId,
         Statistics: primary,
         Secondaries: {
-          Power: Number(secondary.puissance ?? 0),
-          Focus: Number(secondary.savoir ?? 0),
+          Puissance: Number(secondary.puissance ?? 0),
+          Finesse: Number(secondary.finesse ?? 0),
+          Aura: Number(secondary.aura ?? 0),
+          Relation: Number(secondary.relation ?? 0),
+          Instinct: Number(secondary.instinct ?? 0),
+          Savoir: Number(secondary.savoir ?? 0),
         },
         Actions: {},
         Skills: Object.fromEntries(

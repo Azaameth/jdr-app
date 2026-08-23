@@ -23,6 +23,8 @@ function mapCharacter(docSnap: { id: string; data: () => Record<string, unknown>
     ['activeFormId', 'ActiveFormId'],
     ['img', 'PictureUrl'],
     ['backstory', 'Backstory'],
+    ['elements', 'Elements'],
+    ['languages', 'Languages'],
   ]
 
   for (const [targetKey, sourceKey] of fieldAliases) {
@@ -36,6 +38,50 @@ function mapCharacter(docSnap: { id: string; data: () => Record<string, unknown>
     if (aliasedSourceKeys.has(key)) continue
     normalized[key] = value
   }
+
+  // These three need reshaping, not a bare rename, so they can't go through
+  // the alias list above: Statistics/Secondaries (per-stat {Base,Bonus} maps
+  // keyed by this game's real vocabulary — see docs/rpg-data-model.md's
+  // CharacterRules note and scripts/seedAll.mjs) become the flat
+  // primary/secondary numbers CaracTab.vue/ChildSheetTab.vue/jetFormula.ts
+  // actually read; Skills' Firestore map becomes the CharacterSkill[] array
+  // views iterate. Gifts has no live producer (the old dons system was
+  // retired in Cluster 4) so it always defaults to empty rather than
+  // undefined.
+  const statistics = raw.Statistics as
+    | Record<string, { Base?: number; Bonus?: number } | undefined>
+    | undefined
+  const secondaries = raw.Secondaries as Record<string, number> | undefined
+  const statBase = (key: string) =>
+    (statistics?.[key]?.Base ?? 0) + (statistics?.[key]?.Bonus ?? 0)
+
+  normalized.attributes = {
+    primary: {
+      force: statBase('Force'),
+      social: statBase('Social'),
+      mental: statBase('Mental'),
+    },
+    secondary: {
+      puissance: secondaries?.Puissance ?? 0,
+      finesse: secondaries?.Finesse ?? 0,
+      aura: secondaries?.Aura ?? 0,
+      relation: secondaries?.Relation ?? 0,
+      instinct: secondaries?.Instinct ?? 0,
+      savoir: secondaries?.Savoir ?? 0,
+    },
+  }
+
+  const skillsMap = raw.Skills as Record<string, { Description?: string; Value?: number }> | undefined
+  normalized.skills = skillsMap
+    ? Object.entries(skillsMap).map(([id, skill]) => ({
+        id,
+        name: skill.Description ?? '',
+        rank: skill.Value ?? 0,
+        domain: 'general' as const,
+      }))
+    : []
+
+  normalized.gifts = []
 
   return normalized as unknown as CharacterProfile
 }
