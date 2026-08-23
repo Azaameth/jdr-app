@@ -8,10 +8,22 @@
     "accent": "#D4A843",
     "description": "Issus des 12 royaumes ou élus par des forces mystiques, les Téméraires forment un cercle occulte dédié à la réalisation de la Grande Prophétie. Refusant la passivité religieuse ou politique, leur foi s'incarne dans l'action.",
     "facts": [
-      { "label": "Structure", "value": "12 Maîtres actifs, un par royaume" },
-      { "label": "Objectif", "value": "Lever la barrière · Pénétrer l'Île du Cœur" },
-      { "label": "Statut", "value": "Messies ou hérétiques selon les régions" },
-      { "label": "Base", "value": "République de Franxx · Réseau secret" }
+      {
+        "label": "Structure",
+        "value": "12 Maîtres actifs, un par royaume"
+      },
+      {
+        "label": "Objectif",
+        "value": "Lever la barrière · Pénétrer l'Île du Cœur"
+      },
+      {
+        "label": "Statut",
+        "value": "Messies ou hérétiques selon les régions"
+      },
+      {
+        "label": "Base",
+        "value": "République de Franxx · Réseau secret"
+      }
     ]
   },
   {
@@ -23,10 +35,22 @@
     "accent": "#C0392B",
     "description": "Secte criminelle d'envergure internationale. Ses membres traquent artefacts légendaires et reliques prophétiques pour les revendre au marché noir. Emploient mercenaires, espions, monstres et mages renégats.",
     "facts": [
-      { "label": "Type", "value": "Secte criminelle internationale" },
-      { "label": "Origine", "value": "Auregia" },
-      { "label": "Objectif", "value": "Artefacts légendaires · Reliques prophétiques" },
-      { "label": "Menace", "value": "Persistante · Toutes les nations" }
+      {
+        "label": "Type",
+        "value": "Secte criminelle internationale"
+      },
+      {
+        "label": "Origine",
+        "value": "Auregia"
+      },
+      {
+        "label": "Objectif",
+        "value": "Artefacts légendaires · Reliques prophétiques"
+      },
+      {
+        "label": "Menace",
+        "value": "Persistante · Toutes les nations"
+      }
     ]
   },
   {
@@ -38,10 +62,22 @@
     "accent": "#2A5FA8",
     "description": "Née parmi les premiers gardiens de la mémoire druidique. Dévoués à la préservation des secrets du monde. Ses archivistes, mages-scribes et veilleurs parcourent les terres pour contrer trafiquants et sectes. Discret mais jamais passif.",
     "facts": [
-      { "label": "Rôle", "value": "Gardiens des savoirs interdits" },
-      { "label": "Membres", "value": "Archivistes · Mages-scribes · Veilleurs" },
-      { "label": "Stance", "value": "Intervient si les équilibres sont menacés" },
-      { "label": "Rapport", "value": "Ambigu avec les Téméraires" }
+      {
+        "label": "Rôle",
+        "value": "Gardiens des savoirs interdits"
+      },
+      {
+        "label": "Membres",
+        "value": "Archivistes · Mages-scribes · Veilleurs"
+      },
+      {
+        "label": "Stance",
+        "value": "Intervient si les équilibres sont menacés"
+      },
+      {
+        "label": "Rapport",
+        "value": "Ambigu avec les Téméraires"
+      }
     ]
   },
   {
@@ -53,8 +89,14 @@
     "accent": "#4A7A28",
     "description": "Agriculteurs, pêcheurs, herboristes — le socle du monde. Souvent sous domination noble, ils subissent les guerres et les taxes. Certains rejoignent les Téméraires par désespoir ou conviction, espérant un monde plus juste après l'ouverture de l'Île du Cœur.",
     "facts": [
-      { "label": "Rôle", "value": "Production alimentaire · Artisanat" },
-      { "label": "Rapport aux Téméraires", "value": "Potentiels alliés · Parfois recrutés" }
+      {
+        "label": "Rôle",
+        "value": "Production alimentaire · Artisanat"
+      },
+      {
+        "label": "Rapport aux Téméraires",
+        "value": "Potentiels alliés · Parfois recrutés"
+      }
     ]
   },
   {
@@ -66,8 +108,14 @@
     "accent": "#6A4ABA",
     "description": "Détenteurs des terres et des armées, les nobles sont profondément divisés face à la Prophétie. Les Traditionalistes veulent maintenir le statu quo et leur pouvoir. Les Réformateurs soutiennent les Téméraires, voyant dans l'Île du Cœur une opportunité d'expansion ou de légitimité divine.",
     "facts": [
-      { "label": "Faction A", "value": "Traditionalistes — statu quo" },
-      { "label": "Faction B", "value": "Réformateurs — soutiennent les Téméraires" }
+      {
+        "label": "Faction A",
+        "value": "Traditionalistes — statu quo"
+      },
+      {
+        "label": "Faction B",
+        "value": "Réformateurs — soutiennent les Téméraires"
+      }
     ]
   },
   {
@@ -79,8 +127,14 @@
     "accent": "#A07020",
     "description": "Les guildes marchandes traversent toutes les frontières. Certains financent secrètement les Téméraires, espérant des routes commerciales vers l'Île du Cœur. D'autres revendent des contrefaçons de reliques prophétiques aux crédules. Leur loyauté est avant tout au profit.",
     "facts": [
-      { "label": "Structure", "value": "Guildes par spécialité et région" },
-      { "label": "Rapport", "value": "Ambivalent · Profit avant tout" }
+      {
+        "label": "Structure",
+        "value": "Guildes par spécialité et région"
+      },
+      {
+        "label": "Rapport",
+        "value": "Ambivalent · Profit avant tout"
+      }
     ]
   },
   {
@@ -92,8 +146,14 @@
     "accent": "#1A6A5A",
     "description": "Piliers invisibles des royaumes. Scribes, diplomates et archivistes tiennent les rouages du pouvoir. Certains dissimulent textes anciens et versions interdites de la Prophétie dans des archives secrètes, attendant le moment opportun pour les révéler.",
     "facts": [
-      { "label": "Rôle", "value": "Administration · Diplomatie · Archives" },
-      { "label": "Secret", "value": "Certains cachent des textes prophétiques" }
+      {
+        "label": "Rôle",
+        "value": "Administration · Diplomatie · Archives"
+      },
+      {
+        "label": "Secret",
+        "value": "Certains cachent des textes prophétiques"
+      }
     ]
   },
   {
@@ -105,8 +165,14 @@
     "accent": "#7A1A5A",
     "description": "Les religions périphériques entretiennent leurs propres versions de la Prophétie. Les prêtres de Zarûn gardent les eaux sacrées et condamnent toute tentative d'approcher l'Île. D'autres cultes voient dans les Téméraires des élus divins. Leur influence sur les masses est considérable.",
     "facts": [
-      { "label": "Principales factions", "value": "Gardiens de Zarûn · Cultes de la Prophétie" },
-      { "label": "Rapport", "value": "De vénération à condamnation" }
+      {
+        "label": "Principales factions",
+        "value": "Gardiens de Zarûn · Cultes de la Prophétie"
+      },
+      {
+        "label": "Rapport",
+        "value": "De vénération à condamnation"
+      }
     ]
   }
 ]

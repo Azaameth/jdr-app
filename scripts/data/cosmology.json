@@ -17,7 +17,11 @@
     "description": "Leur identité est inconnue du commun. Chacune règne sur un aspect fondamental du réel : magie, saisons, émotions, guerre, mémoire… Pleine conscience et volonté propre.",
     "ruleNote": "Seul moyen d'en devenir une : tuer et remplacer l'une des 12.",
     "examples": [
-      { "name": "Vythranax", "epithet": "Le Dragon Légendaire", "img": "creatures/vythranax.jpg" },
+      {
+        "name": "Vythranax",
+        "epithet": "Le Dragon Légendaire",
+        "img": "creatures/vythranax.jpg"
+      },
       {
         "name": "Vindrasil",
         "epithet": "Le Serpent des Profondeurs",
@@ -35,7 +39,11 @@
     "ruleNote": "⬆ Une Bête Effroyable qui tue une Légendaire devient soudain intelligente et consciente.",
     "footnote": "→ Peut accéder au rang Légendaire",
     "examples": [
-      { "name": "Kraken", "epithet": "Terreur des profondeurs", "img": "creatures/kraken.jpg" },
+      {
+        "name": "Kraken",
+        "epithet": "Terreur des profondeurs",
+        "img": "creatures/kraken.jpg"
+      },
       {
         "name": "Dragon de l'Ombre",
         "epithet": "Ravageur",
