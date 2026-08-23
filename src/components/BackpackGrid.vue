@@ -1,159 +1,110 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-import { BACKPACK_MAX_SLOTS, type InventoryCategory, type InventoryItem } from '../models/types/Inventory'
+import type { BagItemDocument } from '../models/repositories/ItemRepository'
 
 const props = withDefaults(
   defineProps<{
-    items: InventoryItem[]
-    gold?: number
+    items: BagItemDocument[]
+    maxItems?: number | null
+    currency?: number
     editable?: boolean
   }>(),
   {
-    gold: 0,
+    maxItems: null,
+    currency: 0,
     editable: true,
   },
 )
 
 const emit = defineEmits<{
-  'slot-click': [payload: { category: InventoryCategory; item?: InventoryItem }]
-  'update-gold': [value: number]
+  'slot-click': [item?: BagItemDocument]
+  'update-currency': [value: number]
 }>()
 
-const CATEGORY_LABELS: Record<InventoryCategory, string> = {
-  nourriture: 'Nourriture',
-  munitions: 'Munitions',
-  bivouac: 'Matériel de bivouac & camp',
-  soins: 'Matériel de soins',
-  potions: 'Potions, Poisons, Antidotes',
-  quete: 'Objets de quête',
-  speciaux: 'Objets spéciaux & Reliques',
-  docs: 'Documents, Livres, Titres',
-  gemmes: 'Gemmes & Pierres précieuses',
-  butin: 'Butin à revendre (ou pas)',
+const MIN_SLOTS = 8
+
+function slotLabel(item: BagItemDocument): string {
+  return item.Quantity > 1 ? `${item.DisplayName} ×${item.Quantity}` : item.DisplayName
 }
 
-/** Column count for each category's slot grid — mirrors legacy layout. */
-const CATEGORY_COLS: Record<InventoryCategory, number> = {
-  nourriture: 1,
-  munitions: 1,
-  bivouac: 5,
-  soins: 5,
-  potions: 5,
-  quete: 3,
-  speciaux: 3,
-  docs: 3,
-  gemmes: 3,
-  butin: 4,
-}
+const slotCap = computed(() => props.maxItems ?? Math.max(MIN_SLOTS, props.items.length))
 
-/** Row groupings and column-split, in legacy display order. */
-const LAYOUT_ROWS: Array<{ cols?: string; includeGold?: boolean; categories: InventoryCategory[] }> = [
-  { cols: '1fr 2fr 1fr', includeGold: true, categories: ['nourriture', 'munitions'] },
-  { categories: ['bivouac'] },
-  { categories: ['soins'] },
-  { categories: ['potions'] },
-  { cols: '1fr 1fr', categories: ['quete', 'speciaux'] },
-  { cols: '1fr 1fr', categories: ['docs', 'gemmes'] },
-  { categories: ['butin'] },
-]
-
-function headerText(category: InventoryCategory): string {
-  const max = BACKPACK_MAX_SLOTS[category]
-  const unit = max > 1 ? 'emplacements' : 'emplacement'
-  return `${CATEGORY_LABELS[category]} — ${max} ${unit}`
-}
-
-function slotLabel(item: InventoryItem): string {
-  return item.quantity > 1 ? `${item.name} ×${item.quantity}` : item.name
-}
-
-const slotsByCategory = computed<Record<InventoryCategory, Array<InventoryItem | null>>>(() => {
-  const result = {} as Record<InventoryCategory, Array<InventoryItem | null>>
-  for (const category of Object.keys(CATEGORY_LABELS) as InventoryCategory[]) {
-    const filled = props.items.filter((item) => item.category === category)
-    const max = BACKPACK_MAX_SLOTS[category]
-    const emptyCount = Math.max(0, max - filled.length)
-    result[category] = [...filled, ...Array.from({ length: emptyCount }, () => null)]
-  }
-  return result
+const slots = computed<Array<BagItemDocument | null>>(() => {
+  const filled: Array<BagItemDocument | null> = [...props.items]
+  const emptyCount = Math.max(0, slotCap.value - filled.length)
+  return [...filled, ...Array.from({ length: emptyCount }, () => null)]
 })
 
-function slotKey(category: InventoryCategory, entry: InventoryItem | null, index: number): string {
-  return entry ? entry.itemId : `empty-${category}-${index}`
+function slotKey(entry: BagItemDocument | null, index: number): string {
+  return entry ? entry.EntryId : `empty-${index}`
 }
 
-function handleSlotClick(category: InventoryCategory, item?: InventoryItem) {
+function handleSlotClick(item?: BagItemDocument) {
   if (!props.editable) return
-  emit('slot-click', { category, item })
+  emit('slot-click', item)
 }
 
-const goldText = ref(String(props.gold))
+const currencyText = ref(String(props.currency))
 
 watch(
-  () => props.gold,
+  () => props.currency,
   (value) => {
-    goldText.value = String(value)
+    currencyText.value = String(value)
   },
 )
 
-function commitGold() {
+function commitCurrency() {
   // `<input type="number">` can hand back a numeric value in some environments
   // (e.g. jsdom via @vue/test-utils' setValue) rather than the string v-model
   // normally binds; coerce defensively either way.
-  const trimmed = String(goldText.value).trim()
+  const trimmed = String(currencyText.value).trim()
   const parsed = Number.parseInt(trimmed, 10)
-  const nextValue = Number.isFinite(parsed) && parsed >= 0 ? parsed : props.gold
-  goldText.value = String(nextValue)
-  if (nextValue !== props.gold) {
-    emit('update-gold', nextValue)
+  const nextValue = Number.isFinite(parsed) && parsed >= 0 ? parsed : props.currency
+  currencyText.value = String(nextValue)
+  if (nextValue !== props.currency) {
+    emit('update-currency', nextValue)
   }
 }
 </script>
 
 <template>
   <div class="backpack-grid">
-    <div
-      v-for="(row, rowIndex) in LAYOUT_ROWS"
-      :key="rowIndex"
-      class="backpack-row"
-      :class="{ 'backpack-row-split': row.categories.length > 1 }"
-      :style="row.cols ? { gridTemplateColumns: row.cols } : undefined"
-    >
-      <section v-if="row.includeGold" class="category">
-        <h3 class="category-header">Or</h3>
-        <input
-          type="number"
-          min="0"
-          class="gold-input"
-          :disabled="!editable"
-          v-model="goldText"
-          aria-label="Or"
-          @blur="commitGold"
-          @keydown.enter="commitGold"
-        />
-      </section>
-      <section v-for="category in row.categories" :key="category" class="category">
-        <h3 class="category-header">{{ headerText(category) }}</h3>
-        <div
-          class="slot-grid"
-          :style="{ gridTemplateColumns: `repeat(${CATEGORY_COLS[category]}, 1fr)` }"
+    <section class="category">
+      <h3 class="category-header">Monnaie</h3>
+      <input
+        type="number"
+        min="0"
+        class="currency-input"
+        :disabled="!editable"
+        v-model="currencyText"
+        aria-label="Monnaie"
+        @blur="commitCurrency"
+        @keydown.enter="commitCurrency"
+      />
+    </section>
+
+    <section class="category">
+      <h3 class="category-header">
+        Sac à dos
+        <span v-if="maxItems !== null">— {{ items.length }}/{{ maxItems }}</span>
+      </h3>
+      <div class="slot-grid">
+        <component
+          :is="editable ? 'button' : 'div'"
+          v-for="(entry, index) in slots"
+          :key="slotKey(entry, index)"
+          :type="editable ? 'button' : undefined"
+          class="slot"
+          :class="{ 'slot-empty': !entry }"
+          :aria-label="entry ? undefined : 'Emplacement libre'"
+          :title="entry?.Description"
+          @click="handleSlotClick(entry ?? undefined)"
         >
-          <component
-            :is="editable ? 'button' : 'div'"
-            v-for="(entry, index) in slotsByCategory[category]"
-            :key="slotKey(category, entry, index)"
-            :type="editable ? 'button' : undefined"
-            class="slot"
-            :class="{ 'slot-empty': !entry }"
-            :aria-label="entry ? undefined : 'Emplacement libre'"
-            @click="handleSlotClick(category, entry ?? undefined)"
-          >
-            <span v-if="entry" class="slot-name">{{ slotLabel(entry) }}</span>
-            <span v-else class="slot-dash" aria-hidden="true">–</span>
-          </component>
-        </div>
-      </section>
-    </div>
+          <span v-if="entry" class="slot-name">{{ slotLabel(entry) }}</span>
+          <span v-else class="slot-dash" aria-hidden="true">–</span>
+        </component>
+      </div>
+    </section>
   </div>
 </template>
 
@@ -162,14 +113,6 @@ function commitGold() {
   display: flex;
   flex-direction: column;
   gap: 0.85rem;
-}
-.backpack-row {
-  display: flex;
-  flex-direction: column;
-}
-.backpack-row-split {
-  display: grid;
-  gap: 0.75rem;
 }
 .category-header {
   font-size: 0.72rem;
@@ -181,6 +124,7 @@ function commitGold() {
 }
 .slot-grid {
   display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
   gap: 0.4rem;
 }
 .slot {
@@ -212,7 +156,7 @@ function commitGold() {
 .slot-dash {
   color: #806840;
 }
-.gold-input {
+.currency-input {
   background: rgba(40, 28, 10, 0.6);
   border: 1px solid #5c4a2a;
   border-radius: 6px;
@@ -222,19 +166,15 @@ function commitGold() {
   font-size: 0.85rem;
   text-align: center;
   width: 100%;
+  max-width: 160px;
   box-sizing: border-box;
 }
-.gold-input:focus {
+.currency-input:focus {
   outline: none;
   border-color: #f0c96a;
 }
-.gold-input:disabled {
+.currency-input:disabled {
   opacity: 0.7;
   cursor: default;
-}
-@media (max-width: 640px) {
-  .backpack-row-split {
-    grid-template-columns: 1fr !important;
-  }
 }
 </style>

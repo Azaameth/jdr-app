@@ -1,7 +1,7 @@
 import { initializeApp } from 'firebase/app'
 import { getAnalytics } from 'firebase/analytics'
-import { getAuth, GoogleAuthProvider } from 'firebase/auth'
-import { getFirestore } from 'firebase/firestore'
+import { connectAuthEmulator, getAuth, GoogleAuthProvider } from 'firebase/auth'
+import { connectFirestoreEmulator, getFirestore } from 'firebase/firestore'
 
 export interface FirebaseEnvLike {
   [key: string]: string | boolean | undefined
@@ -42,6 +42,20 @@ if (hasRequiredConfig) {
   app = initializeApp(config)
   authInstance = getAuth(app)
   dbInstance = getFirestore(app)
+
+  // Local verification only — point the client at the Firebase Local
+  // Emulator Suite (see `firebase.json`, `npm run emulators`) instead of
+  // the real project. Never on by default; opt in via .env.local.
+  if ((import.meta.env as FirebaseEnvLike).VITE_USE_FIREBASE_EMULATOR === 'true') {
+    try {
+      connectAuthEmulator(authInstance, 'http://127.0.0.1:9099', { disableWarnings: true })
+      connectFirestoreEmulator(dbInstance, '127.0.0.1', 8080)
+    } catch {
+      // Vite HMR can re-run this module; the SDKs throw if you connect to
+      // an emulator twice on the same instance. Safe to ignore.
+    }
+  }
+
   try {
     // getAnalytics() can throw in environments without the browser
     // capabilities it needs (no IndexedDB, insecure context, some

@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { mount } from '@vue/test-utils'
 import VitruveSheet from '../VitruveSheet.vue'
 import type { CharacterProfile } from '../../../models/types/Character'
-import type { Participant } from '../../../models/types/Participant'
+import type { CharacterStateDocument } from '../../../models/repositories/CharacterStateRepository'
 
 function makeCharacter(overrides: Partial<CharacterProfile> = {}): CharacterProfile {
   return {
@@ -28,20 +28,15 @@ function makeCharacter(overrides: Partial<CharacterProfile> = {}): CharacterProf
   }
 }
 
-function makeParticipant(overrides: Partial<Participant> = {}): Participant {
+function makeState(overrides: Partial<CharacterStateDocument> = {}): CharacterStateDocument {
   return {
-    id: 'part-1',
-    uid: 'owner-uid',
-    campaignId: 'campaign-1',
-    characterId: 'char-1',
-    status: 'approved',
-    session: {
-      hp: 8,
-      maxHp: 14,
-      mana: 3,
-      maxMana: 9,
-      posture: 'FOCUS',
-    },
+    Health: 14,
+    HealthCurrent: 8,
+    Mana: 9,
+    ManaCurrent: 3,
+    Posture: 'FOCUS',
+    PlayerId: 'owner-uid',
+    CampaignId: 'campaign-1',
     ...overrides,
   }
 }
@@ -51,7 +46,7 @@ describe('VitruveSheet', () => {
     const wrapper = mount(VitruveSheet, {
       props: {
         character: makeCharacter(),
-        participant: makeParticipant(),
+        state: makeState(),
         raceName: 'Kitsune',
         className: 'Cogneur',
         canEditSession: true,
@@ -71,7 +66,7 @@ describe('VitruveSheet', () => {
     const wrapper = mount(VitruveSheet, {
       props: {
         character: makeCharacter(),
-        participant: makeParticipant(),
+        state: makeState(),
         canEditSession: true,
         sessionLoading: null,
       },
@@ -93,7 +88,7 @@ describe('VitruveSheet', () => {
     const wrapper = mount(VitruveSheet, {
       props: {
         character: makeCharacter(),
-        participant: makeParticipant(),
+        state: makeState(),
         canEditSession: false,
         sessionLoading: null,
       },
@@ -109,7 +104,7 @@ describe('VitruveSheet', () => {
     const wrapper = mount(VitruveSheet, {
       props: {
         character: makeCharacter(),
-        participant: makeParticipant(),
+        state: makeState(),
         canEditSession: true,
         sessionLoading: 'hp',
       },
@@ -123,11 +118,11 @@ describe('VitruveSheet', () => {
     expect(manaButtons[1]?.attributes('disabled')).toBeDefined()
   })
 
-  it('renders no vitals strip when the participant has no session', () => {
+  it('renders no vitals strip when the character has no live state', () => {
     const wrapper = mount(VitruveSheet, {
       props: {
         character: makeCharacter(),
-        participant: null,
+        state: null,
         canEditSession: false,
         sessionLoading: null,
       },
@@ -140,7 +135,7 @@ describe('VitruveSheet', () => {
     const wrapper = mount(VitruveSheet, {
       props: {
         character: makeCharacter({ img: 'images/azarius.jpg' }),
-        participant: makeParticipant(),
+        state: makeState(),
         canEditSession: true,
         sessionLoading: null,
       },
@@ -154,7 +149,7 @@ describe('VitruveSheet', () => {
     const wrapper = mount(VitruveSheet, {
       props: {
         character: makeCharacter({ img: '' }),
-        participant: makeParticipant(),
+        state: makeState(),
         canEditSession: true,
         sessionLoading: null,
       },
@@ -168,7 +163,7 @@ describe('VitruveSheet', () => {
     const wrapper = mount(VitruveSheet, {
       props: {
         character: makeCharacter({ img: 'images/broken.jpg' }),
-        participant: makeParticipant(),
+        state: makeState(),
         canEditSession: true,
         sessionLoading: null,
       },
@@ -185,7 +180,7 @@ describe('VitruveSheet', () => {
     const wrapper = mount(VitruveSheet, {
       props: {
         character: makeCharacter(),
-        participant: makeParticipant(),
+        state: makeState(),
         canEditSession: true,
         sessionLoading: null,
       },
@@ -198,21 +193,19 @@ describe('VitruveSheet', () => {
     const wrapper = mount(VitruveSheet, {
       props: {
         character: makeCharacter(),
-        participant: makeParticipant(),
+        state: makeState(),
         canEditSession: true,
         sessionLoading: null,
         equipment: [
           {
-            itemId: 'a-1',
-            name: "Robe d'Arcaniste",
-            equipped: true,
-            statBonus: { stat: 'armorMagique', amount: 2 },
+            EntryId: 'a-1',
+            DisplayName: "Robe d'Arcaniste",
+            BonusRaw: { MagicalArmor: 2 },
           },
           {
-            itemId: 'a-2',
-            name: 'Bouclier',
-            equipped: true,
-            statBonus: { stat: 'armorPhysique', amount: 3 },
+            EntryId: 'a-2',
+            DisplayName: 'Bouclier',
+            BonusRaw: { PhysicalArmor: 3 },
           },
         ],
       },
@@ -226,7 +219,7 @@ describe('VitruveSheet', () => {
     const wrapper = mount(VitruveSheet, {
       props: {
         character: makeCharacter(),
-        participant: makeParticipant(),
+        state: makeState(),
         canEditSession: true,
         sessionLoading: null,
       },

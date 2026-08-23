@@ -1,12 +1,8 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { CharacterProfile } from '../../models/types/Character'
-import type {
-  CharacterSessionState,
-  InjuryState,
-  Posture,
-  SecondaryAttributeName,
-} from '../../models/types/Participant'
+import type { CharacterStateDocument } from '../../models/repositories/CharacterStateRepository'
+import type { InjuryState, Posture, SecondaryAttributeName } from '../../models/types/Participant'
 import type { Race } from '../../models/types/Race'
 import { adjustedCategoryPct, useTickState, type TickEntry } from './tickState'
 // Review cycle 1 (WP04 review): CaracTab used to hard-code its own
@@ -26,7 +22,7 @@ import CaracCategoryBlock from './CaracCategoryBlock.vue'
 const props = withDefaults(
   defineProps<{
     character: CharacterProfile
-    session: CharacterSessionState | null
+    state: CharacterStateDocument | null
     canEdit: boolean
     race?: Race | null
     postureOptions: Array<{ value: Posture; label: string; tone: string }>
@@ -79,7 +75,7 @@ const SUB_LABELS: Record<SecondaryAttributeName, string> = {
 const CATEGORY_ORDER: JetCategory[] = ['physique', 'social', 'mental']
 
 const categories = computed<CategoryView[]>(() => {
-  const injuries = props.session?.injuries ?? {}
+  const injuries = props.state?.Injuries ?? {}
   const secondary = props.character.attributes.secondary
   const defs: Array<{
     key: CategoryView['key']
@@ -116,7 +112,7 @@ const categories = computed<CategoryView[]>(() => {
 // Cycle saine → jaune → rouge → saine; emits the NEXT state.
 function cycleInjury(attr: SecondaryAttributeName) {
   if (!props.canEdit) return
-  const current = props.session?.injuries?.[attr] ?? null
+  const current = props.state?.Injuries?.[attr] ?? null
   const next: InjuryState | null =
     current === null ? 'jaune' : current === 'jaune' ? 'rouge' : null
   emit('set-injury', attr, next)
@@ -142,9 +138,9 @@ function skillEntry(skillId: string, name: string, rank: number): TickEntry {
 // --- Bonus & malus de race --------------------------------------------
 // CharacterProfile carries no per-character race-bonus field (legacy's
 // `race_bonus` free text has no equivalent in the new model). The race
-// document itself (src/models/types/Race.ts) carries `bon`/`mal` string
-// arrays (e.g. "Agilité +20%") — that's the structured data this section
-// renders. Section is omitted entirely when no race data is available.
+// document itself (src/models/types/Race.ts) carries `Strengths`/`Weaknesses`
+// string arrays (e.g. "Agilité +20%") — that's the structured data this
+// section renders. Section is omitted entirely when no race data is available.
 
 interface RaceModifierEntry extends TickEntry {
   kind: 'bonus' | 'malus'
@@ -163,11 +159,11 @@ function parseRaceEntry(text: string): { label: string; value: number; hasValue:
 const raceModifiers = computed<RaceModifierEntry[]>(() => {
   const race = props.race
   if (!race) return []
-  const bonus = (race.bon ?? []).map((text, index) => {
+  const bonus = (race.Strengths ?? []).map((text, index) => {
     const { label, value, hasValue } = parseRaceEntry(text)
     return { key: `race:bonus:${index}`, label, value, hasValue, kind: 'bonus' as const }
   })
-  const malus = (race.mal ?? []).map((text, index) => {
+  const malus = (race.Weaknesses ?? []).map((text, index) => {
     const { label, value, hasValue } = parseRaceEntry(text)
     return { key: `race:malus:${index}`, label, value, hasValue, kind: 'malus' as const }
   })
@@ -201,7 +197,7 @@ const POSTURE_FX: Record<Posture, { icon: string; lines: string[] }> = {
 }
 
 const currentPostureFx = computed(() => {
-  const posture = props.session?.posture
+  const posture = props.state?.Posture
   if (!posture) return null
   return POSTURE_FX[posture]
 })
@@ -213,12 +209,12 @@ const currentPostureFx = computed(() => {
 
     <div class="summary-cards">
       <div class="vcard">
-        <div class="vcard-lbl">PV / {{ session?.maxHp ?? '—' }}</div>
-        <div class="vcard-val big pv">{{ session?.hp ?? '—' }}</div>
+        <div class="vcard-lbl">PV / {{ state?.Health ?? '—' }}</div>
+        <div class="vcard-val big pv">{{ state?.HealthCurrent ?? '—' }}</div>
       </div>
       <div class="vcard">
-        <div class="vcard-lbl">Mana / {{ session?.maxMana ?? '—' }}</div>
-        <div class="vcard-val big mana">{{ session?.mana ?? '—' }}</div>
+        <div class="vcard-lbl">Mana / {{ state?.Mana ?? '—' }}</div>
+        <div class="vcard-val big mana">{{ state?.ManaCurrent ?? '—' }}</div>
       </div>
       <div class="vcard">
         <div class="vcard-lbl">Niveau</div>
@@ -232,7 +228,7 @@ const currentPostureFx = computed(() => {
             :key="opt.value"
             type="button"
             class="posture-btn"
-            :class="[opt.tone, { active: session?.posture === opt.value }]"
+            :class="[opt.tone, { active: state?.Posture === opt.value }]"
             :disabled="sessionLoading === 'posture'"
             @click="emit('set-posture', opt.value)"
           >

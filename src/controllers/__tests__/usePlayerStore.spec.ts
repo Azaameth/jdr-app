@@ -1,48 +1,50 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { usePlayerStore as UsePlayerStoreType } from '../usePlayerStore'
 import type { CharacterProfile } from '../../models/types/Character'
-import type { CharacterSessionState, Participant } from '../../models/types/Participant'
+import type { Participant } from '../../models/types/Participant'
+import type { CharacterStateDocument } from '../../models/repositories/CharacterStateRepository'
 
 const mocks = vi.hoisted(() => ({
   listCharactersByCampaign: vi.fn<(campaignId: string) => Promise<CharacterProfile[]>>(),
-  getParticipant: vi.fn<(uid: string, campaignId: string) => Promise<Participant | null>>(),
-  getParticipantByCharacterId:
-    vi.fn<(characterId: string, campaignId: string) => Promise<Participant | null>>(),
-  setParticipantSessionByCharacterId:
+  getCharacterByCampaign: vi.fn<(campaignId: string, id: string) => Promise<CharacterProfile | null>>(),
+  getCharacterState: vi.fn<(campaignId: string, characterId: string) => Promise<CharacterStateDocument | null>>(),
+  subscribeCharacterState:
     vi.fn<
       (
-        characterId: string,
         campaignId: string,
-        sessionPatch: Partial<CharacterSessionState>,
-      ) => Promise<Participant | null>
+        characterId: string,
+        onChange: (state: CharacterStateDocument | null) => void,
+      ) => () => void
     >(),
-  subscribeParticipantsByCampaign:
-    vi.fn<(campaignId: string, onChange: (participants: Participant[]) => void) => () => void>(),
-  updateSessionFields:
-    vi.fn<(participantId: string, fields: Partial<CharacterSessionState>) => Promise<void>>(),
-  updateChildSession:
+  updateCharacterState:
     vi.fn<
       (
-        participantId: string,
-        childCharacterId: string,
-        fields: Partial<CharacterSessionState>,
+        campaignId: string,
+        characterId: string,
+        fields: Partial<CharacterStateDocument>,
       ) => Promise<void>
     >(),
+  getParticipant: vi.fn<(uid: string, campaignId: string) => Promise<Participant | null>>(),
+  subscribeParticipantsByCampaign:
+    vi.fn<(campaignId: string, onChange: (participants: Participant[]) => void) => () => void>(),
   getParticipantNote: vi.fn<(participantId: string) => Promise<string>>(),
   setParticipantNote: vi.fn<(participantId: string, personalNote: string) => Promise<void>>(),
 }))
 
 vi.mock('../../models/repositories/CharacterRepository', () => ({
   listCharactersByCampaign: mocks.listCharactersByCampaign,
+  getCharacterByCampaign: mocks.getCharacterByCampaign,
+}))
+
+vi.mock('../../models/repositories/CharacterStateRepository', () => ({
+  getCharacterState: mocks.getCharacterState,
+  subscribeCharacterState: mocks.subscribeCharacterState,
+  updateCharacterState: mocks.updateCharacterState,
 }))
 
 vi.mock('../../models/repositories/ParticipantRepository', () => ({
   getParticipant: mocks.getParticipant,
-  getParticipantByCharacterId: mocks.getParticipantByCharacterId,
-  setParticipantSessionByCharacterId: mocks.setParticipantSessionByCharacterId,
   subscribeParticipantsByCampaign: mocks.subscribeParticipantsByCampaign,
-  updateSessionFields: mocks.updateSessionFields,
-  updateChildSession: mocks.updateChildSession,
 }))
 
 vi.mock('../../models/repositories/ParticipantNoteRepository', () => ({
@@ -52,18 +54,23 @@ vi.mock('../../models/repositories/ParticipantNoteRepository', () => ({
 
 function makeParticipant(overrides: Partial<Participant> = {}): Participant {
   return {
-    id: 'participant-1',
+    id: 'uid-1',
     uid: 'uid-1',
     campaignId: 'camp-1',
-    characterId: 'char-1',
-    status: 'approved',
-    session: {
-      hp: 10,
-      maxHp: 50,
-      mana: 5,
-      maxMana: 20,
-      posture: 'DEFENSIF',
-    },
+    status: 'Approved',
+    ...overrides,
+  }
+}
+
+function makeState(overrides: Partial<CharacterStateDocument> = {}): CharacterStateDocument {
+  return {
+    Health: 50,
+    HealthCurrent: 10,
+    Mana: 20,
+    ManaCurrent: 5,
+    Posture: 'DEFENSIF',
+    PlayerId: 'uid-1',
+    CampaignId: 'camp-1',
     ...overrides,
   }
 }
@@ -99,148 +106,122 @@ describe('usePlayerStore', () => {
     vi.resetModules()
     vi.clearAllMocks()
     mocks.subscribeParticipantsByCampaign.mockReturnValue(() => {})
+    mocks.subscribeCharacterState.mockReturnValue(() => {})
     ;({ usePlayerStore } = await import('../usePlayerStore'))
   })
 
   describe('setSessionResource', () => {
-    it('clamps hp to +maxHp when target exceeds the max', async () => {
-      mocks.getParticipantByCharacterId.mockResolvedValue(
-        makeParticipant({ session: { hp: 10, maxHp: 50, mana: 5, maxMana: 20, posture: 'DEFENSIF' } }),
-      )
-      mocks.setParticipantSessionByCharacterId.mockResolvedValue(makeParticipant())
+    it('clamps hp to +Health when target exceeds the max', async () => {
+      mocks.getCharacterState.mockResolvedValue(makeState({ Health: 50 }))
       const store = usePlayerStore()
 
       await store.setSessionResource('camp-1', 'char-1', 'hp', 1000)
 
-      expect(mocks.setParticipantSessionByCharacterId).toHaveBeenCalledWith('char-1', 'camp-1', {
-        hp: 50,
+      expect(mocks.updateCharacterState).toHaveBeenCalledWith('camp-1', 'char-1', {
+        HealthCurrent: 50,
       })
     })
 
-    it('lets hp go negative down to -maxHp (does not clamp to 0)', async () => {
-      mocks.getParticipantByCharacterId.mockResolvedValue(
-        makeParticipant({ session: { hp: 10, maxHp: 50, mana: 5, maxMana: 20, posture: 'DEFENSIF' } }),
-      )
-      mocks.setParticipantSessionByCharacterId.mockResolvedValue(makeParticipant())
+    it('lets hp go negative down to -Health (does not clamp to 0)', async () => {
+      mocks.getCharacterState.mockResolvedValue(makeState({ Health: 50 }))
       const store = usePlayerStore()
 
       await store.setSessionResource('camp-1', 'char-1', 'hp', -1000)
 
-      expect(mocks.setParticipantSessionByCharacterId).toHaveBeenCalledWith('char-1', 'camp-1', {
-        hp: -50,
+      expect(mocks.updateCharacterState).toHaveBeenCalledWith('camp-1', 'char-1', {
+        HealthCurrent: -50,
       })
     })
 
     it('truncates decimal hp values within range', async () => {
-      mocks.getParticipantByCharacterId.mockResolvedValue(
-        makeParticipant({ session: { hp: 10, maxHp: 50, mana: 5, maxMana: 20, posture: 'DEFENSIF' } }),
-      )
-      mocks.setParticipantSessionByCharacterId.mockResolvedValue(makeParticipant())
+      mocks.getCharacterState.mockResolvedValue(makeState({ Health: 50 }))
       const store = usePlayerStore()
 
       await store.setSessionResource('camp-1', 'char-1', 'hp', 10.9)
 
-      expect(mocks.setParticipantSessionByCharacterId).toHaveBeenCalledWith('char-1', 'camp-1', {
-        hp: 10,
+      expect(mocks.updateCharacterState).toHaveBeenCalledWith('camp-1', 'char-1', {
+        HealthCurrent: 10,
       })
     })
 
     it('clamps mana to 0 when target is negative (does not go negative)', async () => {
-      mocks.getParticipantByCharacterId.mockResolvedValue(
-        makeParticipant({ session: { hp: 10, maxHp: 50, mana: 5, maxMana: 20, posture: 'DEFENSIF' } }),
-      )
-      mocks.setParticipantSessionByCharacterId.mockResolvedValue(makeParticipant())
+      mocks.getCharacterState.mockResolvedValue(makeState({ Mana: 20 }))
       const store = usePlayerStore()
 
       await store.setSessionResource('camp-1', 'char-1', 'mana', -5)
 
-      expect(mocks.setParticipantSessionByCharacterId).toHaveBeenCalledWith('char-1', 'camp-1', {
-        mana: 0,
+      expect(mocks.updateCharacterState).toHaveBeenCalledWith('camp-1', 'char-1', {
+        ManaCurrent: 0,
       })
     })
 
-    it('clamps mana to +maxMana when target exceeds the max', async () => {
-      mocks.getParticipantByCharacterId.mockResolvedValue(
-        makeParticipant({ session: { hp: 10, maxHp: 50, mana: 5, maxMana: 20, posture: 'DEFENSIF' } }),
-      )
-      mocks.setParticipantSessionByCharacterId.mockResolvedValue(makeParticipant())
+    it('clamps mana to +Mana when target exceeds the max', async () => {
+      mocks.getCharacterState.mockResolvedValue(makeState({ Mana: 20 }))
       const store = usePlayerStore()
 
       await store.setSessionResource('camp-1', 'char-1', 'mana', 1000)
 
-      expect(mocks.setParticipantSessionByCharacterId).toHaveBeenCalledWith('char-1', 'camp-1', {
-        mana: 20,
+      expect(mocks.updateCharacterState).toHaveBeenCalledWith('camp-1', 'char-1', {
+        ManaCurrent: 20,
       })
     })
 
     it('truncates decimal mana values within range', async () => {
-      mocks.getParticipantByCharacterId.mockResolvedValue(
-        makeParticipant({ session: { hp: 10, maxHp: 50, mana: 5, maxMana: 20, posture: 'DEFENSIF' } }),
-      )
-      mocks.setParticipantSessionByCharacterId.mockResolvedValue(makeParticipant())
+      mocks.getCharacterState.mockResolvedValue(makeState({ Mana: 20 }))
       const store = usePlayerStore()
 
       await store.setSessionResource('camp-1', 'char-1', 'mana', 12.4)
 
-      expect(mocks.setParticipantSessionByCharacterId).toHaveBeenCalledWith('char-1', 'camp-1', {
-        mana: 12,
+      expect(mocks.updateCharacterState).toHaveBeenCalledWith('camp-1', 'char-1', {
+        ManaCurrent: 12,
       })
     })
 
-    it('clamps hp to the maxOverride (equipment-adjusted effective max) instead of the raw stored maxHp', async () => {
-      mocks.getParticipantByCharacterId.mockResolvedValue(
-        makeParticipant({ session: { hp: 10, maxHp: 10, mana: 5, maxMana: 20, posture: 'DEFENSIF' } }),
-      )
-      mocks.setParticipantSessionByCharacterId.mockResolvedValue(makeParticipant())
+    it('clamps hp to the maxOverride (equipment-adjusted effective max) instead of the raw stored Health', async () => {
+      mocks.getCharacterState.mockResolvedValue(makeState({ Health: 10 }))
       const store = usePlayerStore()
 
       await store.setSessionResource('camp-1', 'char-1', 'hp', 1000, 14)
 
-      expect(mocks.setParticipantSessionByCharacterId).toHaveBeenCalledWith('char-1', 'camp-1', {
-        hp: 14,
+      expect(mocks.updateCharacterState).toHaveBeenCalledWith('camp-1', 'char-1', {
+        HealthCurrent: 14,
       })
     })
 
-    it('clamps mana to the maxOverride instead of the raw stored maxMana', async () => {
-      mocks.getParticipantByCharacterId.mockResolvedValue(
-        makeParticipant({ session: { hp: 10, maxHp: 50, mana: 5, maxMana: 4, posture: 'DEFENSIF' } }),
-      )
-      mocks.setParticipantSessionByCharacterId.mockResolvedValue(makeParticipant())
+    it('clamps mana to the maxOverride instead of the raw stored Mana', async () => {
+      mocks.getCharacterState.mockResolvedValue(makeState({ Mana: 4 }))
       const store = usePlayerStore()
 
       await store.setSessionResource('camp-1', 'char-1', 'mana', 1000, 8)
 
-      expect(mocks.setParticipantSessionByCharacterId).toHaveBeenCalledWith('char-1', 'camp-1', {
-        mana: 8,
+      expect(mocks.updateCharacterState).toHaveBeenCalledWith('camp-1', 'char-1', {
+        ManaCurrent: 8,
       })
     })
 
     it('falls back to the raw stored max when no maxOverride is supplied', async () => {
-      mocks.getParticipantByCharacterId.mockResolvedValue(
-        makeParticipant({ session: { hp: 10, maxHp: 50, mana: 5, maxMana: 20, posture: 'DEFENSIF' } }),
-      )
-      mocks.setParticipantSessionByCharacterId.mockResolvedValue(makeParticipant())
+      mocks.getCharacterState.mockResolvedValue(makeState({ Health: 50 }))
       const store = usePlayerStore()
 
       await store.setSessionResource('camp-1', 'char-1', 'hp', 1000)
 
-      expect(mocks.setParticipantSessionByCharacterId).toHaveBeenCalledWith('char-1', 'camp-1', {
-        hp: 50,
+      expect(mocks.updateCharacterState).toHaveBeenCalledWith('camp-1', 'char-1', {
+        HealthCurrent: 50,
       })
     })
 
-    it('returns null without throwing when the participant is not found', async () => {
-      mocks.getParticipantByCharacterId.mockResolvedValue(null)
+    it('returns null without throwing when the character state is not found', async () => {
+      mocks.getCharacterState.mockResolvedValue(null)
       const store = usePlayerStore()
 
       const result = await store.setSessionResource('camp-1', 'char-1', 'hp', 10)
 
       expect(result).toBeNull()
-      expect(mocks.setParticipantSessionByCharacterId).not.toHaveBeenCalled()
+      expect(mocks.updateCharacterState).not.toHaveBeenCalled()
     })
 
     it('sets the French fallback message when the repository throws a non-Error', async () => {
-      mocks.getParticipantByCharacterId.mockRejectedValue('boom')
+      mocks.getCharacterState.mockRejectedValue('boom')
       const store = usePlayerStore()
 
       const result = await store.setSessionResource('camp-1', 'char-1', 'hp', 10)
@@ -250,7 +231,7 @@ describe('usePlayerStore', () => {
     })
 
     it('surfaces the Error message when the repository throws an Error', async () => {
-      mocks.getParticipantByCharacterId.mockRejectedValue(new Error('offline'))
+      mocks.getCharacterState.mockRejectedValue(new Error('offline'))
       const store = usePlayerStore()
 
       const result = await store.setSessionResource('camp-1', 'char-1', 'hp', 10)
@@ -261,31 +242,44 @@ describe('usePlayerStore', () => {
   })
 
   describe('resolveParticipant', () => {
-    it('returns the characterId-based lookup result without calling the uid fallback', async () => {
+    it('returns the direct uid-based lookup result without calling the character fallback', async () => {
       const participant = makeParticipant()
-      mocks.getParticipantByCharacterId.mockResolvedValue(participant)
-      const store = usePlayerStore()
-
-      const result = await store.resolveParticipant('camp-1', 'char-1')
-
-      expect(result).toEqual(participant)
-      expect(mocks.getParticipant).not.toHaveBeenCalled()
-    })
-
-    it('falls back to the uid-based lookup when the characterId lookup is falsy', async () => {
-      const participant = makeParticipant()
-      mocks.getParticipantByCharacterId.mockResolvedValue(null)
       mocks.getParticipant.mockResolvedValue(participant)
       const store = usePlayerStore()
 
       const result = await store.resolveParticipant('camp-1', 'uid-1')
 
       expect(result).toEqual(participant)
+      expect(mocks.getCharacterByCampaign).not.toHaveBeenCalled()
+    })
+
+    it("falls back to resolving via the character's ownerUid when the direct uid lookup is falsy", async () => {
+      const participant = makeParticipant()
+      mocks.getParticipant.mockImplementation(async (uid: string) =>
+        uid === 'uid-1' ? participant : null,
+      )
+      mocks.getCharacterByCampaign.mockResolvedValue(makeCharacter({ id: 'char-1', ownerUid: 'uid-1' }))
+      const store = usePlayerStore()
+
+      const result = await store.resolveParticipant('camp-1', 'char-1')
+
+      expect(result).toEqual(participant)
+      expect(mocks.getCharacterByCampaign).toHaveBeenCalledWith('camp-1', 'char-1')
       expect(mocks.getParticipant).toHaveBeenCalledWith('uid-1', 'camp-1')
     })
 
+    it('returns null when neither the direct lookup nor the character fallback resolve', async () => {
+      mocks.getParticipant.mockResolvedValue(null)
+      mocks.getCharacterByCampaign.mockResolvedValue(null)
+      const store = usePlayerStore()
+
+      const result = await store.resolveParticipant('camp-1', 'missing')
+
+      expect(result).toBeNull()
+    })
+
     it('sets the French fallback message when the repository throws a non-Error', async () => {
-      mocks.getParticipantByCharacterId.mockRejectedValue('boom')
+      mocks.getParticipant.mockRejectedValue('boom')
       const store = usePlayerStore()
 
       const result = await store.resolveParticipant('camp-1', 'ref')
@@ -295,7 +289,7 @@ describe('usePlayerStore', () => {
     })
 
     it('surfaces the Error message when the repository throws an Error', async () => {
-      mocks.getParticipantByCharacterId.mockRejectedValue(new Error('down'))
+      mocks.getParticipant.mockRejectedValue(new Error('down'))
       const store = usePlayerStore()
 
       const result = await store.resolveParticipant('camp-1', 'ref')
@@ -396,23 +390,21 @@ describe('usePlayerStore', () => {
 
       await store.setInjury('char-1', 'puissance', 'jaune')
 
-      expect(mocks.getParticipantByCharacterId).not.toHaveBeenCalled()
-      expect(mocks.updateSessionFields).not.toHaveBeenCalled()
+      expect(mocks.getCharacterState).not.toHaveBeenCalled()
+      expect(mocks.updateCharacterState).not.toHaveBeenCalled()
     })
 
     it('adds a jaune injury key when none was present', async () => {
       mocks.listCharactersByCampaign.mockResolvedValue([])
       const store = usePlayerStore()
       store.subscribeParty('camp-1')
-      mocks.getParticipantByCharacterId.mockResolvedValue(
-        makeParticipant({ session: { hp: 10, maxHp: 50, mana: 5, maxMana: 20, posture: 'DEFENSIF' } }),
-      )
+      mocks.getCharacterState.mockResolvedValue(makeState())
 
       await store.setInjury('char-1', 'puissance', 'jaune')
 
-      expect(mocks.getParticipantByCharacterId).toHaveBeenCalledWith('char-1', 'camp-1')
-      expect(mocks.updateSessionFields).toHaveBeenCalledWith('participant-1', {
-        injuries: { puissance: 'jaune' },
+      expect(mocks.getCharacterState).toHaveBeenCalledWith('camp-1', 'char-1')
+      expect(mocks.updateCharacterState).toHaveBeenCalledWith('camp-1', 'char-1', {
+        Injuries: { puissance: 'jaune' },
       })
     })
 
@@ -420,23 +412,14 @@ describe('usePlayerStore', () => {
       mocks.listCharactersByCampaign.mockResolvedValue([])
       const store = usePlayerStore()
       store.subscribeParty('camp-1')
-      mocks.getParticipantByCharacterId.mockResolvedValue(
-        makeParticipant({
-          session: {
-            hp: 10,
-            maxHp: 50,
-            mana: 5,
-            maxMana: 20,
-            posture: 'DEFENSIF',
-            injuries: { puissance: 'jaune', finesse: 'rouge' },
-          },
-        }),
+      mocks.getCharacterState.mockResolvedValue(
+        makeState({ Injuries: { puissance: 'jaune', finesse: 'rouge' } }),
       )
 
       await store.setInjury('char-1', 'puissance', 'rouge')
 
-      expect(mocks.updateSessionFields).toHaveBeenCalledWith('participant-1', {
-        injuries: { puissance: 'rouge', finesse: 'rouge' },
+      expect(mocks.updateCharacterState).toHaveBeenCalledWith('camp-1', 'char-1', {
+        Injuries: { puissance: 'rouge', finesse: 'rouge' },
       })
     })
 
@@ -444,23 +427,14 @@ describe('usePlayerStore', () => {
       mocks.listCharactersByCampaign.mockResolvedValue([])
       const store = usePlayerStore()
       store.subscribeParty('camp-1')
-      mocks.getParticipantByCharacterId.mockResolvedValue(
-        makeParticipant({
-          session: {
-            hp: 10,
-            maxHp: 50,
-            mana: 5,
-            maxMana: 20,
-            posture: 'DEFENSIF',
-            injuries: { puissance: 'rouge', finesse: 'jaune' },
-          },
-        }),
+      mocks.getCharacterState.mockResolvedValue(
+        makeState({ Injuries: { puissance: 'rouge', finesse: 'jaune' } }),
       )
 
       await store.setInjury('char-1', 'puissance', null)
 
-      expect(mocks.updateSessionFields).toHaveBeenCalledWith('participant-1', {
-        injuries: { finesse: 'jaune' },
+      expect(mocks.updateCharacterState).toHaveBeenCalledWith('camp-1', 'char-1', {
+        Injuries: { finesse: 'jaune' },
       })
     })
 
@@ -468,7 +442,7 @@ describe('usePlayerStore', () => {
       mocks.listCharactersByCampaign.mockResolvedValue([])
       const store = usePlayerStore()
       store.subscribeParty('camp-1')
-      mocks.getParticipantByCharacterId.mockRejectedValue('boom')
+      mocks.getCharacterState.mockRejectedValue('boom')
 
       await store.setInjury('char-1', 'puissance', 'jaune')
 
@@ -477,33 +451,35 @@ describe('usePlayerStore', () => {
   })
 
   describe('setAdvantage / setDisadvantage', () => {
-    it('calls updateSessionFields with the resolved participant id', async () => {
+    it('calls updateCharacterState directly against the given characterId', async () => {
       mocks.listCharactersByCampaign.mockResolvedValue([])
       const store = usePlayerStore()
       store.subscribeParty('camp-1')
-      mocks.getParticipantByCharacterId.mockResolvedValue(makeParticipant())
 
       await store.setAdvantage('char-1', true)
-      expect(mocks.updateSessionFields).toHaveBeenCalledWith('participant-1', { advantage: true })
+      expect(mocks.updateCharacterState).toHaveBeenCalledWith('camp-1', 'char-1', {
+        Advantage: true,
+      })
 
       await store.setDisadvantage('char-1', false)
-      expect(mocks.updateSessionFields).toHaveBeenCalledWith('participant-1', {
-        disadvantage: false,
+      expect(mocks.updateCharacterState).toHaveBeenCalledWith('camp-1', 'char-1', {
+        Disadvantage: false,
       })
     })
-  })
 
-  describe('setChildVitals', () => {
-    it('calls updateChildSession with the parent participant id and child characterId', async () => {
+    // Cluster 3b: a child (transformation) is its own Character with its own
+    // States/Current — no separate setChildVitals API is needed, it's the
+    // exact same call with the child's own characterId.
+    it('works identically for a child characterId', async () => {
       mocks.listCharactersByCampaign.mockResolvedValue([])
       const store = usePlayerStore()
       store.subscribeParty('camp-1')
-      mocks.getParticipantByCharacterId.mockResolvedValue(makeParticipant({ characterId: 'firm' }))
 
-      await store.setChildVitals('firm', 'furmiaou', { hp: 40 })
+      await store.setAdvantage('furmiaou', true)
 
-      expect(mocks.getParticipantByCharacterId).toHaveBeenCalledWith('firm', 'camp-1')
-      expect(mocks.updateChildSession).toHaveBeenCalledWith('participant-1', 'furmiaou', { hp: 40 })
+      expect(mocks.updateCharacterState).toHaveBeenCalledWith('camp-1', 'furmiaou', {
+        Advantage: true,
+      })
     })
   })
 
@@ -531,14 +507,19 @@ describe('usePlayerStore', () => {
       expect(mocks.subscribeParticipantsByCampaign).toHaveBeenCalledTimes(2)
     })
 
-    it('unsubscribeParty detaches the listener and clears party', async () => {
+    it('unsubscribeParty detaches every character-state listener and the participants listener, and clears party', async () => {
       mocks.listCharactersByCampaign.mockResolvedValue([
         makeCharacter({ id: 'char-1', ownerUid: 'uid-1' }),
       ])
-      const unsubscribe = vi.fn<() => void>()
+      const unsubscribeParticipants = vi.fn<() => void>()
       mocks.subscribeParticipantsByCampaign.mockImplementation((_campaignId, onChange) => {
-        onChange([makeParticipant({ characterId: 'char-1' })])
-        return unsubscribe
+        onChange([makeParticipant({ id: 'uid-1', uid: 'uid-1', status: 'Approved' })])
+        return unsubscribeParticipants
+      })
+      const unsubscribeState = vi.fn<() => void>()
+      mocks.subscribeCharacterState.mockImplementation((_campaignId, _characterId, onChange) => {
+        onChange(makeState())
+        return unsubscribeState
       })
       const store = usePlayerStore()
 
@@ -548,7 +529,8 @@ describe('usePlayerStore', () => {
 
       store.unsubscribeParty()
 
-      expect(unsubscribe).toHaveBeenCalledTimes(1)
+      expect(unsubscribeParticipants).toHaveBeenCalledTimes(1)
+      expect(unsubscribeState).toHaveBeenCalledTimes(1)
       expect(store.party.value).toHaveLength(0)
     })
 
@@ -560,13 +542,13 @@ describe('usePlayerStore', () => {
       ])
       mocks.subscribeParticipantsByCampaign.mockImplementation((_campaignId, onChange) => {
         onChange([
-          makeParticipant({ id: 'p1', characterId: 'char-1', status: 'approved' }),
-          makeParticipant({ id: 'p2', characterId: 'char-2', status: 'pending' }),
-          // A participant referencing a child character should never exist per
-          // data-model D-02 (children get no participant doc), but the filter
-          // must exclude it defensively via parentCharacterId regardless.
-          makeParticipant({ id: 'p3', characterId: 'child-1', status: 'approved' }),
+          makeParticipant({ id: 'uid-1', uid: 'uid-1', status: 'Approved' }),
+          makeParticipant({ id: 'uid-2', uid: 'uid-2', status: 'Pending' }),
         ])
+        return () => {}
+      })
+      mocks.subscribeCharacterState.mockImplementation((_campaignId, _characterId, onChange) => {
+        onChange(makeState())
         return () => {}
       })
       const store = usePlayerStore()
@@ -575,18 +557,16 @@ describe('usePlayerStore', () => {
       await Promise.resolve()
 
       expect(store.party.value).toEqual([
-        { character: expect.objectContaining({ id: 'char-1' }), session: expect.any(Object) },
+        { character: expect.objectContaining({ id: 'char-1' }), state: expect.any(Object) },
       ])
     })
 
     // FR-017 locked with the real seeded parent/child pair (scripts/data/
     // characters.json + participants.json): Firm Bintaggle ('firm') owns the
-    // Furmiaou transformation ('furmiaou', parentCharacterId: 'firm'). Only
-    // Firm's participant doc exists — Furmiaou's session lives in
-    // `childSessions.furmiaou` on that doc, never as its own participant —
-    // but `party` must exclude Furmiaou even if a stray participant doc for
-    // it ever appeared, which the generic case above already covers
-    // defensively. This case pins the exact production fixture names.
+    // Furmiaou transformation ('furmiaou', parentCharacterId: 'firm'). `party`
+    // must exclude Furmiaou even though it shares Firm's ownerUid (and would
+    // therefore match the same Approved participant), because a character
+    // with a parentCharacterId is filtered out before the participant check.
     it('party excludes Furmiaou (seeded child transformation) and keeps its parent Firm Bintaggle', async () => {
       mocks.listCharactersByCampaign.mockResolvedValue([
         makeCharacter({ id: 'firm', ownerUid: 'xxx', name: 'Firm Bintaggle' }),
@@ -598,7 +578,11 @@ describe('usePlayerStore', () => {
         }),
       ])
       mocks.subscribeParticipantsByCampaign.mockImplementation((_campaignId, onChange) => {
-        onChange([makeParticipant({ id: 'p-firm', characterId: 'firm', status: 'approved' })])
+        onChange([makeParticipant({ id: 'xxx', uid: 'xxx', status: 'Approved' })])
+        return () => {}
+      })
+      mocks.subscribeCharacterState.mockImplementation((_campaignId, _characterId, onChange) => {
+        onChange(makeState())
         return () => {}
       })
       const store = usePlayerStore()
@@ -607,7 +591,10 @@ describe('usePlayerStore', () => {
       await Promise.resolve()
 
       expect(store.party.value).toEqual([
-        { character: expect.objectContaining({ id: 'firm', name: 'Firm Bintaggle' }), session: expect.any(Object) },
+        {
+          character: expect.objectContaining({ id: 'firm', name: 'Firm Bintaggle' }),
+          state: expect.any(Object),
+        },
       ])
       expect(store.party.value.some((entry) => entry.character.id === 'furmiaou')).toBe(false)
     })

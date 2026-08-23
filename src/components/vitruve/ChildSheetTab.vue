@@ -1,16 +1,13 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { CharacterProfile } from '../../models/types/Character'
-import type { WeaponArmorItem } from '../../models/types/Inventory'
-import type {
-  CharacterSessionState,
-  InjuryState,
-  SecondaryAttributeName,
-} from '../../models/types/Participant'
+import type { CharacterStateDocument } from '../../models/repositories/CharacterStateRepository'
+import type { GearEntry } from '../../models/repositories/EquipmentRepository'
+import type { InjuryState, SecondaryAttributeName } from '../../models/types/Participant'
 import CaracCategoryBlock, { type CaracCategorySub } from './CaracCategoryBlock.vue'
 import { adjustedCategoryPct } from './tickState'
 import { JET_CATEGORY_META, type JetCategory } from './jetFormula'
-import { computeArmorTotal, computeEffectiveMaxStat } from '../../utils/effectiveStats'
+import { computeArmorTotal, computeEffectiveStat } from '../../utils/effectiveStats'
 
 // Child-character mini-sheet (FR-015): "Forme" tab for a child (transformation,
 // e.g. Furmiaou) of the currently displayed character. Generalizes legacy's
@@ -21,9 +18,9 @@ import { computeArmorTotal, computeEffectiveMaxStat } from '../../utils/effectiv
 // from CaracTab.vue this WP) so the block markup/styling never drifts.
 const props = defineProps<{
   child: CharacterProfile
-  childSession: CharacterSessionState | null
+  state: CharacterStateDocument | null
   canEdit: boolean
-  equipment?: WeaponArmorItem[]
+  equipment?: GearEntry[]
 }>()
 
 const emit = defineEmits<{
@@ -31,23 +28,24 @@ const emit = defineEmits<{
   'set-injury': [attr: SecondaryAttributeName, state: InjuryState | null]
 }>()
 
-// CharacterProfile carries no vitals fields of its own (hp/maxHp/mana/maxMana
-// live only on the participant's `childSessions.<id>`, research D-02/data-model
-// I-C3). A child with no bootstrapped childSessions entry yet (e.g. added via
-// the raw editor, before its first ± click) therefore has no "seeded max" to
-// read — this all-zero fallback is what gets displayed and is what the first
-// ± click starts adjusting from, so it can never read `undefined + delta` and
-// produce NaN. Once PlayerView's setChildVitals persists the first write, the
-// real entry takes over via the `childSession` prop.
-const FALLBACK_SESSION: CharacterSessionState = {
-  hp: 0,
-  maxHp: 0,
-  mana: 0,
-  maxMana: 0,
-  posture: 'FOCUS',
+// A child is its own Character doc with its own States/Current (Cluster 3b) —
+// but one with no bootstrapped state yet (e.g. added via the raw editor,
+// before its first ± click) has no "seeded max" to read. This all-zero
+// fallback is what gets displayed and is what the first ± click starts
+// adjusting from, so it can never read `undefined + delta` and produce NaN.
+// Once PlayerView's first write persists, the real doc takes over via the
+// `state` prop.
+const FALLBACK_STATE: CharacterStateDocument = {
+  Health: 0,
+  HealthCurrent: 0,
+  Mana: 0,
+  ManaCurrent: 0,
+  Posture: 'FOCUS',
+  PlayerId: '',
+  CampaignId: '',
 }
 
-const session = computed(() => props.childSession ?? FALLBACK_SESSION)
+const state = computed(() => props.state ?? FALLBACK_STATE)
 
 const SUB_LABELS: Record<SecondaryAttributeName, string> = {
   puissance: 'Puissance',
@@ -69,7 +67,7 @@ interface ChildCategoryView {
 }
 
 const categories = computed<ChildCategoryView[]>(() => {
-  const injuries = session.value.injuries ?? {}
+  const injuries = state.value.Injuries ?? {}
   const secondary = props.child.attributes.secondary
 
   return CATEGORY_ORDER.map((key) => {
@@ -93,32 +91,36 @@ const categories = computed<ChildCategoryView[]>(() => {
 
 // Cycle saine → jaune → rouge → saine, same rule as CaracTab's cycleInjury —
 // emits the NEXT state; PlayerView owns the actual persistence path
-// (setChildVitals with replace-map semantics on childSessions.<id>.injuries).
+// (playerStore.setInjury against this child's own States/Current doc).
 function cycleInjury(attr: SecondaryAttributeName) {
   if (!props.canEdit) return
-  const current = session.value.injuries?.[attr] ?? null
+  const current = state.value.Injuries?.[attr] ?? null
   const next: InjuryState | null =
     current === null ? 'jaune' : current === 'jaune' ? 'rouge' : null
   emit('set-injury', attr, next)
 }
 
-// Effective max HP/Mana (FR-004/FR-005): base session max plus bonuses from
+// Effective max HP/Mana (FR-004/FR-005): base state max plus bonuses from
 // this child's OWN equipped items only — never the parent's (SC-004,
 // research.md D3). `props.equipment` is sourced by PlayerView from
-// `useInventoryStore().childInventories.value[child.id]`, isolated from the
-// parent's singleton `inventory` ref.
+// `useEquipmentStore().childEquipment.value[child.id]`, isolated from the
+// parent's singleton `equipment` ref.
 const effectiveMaxHp = computed(() =>
-  computeEffectiveMaxStat(session.value.maxHp, props.equipment ?? [], 'maxHp'),
+  computeEffectiveStat(state.value.Health, props.equipment ?? [], 'Health'),
 )
 const effectiveMaxMana = computed(() =>
-  computeEffectiveMaxStat(session.value.maxMana, props.equipment ?? [], 'maxMana'),
+  computeEffectiveStat(state.value.Mana, props.equipment ?? [], 'Mana'),
 )
 const armorTotal = computed(() => computeArmorTotal(props.equipment ?? []))
 
 // Mirrors VitruveSheet's hp clamp display (PlayerView's clampSessionValue
 // allows hp down to -maxHp, not just 0 — same convention here for the child).
-const hpMinusDisabled = computed(() => !props.canEdit || session.value.hp <= -effectiveMaxHp.value)
-const hpPlusDisabled = computed(() => !props.canEdit || session.value.hp >= effectiveMaxHp.value)
+const hpMinusDisabled = computed(
+  () => !props.canEdit || state.value.HealthCurrent <= -effectiveMaxHp.value,
+)
+const hpPlusDisabled = computed(
+  () => !props.canEdit || state.value.HealthCurrent >= effectiveMaxHp.value,
+)
 
 const hasMana = computed(() => effectiveMaxMana.value > 0)
 
@@ -149,7 +151,7 @@ function imageUrl(path: string) {
     <div class="summary-cards">
       <div class="vcard">
         <div class="vcard-lbl">PV / {{ effectiveMaxHp }}</div>
-        <div class="vcard-val big pv">{{ session.hp }}</div>
+        <div class="vcard-val big pv">{{ state.HealthCurrent }}</div>
         <div v-if="canEdit" class="child-hp-btns">
           <button
             type="button"
@@ -174,7 +176,7 @@ function imageUrl(path: string) {
 
       <div class="vcard">
         <div class="vcard-lbl">Mana / {{ effectiveMaxMana }}</div>
-        <div class="vcard-val big mana">{{ session.mana }}</div>
+        <div class="vcard-val big mana">{{ state.ManaCurrent }}</div>
         <p v-if="!hasMana" class="no-mana-note">Aucune magie</p>
       </div>
     </div>

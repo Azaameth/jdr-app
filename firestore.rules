@@ -43,9 +43,107 @@ service cloud.firestore {
     // Any signed-in member can read the campaign list; only mj/admin can
     // create, edit, assign/clear a GM, or delete — matches the app's
     // canManageCampaigns gate, now actually enforced server-side.
-    match /campaigns/{campaignId} {
+    match /Campaigns/{campaignId} {
       allow read: if isSignedIn();
       allow create, update, delete: if isMjOrAdmin();
+
+      // Used by Notes/Shared and Notes/Collaborative below — an approved
+      // player per Players/{uid}.Status (docs/rpg-data-model.md §4.10), not
+      // merely "any signed-in member" (mj/admin always pass regardless).
+      function isApprovedPlayer() {
+        return isSignedIn()
+          && get(/databases/$(database)/documents/Campaigns/$(campaignId)/Players/$(request.auth.uid)).data.Status == 'Approved';
+      }
+
+      // Campaign-scoped reference lore. Seeded only via the Admin SDK
+      // (scripts/seedAll.mjs), which bypasses these rules entirely —
+      // clients get read-only access, no legitimate write path. Mirrors
+      // the flat legacy `races`/`classes` rules below during the migration.
+      match /Races/{raceId} {
+        allow read: if isSignedIn();
+        allow write: if false;
+      }
+      match /Classes/{classId} {
+        allow read: if isSignedIn();
+        allow write: if false;
+      }
+
+      // Approval status per player. Coarse (owner-or-mj, whole-doc) on
+      // purpose, matching the flat legacy `participants` rule below during
+      // the migration. Live combat state (hp/mana/posture/injuries/advantage)
+      // moved off this doc onto Characters/{id}/States/Current in Cluster 3b —
+      // see that match block's rule below for why players can freely adjust
+      // their own.
+      match /Players/{uid} {
+        allow read: if isSignedIn();
+        allow create, update: if isMjOrAdmin() || request.auth.uid == uid;
+        allow delete: if isMjOrAdmin();
+      }
+
+      // Character sheets. Readable by any signed-in member (team roster
+      // shows everyone). Owners may only edit `backstory`/`updatedAt` (histoire
+      // editor) — mirrors the flat legacy `characters` rule's FR-012
+      // restriction and the literal fields `updateCharacter` actually writes
+      // today (src/models/repositories/CharacterRepository.ts) pending the
+      // PascalCase cleanup tracked as Cluster 8.
+      match /Characters/{characterId} {
+        allow read: if isSignedIn();
+        allow create: if isMjOrAdmin()
+          || (request.resource.data.PlayerId == request.auth.uid
+              && request.resource.data.CampaignId == campaignId);
+        allow update: if isMjOrAdmin()
+          || (resource.data.PlayerId == request.auth.uid
+              && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['backstory', 'updatedAt']));
+        allow delete: if isMjOrAdmin() || resource.data.PlayerId == request.auth.uid;
+
+        function ownsThisCharacter() {
+          return get(/databases/$(database)/documents/Campaigns/$(campaignId)/Characters/$(characterId)).data.PlayerId == request.auth.uid;
+        }
+
+        match /States/Current {
+          allow read: if isSignedIn();
+          allow write: if isMjOrAdmin() || ownsThisCharacter();
+        }
+        match /Equipment/Main {
+          allow read: if isSignedIn();
+          allow write: if isMjOrAdmin() || ownsThisCharacter();
+        }
+        match /Items/{itemId} {
+          allow read: if isSignedIn();
+          allow write: if isMjOrAdmin() || ownsThisCharacter();
+        }
+      }
+
+      // Everything about how this campaign plays (statistics, dice,
+      // creation formulas, limits) — single fixed-id doc, per
+      // docs/rpg-data-model.md §4.3/§7. `setCampaignRules` has a real
+      // merge-write path since Cluster 6, exercised by CampaignView.vue's
+      // edit form (mj/admin only, matching the rule below).
+      match /CampaignRules/Main {
+        allow read: if isSignedIn();
+        allow write: if isMjOrAdmin();
+      }
+
+      // Materialized GM dashboard — Function-maintained (sole writer) per
+      // §4.4/§7. No Cloud Functions infra exists in this repo yet (Cluster 7),
+      // so this is currently write:false for every role, not just non-mj —
+      // there is no legitimate client write path at all.
+      match /Roster/Summary {
+        allow read: if isSignedIn();
+        allow write: if false;
+      }
+
+      // Three fixed-id docs split by permission per §4.10.
+      match /Notes/Gm {
+        allow read, write: if isMjOrAdmin();
+      }
+      match /Notes/Shared {
+        allow read: if isMjOrAdmin() || isApprovedPlayer();
+        allow write: if isMjOrAdmin();
+      }
+      match /Notes/Collaborative {
+        allow read, write: if isMjOrAdmin() || isApprovedPlayer();
+      }
     }
 
     // Static reference lore. Seeded only via the Admin SDK

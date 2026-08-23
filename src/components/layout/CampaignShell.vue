@@ -22,15 +22,15 @@ const campaign = computed(() =>
 
 const campaignStatusClass = computed(() => {
   if (!campaign.value) return 'status-unknown'
-  if (campaign.value.status === 'active') return 'status-active'
-  if (campaign.value.status === 'recrutement') return 'status-recruiting'
-  if (campaign.value.status === 'terminee') return 'status-ended'
+  if (campaign.value.Status === 'Active') return 'status-active'
+  if (campaign.value.Status === 'Recruiting') return 'status-recruiting'
+  if (campaign.value.Status === 'Closed') return 'status-ended'
   return 'status-unknown'
 })
 
 const campaignStatusLabel = computed(() => {
   if (!campaign.value) return 'Statut inconnu'
-  return CAMPAIGN_STATUS_LABELS[campaign.value.status] ?? 'Statut inconnu'
+  return CAMPAIGN_STATUS_LABELS[campaign.value.Status] ?? 'Statut inconnu'
 })
 
 const characterId = ref<string | null>(null)
@@ -65,7 +65,7 @@ async function logout() {
       </RouterLink>
       <div class="campaign-topbar-title-row">
         <p class="campaign-topbar-label">Campagne</p>
-        <h1 class="campaign-topbar-title">{{ campaign?.title ?? 'Campagne inconnue' }}</h1>
+        <h1 class="campaign-topbar-title">{{ campaign?.DisplayName ?? 'Campagne inconnue' }}</h1>
       </div>
       <span class="campaign-status" :class="campaignStatusClass">
         {{ campaignStatusLabel }}

@@ -5,18 +5,14 @@ import CampaignShell from '../components/layout/CampaignShell.vue'
 import { useAuthStore } from '../controllers/useAuthStore'
 import { useCampaignStore } from '../controllers/useCampaignStore'
 import { listCharactersByCampaign } from '../models/repositories/CharacterRepository'
-import { listInventoriesByCampaign } from '../models/repositories/InventoryRepository'
 import {
-  listParticipantsByCampaign,
-  resetTeamSessionToMax,
-} from '../models/repositories/ParticipantRepository'
+  getCharacterState,
+  resetTeamStatesToMax,
+} from '../models/repositories/CharacterStateRepository'
+import { listEquipmentByCampaign } from '../models/repositories/EquipmentRepository'
 import type { SecondaryAttributes } from '../models/types/Character'
 import type { Posture } from '../models/types/Participant'
-import {
-  computeArmorTotal,
-  computeEffectiveMaxStat,
-  type ArmorTotal,
-} from '../utils/effectiveStats'
+import { computeArmorTotal, computeEffectiveStat, type ArmorTotal } from '../utils/effectiveStats'
 
 const route = useRoute()
 const router = useRouter()
@@ -190,46 +186,41 @@ async function loadPlayers() {
   loadingState.value = true
   errorState.value = ''
   try {
-    const [characters, participants, inventories] = await Promise.all([
+    const [characters, equipmentDocs] = await Promise.all([
       listCharactersByCampaign(campaignId.value),
-      listParticipantsByCampaign(campaignId.value),
-      listInventoriesByCampaign(campaignId.value),
+      listEquipmentByCampaign(campaignId.value),
     ])
-    const participantByCharacterId = new Map(
-      participants.map((participant) => [participant.characterId, participant]),
-    )
-    const participantByUid = new Map(
-      participants.map((participant) => [participant.uid, participant]),
-    )
-    const inventoryByCharacterId = new Map(
-      inventories.map((inventory) => [inventory.characterId, inventory]),
-    )
     // Transformations stay nested under their parent sheet and are excluded from
     // the team roster rows.
-    playerRows.value = characters
-      .filter((character) => !character.parentCharacterId)
-      .map((character) => {
-        // Prefer the explicit character link; keep uid fallback for legacy participant rows.
-        const participant =
-          participantByCharacterId.get(character.id) ?? participantByUid.get(character.ownerUid)
-        const inventory = inventoryByCharacterId.get(character.id)
-        const equipment = inventory ? [...inventory.weapons, ...inventory.armor] : []
-        return {
-          uid: character.ownerUid,
-          characterId: character.id,
-          name: character.name,
-          raceId: character.raceId,
-          classId: character.classId,
-          level: character.level,
-          hp: participant?.session?.hp ?? 0,
-          maxHp: computeEffectiveMaxStat(participant?.session?.maxHp ?? 0, equipment, 'maxHp'),
-          mana: participant?.session?.mana ?? 0,
-          maxMana: computeEffectiveMaxStat(participant?.session?.maxMana ?? 0, equipment, 'maxMana'),
-          posture: participant?.session?.posture ?? '—',
-          secondary: character.attributes.secondary,
-          armor: computeArmorTotal(equipment),
-        }
-      })
+    const playable = characters.filter((character) => !character.parentCharacterId)
+    const states = await Promise.all(
+      playable.map((character) => getCharacterState(campaignId.value, character.id)),
+    )
+    const stateByCharacterId = new Map(playable.map((character, index) => [character.id, states[index]]))
+    const equipmentByCharacterId = new Map(
+      equipmentDocs.map((equipmentDoc) => [equipmentDoc.characterId, equipmentDoc]),
+    )
+
+    playerRows.value = playable.map((character) => {
+      const state = stateByCharacterId.get(character.id)
+      const equipmentDoc = equipmentByCharacterId.get(character.id)
+      const equipment = equipmentDoc ? [...equipmentDoc.Weapons, ...equipmentDoc.Armor] : []
+      return {
+        uid: character.ownerUid,
+        characterId: character.id,
+        name: character.name,
+        raceId: character.raceId,
+        classId: character.classId,
+        level: character.level,
+        hp: state?.HealthCurrent ?? 0,
+        maxHp: computeEffectiveStat(state?.Health ?? 0, equipment, 'Health'),
+        mana: state?.ManaCurrent ?? 0,
+        maxMana: computeEffectiveStat(state?.Mana ?? 0, equipment, 'Mana'),
+        posture: state?.Posture ?? '—',
+        secondary: character.attributes.secondary,
+        armor: computeArmorTotal(equipment),
+      }
+    })
   } catch (err) {
     errorState.value =
       err instanceof Error ? err.message : 'Erreur lors du chargement des participants.'
@@ -249,7 +240,9 @@ async function restTeam() {
   resettingState.value = true
   errorState.value = ''
   try {
-    await resetTeamSessionToMax(campaignId.value)
+    const characters = await listCharactersByCampaign(campaignId.value)
+    const ids = characters.filter((c) => !c.parentCharacterId).map((c) => c.id)
+    await resetTeamStatesToMax(campaignId.value, ids)
     await loadPlayers()
   } catch (err) {
     errorState.value = err instanceof Error ? err.message : "Erreur lors du repos de l'équipe."
@@ -265,7 +258,7 @@ async function restTeam() {
       <div class="title-row panel-surface title-panel">
         <div class="title-copy">
           <span class="eyebrow">Campagne</span>
-          <h1>Équipe — {{ campaign?.title ?? 'Campagne' }}</h1>
+          <h1>Équipe — {{ campaign?.DisplayName ?? 'Campagne' }}</h1>
         </div>
         <button
           v-if="canRestTeam"

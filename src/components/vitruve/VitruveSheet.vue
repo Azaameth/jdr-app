@@ -1,20 +1,20 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import type { CharacterProfile } from '../../models/types/Character'
-import type { WeaponArmorItem } from '../../models/types/Inventory'
-import type { Participant } from '../../models/types/Participant'
-import { computeArmorTotal, computeEffectiveMaxStat } from '../../utils/effectiveStats'
+import type { CharacterStateDocument } from '../../models/repositories/CharacterStateRepository'
+import type { GearEntry } from '../../models/repositories/EquipmentRepository'
+import { computeArmorTotal, computeEffectiveStat } from '../../utils/effectiveStats'
 
 const props = withDefaults(
   defineProps<{
     character: CharacterProfile
-    participant: Participant | null
+    state: CharacterStateDocument | null
     raceName?: string
     className?: string
     canEditSession: boolean
     sessionLoading?: 'hp' | 'mana' | 'posture' | null
     sessionError?: string
-    equipment?: WeaponArmorItem[]
+    equipment?: GearEntry[]
   }>(),
   {
     raceName: undefined,
@@ -36,43 +36,43 @@ const subtitle = computed(() => {
   if (props.raceName) segments.push(props.raceName)
   if (props.className) segments.push(props.className)
   segments.push(`Niv.${props.character.level}`)
-  if (props.character.elements.length) segments.push(props.character.elements.join(' · '))
+  if (props.character.elements?.length) segments.push(props.character.elements.join(' · '))
   return segments.join(' · ')
 })
 
-const session = computed(() => props.participant?.session ?? null)
+const state = computed(() => props.state)
 
 const effectiveMaxHp = computed(() => {
-  const s = session.value
+  const s = state.value
   if (!s) return 0
-  return computeEffectiveMaxStat(s.maxHp, props.equipment, 'maxHp')
+  return computeEffectiveStat(s.Health, props.equipment, 'Health')
 })
 const effectiveMaxMana = computed(() => {
-  const s = session.value
+  const s = state.value
   if (!s) return 0
-  return computeEffectiveMaxStat(s.maxMana, props.equipment, 'maxMana')
+  return computeEffectiveStat(s.Mana, props.equipment, 'Mana')
 })
 const armorTotal = computed(() => computeArmorTotal(props.equipment))
 
 const hpMinusDisabled = computed(() => {
-  const s = session.value
+  const s = state.value
   if (!s) return true
-  return props.sessionLoading !== null || s.hp <= -effectiveMaxHp.value
+  return props.sessionLoading !== null || s.HealthCurrent <= -effectiveMaxHp.value
 })
 const hpPlusDisabled = computed(() => {
-  const s = session.value
+  const s = state.value
   if (!s) return true
-  return props.sessionLoading !== null || s.hp >= effectiveMaxHp.value
+  return props.sessionLoading !== null || s.HealthCurrent >= effectiveMaxHp.value
 })
 const manaMinusDisabled = computed(() => {
-  const s = session.value
+  const s = state.value
   if (!s) return true
-  return props.sessionLoading !== null || s.mana <= 0
+  return props.sessionLoading !== null || s.ManaCurrent <= 0
 })
 const manaPlusDisabled = computed(() => {
-  const s = session.value
+  const s = state.value
   if (!s) return true
-  return props.sessionLoading !== null || s.mana >= effectiveMaxMana.value
+  return props.sessionLoading !== null || s.ManaCurrent >= effectiveMaxMana.value
 })
 
 // Portrait: image with object-fit:cover, else class-icon placeholder fallback
@@ -105,9 +105,9 @@ function handlePortraitError() {
       <p class="vit-sub">{{ subtitle }}</p>
     </div>
 
-    <div v-if="session" class="vitals-strip">
+    <div v-if="state" class="vitals-strip">
       <div class="vpill pv-pill">
-        <div class="vbig pv">{{ session.hp }}</div>
+        <div class="vbig pv">{{ state.HealthCurrent }}</div>
         <div class="vlbl">PV / {{ effectiveMaxHp }}</div>
         <div v-if="canEditSession" class="vbtns">
           <button
@@ -132,7 +132,7 @@ function handlePortraitError() {
       </div>
 
       <div class="vpill mana-pill">
-        <div class="vbig mana">{{ session.mana }}</div>
+        <div class="vbig mana">{{ state.ManaCurrent }}</div>
         <div class="vlbl">Mana / {{ effectiveMaxMana }}</div>
         <div v-if="canEditSession" class="vbtns">
           <button
@@ -157,7 +157,7 @@ function handlePortraitError() {
       </div>
     </div>
 
-    <div v-if="session" class="armor-cell">
+    <div v-if="state" class="armor-cell">
       <span class="armor-total">{{ armorTotal.total }}</span>
       <span class="armor-label">Armure</span>
       <span class="armor-breakdown">AM {{ armorTotal.magique }} · AP {{ armorTotal.physique }}</span>

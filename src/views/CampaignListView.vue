@@ -18,13 +18,13 @@ const authReady = computed(() => authStore.authReady.value)
 const showLoginPopup = computed(() => authReady.value && !user.value)
 const campaignCount = computed(() => campaigns.value.length)
 const recruitingCount = computed(
-  () => campaigns.value.filter((campaign) => campaign.status === 'recrutement').length,
+  () => campaigns.value.filter((campaign) => campaign.Status === 'Recruiting').length,
 )
 const activeCount = computed(
-  () => campaigns.value.filter((campaign) => campaign.status === 'active').length,
+  () => campaigns.value.filter((campaign) => campaign.Status === 'Active').length,
 )
 const endedCount = computed(
-  () => campaigns.value.filter((campaign) => campaign.status === 'terminee').length,
+  () => campaigns.value.filter((campaign) => campaign.Status === 'Closed').length,
 )
 
 const hasCampaigns = computed(() => campaigns.value.length > 0)
@@ -48,12 +48,12 @@ function openCampaign(id: string) {
 
 async function addCampaign() {
   await campaignStore.addCampaign({
-    title: 'Nouvelle campagne',
-    lore: '',
-    summary: 'À compléter',
-    globalNote: '',
-    gmId: '',
-    status: 'recrutement',
+    DisplayName: 'Nouvelle campagne',
+    Lore: '',
+    Description: 'À compléter',
+    GlobalNote: '',
+    GmId: '',
+    Status: 'Recruiting',
   })
 }
 
@@ -67,8 +67,8 @@ async function withdrawMj(campaignId: string) {
   await campaignStore.withdrawMj(campaignId)
 }
 
-async function removeCampaign(campaignId: string, title: string) {
-  if (!confirm(`Supprimer la campagne "${title}" ?`)) return
+async function removeCampaign(campaignId: string, displayName: string) {
+  if (!confirm(`Supprimer la campagne "${displayName}" ?`)) return
   await campaignStore.removeCampaign(campaignId)
 }
 </script>
@@ -117,19 +117,19 @@ async function removeCampaign(campaignId: string, title: string) {
         @click="openCampaign(campaign.id)"
       >
         <div class="card-topline">
-          <span class="status">{{ CAMPAIGN_STATUS_LABELS[campaign.status] }}</span>
-          <span v-if="campaign.gmId && campaign.gmId === user?.uid" class="badge">Votre MJ</span>
-          <span v-else-if="!campaign.gmId" class="badge muted">MJ libre</span>
+          <span class="status">{{ CAMPAIGN_STATUS_LABELS[campaign.Status] }}</span>
+          <span v-if="campaign.GmId && campaign.GmId === user?.uid" class="badge">Votre MJ</span>
+          <span v-else-if="!campaign.GmId" class="badge muted">MJ libre</span>
         </div>
 
         <div class="card-body">
-          <h2>{{ campaign.title }}</h2>
-          <p>{{ campaign.summary }}</p>
+          <h2>{{ campaign.DisplayName }}</h2>
+          <p>{{ campaign.Description }}</p>
         </div>
 
         <div class="card-footer">
           <button
-            v-if="campaign.gmId && campaign.gmId === user?.uid"
+            v-if="campaign.GmId && campaign.GmId === user?.uid"
             class="action-btn warning"
             @click.stop="withdrawMj(campaign.id)"
           >
@@ -137,7 +137,7 @@ async function removeCampaign(campaignId: string, title: string) {
           </button>
 
           <button
-            v-else-if="!campaign.gmId && canManageCampaigns"
+            v-else-if="!campaign.GmId && canManageCampaigns"
             class="action-btn"
             @click.stop="enrollMj(campaign.id)"
           >
@@ -146,7 +146,7 @@ async function removeCampaign(campaignId: string, title: string) {
           <button
             v-if="canManageCampaigns"
             class="action-btn danger"
-            @click.stop="removeCampaign(campaign.id, campaign.title)"
+            @click.stop="removeCampaign(campaign.id, campaign.DisplayName)"
           >
             Supprimer
           </button>

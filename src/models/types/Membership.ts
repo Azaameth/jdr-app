@@ -1,5 +1,3 @@
 export type { Posture } from './Participant'
 export type { ParticipantStatus as MembershipStatus } from './Participant'
 export type { Participant as Membership } from './Participant'
-export type { CharacterSessionState } from './Participant'
-export type { InventoryItem as SessionInventoryItem } from './Inventory'

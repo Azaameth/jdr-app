@@ -1,12 +1,22 @@
-import { collection, getDocs, query, where } from 'firebase/firestore'
+import { collection, getDocs } from 'firebase/firestore'
 
 import { db } from '../../firebase/config'
 import type { Class } from '../types/Class'
 
-const CLASSES_COLLECTION = 'classes'
-
 function mapClass(docSnap: { id: string; data: () => Record<string, unknown> }): Class {
-  return { id: docSnap.id, ...docSnap.data() } as Class
+  const raw = docSnap.data()
+  return {
+    id: docSnap.id,
+    DisplayName: String(raw.DisplayName ?? docSnap.id),
+    Description: String(raw.Description ?? ''),
+    PictureUrl: String(raw.PictureUrl ?? ''),
+    Bonuses: (raw.Bonuses as Record<string, number>) ?? {},
+    Traits: (raw.Traits as Class['Traits']) ?? {},
+    StatConstraints: (raw.StatConstraints as Class['StatConstraints']) ?? {},
+    HealthNote: String(raw.HealthNote ?? ''),
+    ManaNote: String(raw.ManaNote ?? ''),
+    ArmorNote: String(raw.ArmorNote ?? ''),
+  }
 }
 
 function getCampaignClassesCollection(campaignId: string) {
@@ -20,24 +30,6 @@ function getCampaignClassesCollection(campaignId: string) {
 export async function listClassesByCampaign(campaignId: string): Promise<Class[]> {
   if (!db) return []
 
-  const nestedSnapshot = await getDocs(getCampaignClassesCollection(campaignId))
-  if (!nestedSnapshot.empty) {
-    return nestedSnapshot.docs.map((docSnap) => mapClass(docSnap))
-  }
-
-  const byCampaignIdQuery = query(
-    collection(db, CLASSES_COLLECTION),
-    where('campaignId', '==', campaignId),
-  )
-  const byCampaignIdSnapshot = await getDocs(byCampaignIdQuery)
-  if (!byCampaignIdSnapshot.empty) {
-    return byCampaignIdSnapshot.docs.map((docSnap) => mapClass(docSnap))
-  }
-
-  const byCampaignTagsQuery = query(
-    collection(db, CLASSES_COLLECTION),
-    where('campaignTags', 'array-contains', campaignId),
-  )
-  const byCampaignTagsSnapshot = await getDocs(byCampaignTagsQuery)
-  return byCampaignTagsSnapshot.docs.map((docSnap) => mapClass(docSnap))
+  const snapshot = await getDocs(getCampaignClassesCollection(campaignId))
+  return snapshot.docs.map((docSnap) => mapClass(docSnap))
 }

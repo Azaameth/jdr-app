@@ -3,7 +3,8 @@ import { mount } from '@vue/test-utils'
 import InventorySlotModal, {
   type InventorySlotContext,
 } from '../InventorySlotModal.vue'
-import type { InventoryItem, WeaponArmorItem } from '../../models/types/Inventory'
+import type { GearEntry } from '../../models/repositories/EquipmentRepository'
+import type { BagItemDocument } from '../../models/repositories/ItemRepository'
 
 function mountModal(context: InventorySlotContext, errorMessage: string | null = null) {
   return mount(InventorySlotModal, {
@@ -12,162 +13,80 @@ function mountModal(context: InventorySlotContext, errorMessage: string | null =
 }
 
 describe('InventorySlotModal', () => {
-  it('renders name + quantity fields for a backpack context', () => {
-    const wrapper = mountModal({ kind: 'backpack', category: 'soins' })
+  it('renders name + description + quantity fields for a bag context', () => {
+    const wrapper = mountModal({ kind: 'bag' })
 
     expect(wrapper.find('#inv-slot-name').exists()).toBe(true)
+    expect(wrapper.find('#inv-slot-description').exists()).toBe(true)
     expect(wrapper.find('#inv-slot-quantity').exists()).toBe(true)
-    expect(wrapper.find('#inv-slot-stat').exists()).toBe(false)
   })
 
-  it('renders name + stat fields for a weapons context with the weapons label/placeholder', () => {
-    const wrapper = mountModal({ kind: 'weapons' })
+  it('renders name + description fields with no quantity for a Weapons/Armor context', () => {
+    const wrapper = mountModal({ kind: 'Weapons' })
 
     expect(wrapper.find('#inv-slot-name').exists()).toBe(true)
+    expect(wrapper.find('#inv-slot-description').exists()).toBe(true)
     expect(wrapper.find('#inv-slot-quantity').exists()).toBe(false)
-    const statInput = wrapper.find('#inv-slot-stat')
-    expect(statInput.exists()).toBe(true)
-    expect(wrapper.text()).toContain('Dégâts / particularité')
-    expect(statInput.attributes('placeholder')).toBe('ex : D10/+4')
   })
 
-  it('renders a category picker + value + note fields for an armor context, defaulting to Armure Physique', () => {
-    const wrapper = mountModal({ kind: 'armor' })
-
-    expect(wrapper.find('#inv-slot-stat').exists()).toBe(false)
-    expect((wrapper.find('#inv-slot-category').element as HTMLSelectElement).value).toBe(
-      'armorPhysique',
-    )
-    expect(wrapper.text()).toContain('Bonus (Armure Physique)')
-    expect(wrapper.find('#inv-slot-value').exists()).toBe(true)
-    expect(wrapper.find('#inv-slot-note').exists()).toBe(true)
-  })
-
-  it('pre-fills the Mana category and bonus amount when editing an item with a maxMana statBonus', () => {
-    const item: WeaponArmorItem = {
-      itemId: 'a-ring',
-      name: 'Anneau de Mana',
-      equipped: true,
-      statBonus: { stat: 'maxMana', amount: 4 },
+  it('pre-fills name, description and quantity when editing an existing bag item', () => {
+    const item: BagItemDocument = {
+      EntryId: 'item-1',
+      DisplayName: 'Rations',
+      Description: 'Nourriture séchée',
+      Quantity: 4,
+      PlayerId: 'uid-1',
+      CampaignId: 'camp-1',
     }
-    const wrapper = mountModal({ kind: 'armor', item })
-
-    expect((wrapper.find('#inv-slot-category').element as HTMLSelectElement).value).toBe(
-      'maxMana',
-    )
-    expect((wrapper.find('#inv-slot-value').element as HTMLInputElement).value).toBe('4')
-    expect(wrapper.text()).toContain('Bonus (Mana)')
-  })
-
-  it('emits a statBonus save payload when the PV category is chosen for an armor item', async () => {
-    const wrapper = mountModal({ kind: 'armor' })
-
-    await wrapper.find('#inv-slot-name').setValue('Amulette de Vie')
-    await wrapper.find('#inv-slot-category').setValue('maxHp')
-    await wrapper.find('#inv-slot-value').setValue('3')
-    await wrapper.find('form').trigger('submit.prevent')
-
-    expect(wrapper.emitted('save')?.[0]?.[0]).toEqual({
-      kind: 'armor',
-      item: {
-        itemId: undefined,
-        name: 'Amulette de Vie',
-        equipped: true,
-        statBonus: { stat: 'maxHp', amount: 3 },
-      },
-    })
-  })
-
-  it('emits a statBonus save payload with an optional note when the default Armure Physique category is kept', async () => {
-    const wrapper = mountModal({ kind: 'armor' })
-
-    await wrapper.find('#inv-slot-name').setValue('Bouclier renforcé')
-    await wrapper.find('#inv-slot-value').setValue('3')
-    await wrapper.find('#inv-slot-note').setValue('vs proj. magiques')
-    await wrapper.find('form').trigger('submit.prevent')
-
-    expect(wrapper.emitted('save')?.[0]?.[0]).toEqual({
-      kind: 'armor',
-      item: {
-        itemId: undefined,
-        name: 'Bouclier renforcé',
-        equipped: true,
-        statBonus: { stat: 'armorPhysique', amount: 3 },
-        statNote: 'vs proj. magiques',
-      },
-    })
-  })
-
-  it('emits a statBonus save payload when the Armure Magique category is chosen', async () => {
-    const wrapper = mountModal({ kind: 'armor' })
-
-    await wrapper.find('#inv-slot-name').setValue("Robe d'Arcaniste")
-    await wrapper.find('#inv-slot-category').setValue('armorMagique')
-    await wrapper.find('#inv-slot-value').setValue('2')
-    await wrapper.find('form').trigger('submit.prevent')
-
-    expect(wrapper.emitted('save')?.[0]?.[0]).toEqual({
-      kind: 'armor',
-      item: {
-        itemId: undefined,
-        name: "Robe d'Arcaniste",
-        equipped: true,
-        statBonus: { stat: 'armorMagique', amount: 2 },
-      },
-    })
-  })
-
-  it('pre-fills name and quantity when editing an existing backpack item', () => {
-    const item: InventoryItem = {
-      itemId: 'item-1',
-      name: 'Rations',
-      quantity: 4,
-      category: 'nourriture',
-    }
-    const wrapper = mountModal({ kind: 'backpack', category: 'nourriture', item })
+    const wrapper = mountModal({ kind: 'bag', item })
 
     expect((wrapper.find('#inv-slot-name').element as HTMLInputElement).value).toBe('Rations')
+    expect((wrapper.find('#inv-slot-description').element as HTMLTextAreaElement).value).toBe(
+      'Nourriture séchée',
+    )
     expect((wrapper.find('#inv-slot-quantity').element as HTMLInputElement).value).toBe('4')
   })
 
-  it('leaves quantity blank when pre-filling a backpack item with quantity 1', () => {
-    const item: InventoryItem = {
-      itemId: 'item-1',
-      name: 'Carte',
-      quantity: 1,
-      category: 'quete',
+  it('leaves quantity blank when pre-filling a bag item with quantity 1', () => {
+    const item: BagItemDocument = {
+      EntryId: 'item-1',
+      DisplayName: 'Carte',
+      Quantity: 1,
+      PlayerId: 'uid-1',
+      CampaignId: 'camp-1',
     }
-    const wrapper = mountModal({ kind: 'backpack', category: 'quete', item })
+    const wrapper = mountModal({ kind: 'bag', item })
 
     expect((wrapper.find('#inv-slot-quantity').element as HTMLInputElement).value).toBe('')
   })
 
-  it('pre-fills name and formatted stat when editing an existing weapon', () => {
-    const item: WeaponArmorItem = {
-      itemId: 'w-1',
-      name: 'Épée longue',
-      damageDie: 'D10',
-      damageBonus: 4,
+  it('pre-fills a BonusRaw row when editing an existing equipped item', () => {
+    const item: GearEntry = {
+      EntryId: 'a-ring',
+      DisplayName: 'Anneau de Mana',
+      BonusRaw: { Mana: 4 },
     }
-    const wrapper = mountModal({ kind: 'weapons', item })
+    const wrapper = mountModal({ kind: 'Armor', item })
 
-    expect((wrapper.find('#inv-slot-name').element as HTMLInputElement).value).toBe('Épée longue')
-    expect((wrapper.find('#inv-slot-stat').element as HTMLInputElement).value).toBe('D10/+4')
+    const statSelect = wrapper.find('.bonus-stat').element as HTMLSelectElement
+    const amountInput = wrapper.find('.bonus-amount').element as HTMLInputElement
+    expect(statSelect.value).toBe('Mana')
+    expect(amountInput.value).toBe('4')
   })
 
   it('shows the delete button only when editing an existing item', () => {
-    const withoutItem = mountModal({ kind: 'weapons' })
+    const withoutItem = mountModal({ kind: 'Weapons' })
     expect(withoutItem.find('.inventory-slot-delete').exists()).toBe(false)
 
     const withItem = mountModal({
-      kind: 'weapons',
-      item: { itemId: 'w-1', name: 'Dague' },
+      kind: 'Weapons',
+      item: { EntryId: 'w-1', DisplayName: 'Dague' },
     })
     expect(withItem.find('.inventory-slot-delete').exists()).toBe(true)
   })
 
   it('closes without emitting save when the name is empty on submit', async () => {
-    const wrapper = mountModal({ kind: 'backpack', category: 'soins' })
+    const wrapper = mountModal({ kind: 'bag' })
 
     await wrapper.find('form').trigger('submit.prevent')
 
@@ -175,96 +94,149 @@ describe('InventorySlotModal', () => {
     expect(wrapper.emitted('close')).toHaveLength(1)
   })
 
-  it('emits a backpack save payload shaped for saveBackpackItem', async () => {
-    const wrapper = mountModal({ kind: 'backpack', category: 'soins' })
+  it('emits a bag save payload with quantity defaulting to 1 when left blank', async () => {
+    const wrapper = mountModal({ kind: 'bag' })
 
     await wrapper.find('#inv-slot-name').setValue('Trousse de soins')
-    await wrapper.find('#inv-slot-quantity').setValue('3')
     await wrapper.find('form').trigger('submit.prevent')
 
     expect(wrapper.emitted('save')?.[0]?.[0]).toEqual({
-      kind: 'backpack',
-      item: {
-        itemId: undefined,
-        name: 'Trousse de soins',
-        category: 'soins',
-        quantity: 3,
-      },
+      kind: 'bag',
+      item: { EntryId: undefined, DisplayName: 'Trousse de soins', Quantity: 1 },
     })
   })
 
-  it('defaults quantity to 1 when left blank on a new backpack item', async () => {
-    const wrapper = mountModal({ kind: 'backpack', category: 'munitions' })
+  it('emits a bag save payload including quantity and description when set', async () => {
+    const wrapper = mountModal({ kind: 'bag' })
 
     await wrapper.find('#inv-slot-name').setValue('Flèches')
+    await wrapper.find('#inv-slot-description').setValue('Munitions standard')
+    await wrapper.find('#inv-slot-quantity').setValue('12')
     await wrapper.find('form').trigger('submit.prevent')
 
-    expect(wrapper.emitted('save')?.[0]?.[0]).toMatchObject({
-      kind: 'backpack',
-      item: { name: 'Flèches', quantity: 1 },
+    expect(wrapper.emitted('save')?.[0]?.[0]).toEqual({
+      kind: 'bag',
+      item: {
+        EntryId: undefined,
+        DisplayName: 'Flèches',
+        Description: 'Munitions standard',
+        Quantity: 12,
+      },
     })
   })
 
-  it('emits a structured equipment save payload parsed from name + stat', async () => {
-    const wrapper = mountModal({ kind: 'weapons' })
+  it('emits an equipped-item save payload with a BonusRaw built from the bonus row', async () => {
+    const wrapper = mountModal({ kind: 'Weapons' })
 
     await wrapper.find('#inv-slot-name').setValue('Arc long')
-    await wrapper.find('#inv-slot-stat').setValue('D8/+2')
+    await wrapper.find('.bonus-add').trigger('click')
+    await wrapper.find('.bonus-stat').setValue('PhysicalAttack')
+    await wrapper.find('.bonus-amount').setValue('2')
     await wrapper.find('form').trigger('submit.prevent')
 
     expect(wrapper.emitted('save')?.[0]?.[0]).toEqual({
-      kind: 'weapons',
+      kind: 'Weapons',
       item: {
-        itemId: undefined,
-        name: 'Arc long',
-        damageDie: 'D8',
-        damageBonus: 2,
+        EntryId: undefined,
+        DisplayName: 'Arc long',
+        BonusRaw: { PhysicalAttack: 2 },
       },
     })
   })
 
-  it('preserves the itemId on save when editing an existing item', async () => {
-    const wrapper = mountModal({
-      kind: 'armor',
+  it('emits a BonusConditional entry built from a conditional row', async () => {
+    const wrapper = mountModal({ kind: 'Armor' })
+
+    await wrapper.find('#inv-slot-name').setValue('Bottes enracinées')
+    const addButtons = wrapper.findAll('.bonus-add')
+    await addButtons[1]?.trigger('click')
+    await wrapper.find('.bonus-name').setValue('Enraciné')
+    await wrapper.find('.bonus-stat').setValue('PhysicalDefense')
+    await wrapper.find('.bonus-amount').setValue('2')
+    await wrapper.find('form').trigger('submit.prevent')
+
+    expect(wrapper.emitted('save')?.[0]?.[0]).toEqual({
+      kind: 'Armor',
       item: {
-        itemId: 'a-1',
-        name: 'Cotte de mailles',
-        equipped: true,
-        statBonus: { stat: 'armorPhysique', amount: 2 },
+        EntryId: undefined,
+        DisplayName: 'Bottes enracinées',
+        BonusConditional: [{ Name: 'Enraciné', Effects: { PhysicalDefense: 2 } }],
       },
+    })
+  })
+
+  it('preserves the EntryId on save when editing an existing item', async () => {
+    const wrapper = mountModal({
+      kind: 'Armor',
+      item: { EntryId: 'a-1', DisplayName: 'Cotte de mailles', BonusRaw: { PhysicalArmor: 2 } },
     })
 
     await wrapper.find('form').trigger('submit.prevent')
 
     expect(wrapper.emitted('save')?.[0]?.[0]).toEqual({
-      kind: 'armor',
+      kind: 'Armor',
       item: {
-        itemId: 'a-1',
-        name: 'Cotte de mailles',
-        equipped: true,
-        statBonus: { stat: 'armorPhysique', amount: 2 },
+        EntryId: 'a-1',
+        DisplayName: 'Cotte de mailles',
+        BonusRaw: { PhysicalArmor: 2 },
       },
     })
   })
 
-  it('emits delete with kind and itemId when the delete button is clicked', async () => {
+  it('emits delete with kind and entryId when the delete button is clicked', async () => {
     const wrapper = mountModal({
-      kind: 'backpack',
-      category: 'soins',
-      item: { itemId: 'item-1', name: 'Trousse', quantity: 1, category: 'soins' },
+      kind: 'bag',
+      item: { EntryId: 'item-1', DisplayName: 'Trousse', Quantity: 1, PlayerId: 'uid-1', CampaignId: 'camp-1' },
     })
 
     await wrapper.find('.inventory-slot-delete').trigger('click')
 
-    expect(wrapper.emitted('delete')?.[0]?.[0]).toEqual({ kind: 'backpack', itemId: 'item-1' })
+    expect(wrapper.emitted('delete')?.[0]?.[0]).toEqual({ kind: 'bag', entryId: 'item-1' })
   })
 
-  it('displays the errorMessage prop (e.g. the category-full rejection) when set', () => {
-    const wrapper = mountModal(
-      { kind: 'backpack', category: 'nourriture' },
-      'Catégorie pleine : aucun emplacement libre.',
-    )
+  it('shows equip buttons only for an existing bag item, and emits move on click', async () => {
+    const wrapper = mountModal({
+      kind: 'bag',
+      item: { EntryId: 'item-1', DisplayName: 'Épée', Quantity: 1, PlayerId: 'uid-1', CampaignId: 'camp-1' },
+    })
 
-    expect(wrapper.text()).toContain('Catégorie pleine : aucun emplacement libre.')
+    const moveButtons = wrapper.findAll('.inventory-slot-move-btn')
+    expect(moveButtons).toHaveLength(2)
+
+    await moveButtons[0]?.trigger('click')
+    expect(wrapper.emitted('move')?.[0]?.[0]).toEqual({
+      direction: 'equip',
+      kind: 'Weapons',
+      entryId: 'item-1',
+    })
+  })
+
+  it('shows an unequip button for an existing equipped item, and emits move on click', async () => {
+    const wrapper = mountModal({
+      kind: 'Armor',
+      item: { EntryId: 'a-1', DisplayName: 'Cotte de mailles' },
+    })
+
+    const moveButtons = wrapper.findAll('.inventory-slot-move-btn')
+    expect(moveButtons).toHaveLength(1)
+
+    await moveButtons[0]?.trigger('click')
+    expect(wrapper.emitted('move')?.[0]?.[0]).toEqual({
+      direction: 'unequip',
+      kind: 'Armor',
+      entryId: 'a-1',
+    })
+  })
+
+  it('shows no move buttons for a brand-new (unsaved) item', () => {
+    const wrapper = mountModal({ kind: 'bag' })
+
+    expect(wrapper.findAll('.inventory-slot-move-btn')).toHaveLength(0)
+  })
+
+  it('displays the errorMessage prop (e.g. a slot-cap rejection) when set', () => {
+    const wrapper = mountModal({ kind: 'bag' }, 'Capacité du sac atteinte : 30/30.')
+
+    expect(wrapper.text()).toContain('Capacité du sac atteinte : 30/30.')
   })
 })

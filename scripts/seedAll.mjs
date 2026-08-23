@@ -55,6 +55,41 @@ function slugify(text) {
     .replace(/(^-|-$)/g, '')
 }
 
+// campaigns-config.json still carries the legacy French status values;
+// map them onto the target Campaign.Status contract (docs/rpg-data-model.md §4.2).
+const CAMPAIGN_STATUS_MAP = {
+  recrutement: 'Recruiting',
+  active: 'Active',
+  terminee: 'Closed',
+}
+
+function mapCampaignStatus(status) {
+  return CAMPAIGN_STATUS_MAP[status] ?? 'Recruiting'
+}
+
+// Class `caps` entries are consistently "Name : Effect" in the fixtures —
+// split reliably instead of guessing at a numeric Bonuses/StatConstraints
+// mapping the source data doesn't actually specify (see NEXTSTEPS.md's
+// migration ledger, Cluster 2: don't invent numbers the fixtures don't have).
+function buildClassTraits(caps) {
+  const traits = {}
+  for (const [index, cap] of (caps ?? []).entries()) {
+    const [name, ...rest] = String(cap).split(' : ')
+    traits[`Cap${index + 1}`] = {
+      Description: name?.trim() ?? '',
+      Value: rest.join(' : ').trim(),
+    }
+  }
+  return traits
+}
+
+// Matches the portrait convention already used by scripts/data/characters.json
+// (e.g. "/images/portraits/azarius.jpg") and the actual files in
+// public/images/portraits/, named exactly by characterId.
+function toCharacterImagePath(characterId) {
+  return `/images/portraits/${characterId}.jpg`
+}
+
 function toInt(value, fallback = 0) {
   const parsed = Number.parseInt(String(value), 10)
   return Number.isNaN(parsed) ? fallback : parsed
@@ -160,6 +195,41 @@ function parseSessionInventory(raw) {
   })
 }
 
+// classifyInventory.mjs still classifies into the legacy WeaponArmorItem
+// vocabulary (damageDie/damageBonus/armorRating/statNote) — the target
+// GearEntry schema (docs/rpg-data-model.md §4.9) has no mechanic for those at
+// all (see the equipment-stats-dice mechanics note: gear only affects base
+// stats via a flat, human-assigned BonusRaw, never an automated damage/armor
+// roll). Preserve the legacy annotation as descriptive prose instead of
+// silently dropping it — BonusRaw stays empty until a human assigns a real
+// value.
+function legacyGearAnnotation(item) {
+  const parts = []
+  if (item.damageDie) {
+    const bonus =
+      typeof item.damageBonus === 'number'
+        ? `/${item.damageBonus >= 0 ? '+' : ''}${item.damageBonus}`
+        : ''
+    parts.push(`${item.damageDie}${bonus}`)
+  }
+  if (typeof item.armorRating === 'number') {
+    parts.push(`RD${item.armorRating}`)
+  }
+  if (item.statNote) {
+    parts.push(item.statNote)
+  }
+  return parts.join(' — ')
+}
+
+function toGearEntry(item) {
+  const description = legacyGearAnnotation(item)
+  return {
+    EntryId: item.itemId,
+    DisplayName: item.name,
+    ...(description ? { Description: description } : {}),
+  }
+}
+
 function toGender(value) {
   const n = normalize(value)
   if (n === 'homme') return 'Homme'
@@ -201,14 +271,17 @@ function buildCampaignRules() {
   return {
     Statistics: {
       Primary: [
-        { Key: 'Strength', Label: 'Force', Min: 0, Max: 20 },
-        { Key: 'Agility', Label: 'Agilité', Min: 0, Max: 20 },
-        { Key: 'Intellect', Label: 'Intellect', Min: 0, Max: 20 },
-        { Key: 'Spirit', Label: 'Esprit', Min: 0, Max: 20 },
+        { Key: 'Force', Label: 'Force', Min: 0, Max: 100 },
+        { Key: 'Social', Label: 'Social', Min: 0, Max: 100 },
+        { Key: 'Mental', Label: 'Mental', Min: 0, Max: 100 },
       ],
       Secondary: [
-        { Key: 'Power', Label: 'Puissance', LinkedPrimary: 'Strength', Formula: 'Strength * 0.5' },
-        { Key: 'Focus', Label: 'Concentration', LinkedPrimary: 'Intellect', Formula: 'Intellect * 0.5' },
+        { Key: 'Puissance', Label: 'Puissance', LinkedPrimary: 'Force', Formula: 'Force * 0.1' },
+        { Key: 'Finesse', Label: 'Finesse', LinkedPrimary: 'Force', Formula: 'Force * 0.1' },
+        { Key: 'Aura', Label: 'Aura', LinkedPrimary: 'Social', Formula: 'Social * 0.1' },
+        { Key: 'Relation', Label: 'Relation', LinkedPrimary: 'Social', Formula: 'Social * 0.1' },
+        { Key: 'Instinct', Label: 'Instinct', LinkedPrimary: 'Mental', Formula: 'Mental * 0.1' },
+        { Key: 'Savoir', Label: 'Savoir', LinkedPrimary: 'Mental', Formula: 'Mental * 0.1' },
       ],
     },
     Dice: {
@@ -218,8 +291,8 @@ function buildCampaignRules() {
       CriticalThreshold: 1,
     },
     CharacterCreation: {
-      HealthMaxFormula: '20 + Strength * 2 + Class.Bonuses.Health',
-      ManaMaxFormula: '10 + Spirit * 3 + Class.Bonuses.Mana',
+      HealthMaxFormula: '20 + Force * 2 + Class.Bonuses.Health',
+      ManaMaxFormula: '10 + Mental * 3 + Class.Bonuses.Mana',
       PointBuyBudget: 20,
       FormulaRounding: 'RoundDown',
     },
@@ -262,18 +335,30 @@ async function main() {
   const racesData = readJson(path.join(base, 'races.json'))
   const classesData = readJson(path.join(base, 'classes.json'))
   const defaultChars = readJson(path.join(base, 'defaultChars.json'))
+  // Legacy dev fixture: defaultChars.json carries no owner data at all, so
+  // every character used to collapse onto one shared 'unknown-user' Player
+  // doc (each write clobbering the last). participants.json still has real
+  // distinct per-character uid + session values — use it to give each seeded
+  // character its own owner and a believable starting posture/injuries (its
+  // hp/mana/posture live on Characters/{id}/States/Current per
+  // docs/rpg-data-model.md §4.8, NEXTSTEPS.md Cluster 3b — Players/{uid}
+  // itself carries no characterId/session, per §4.6).
+  const participantsData = readJson(path.join(base, 'participants.json'))
+  const participantsByCharacterId = new Map(participantsData.map((p) => [p.characterId, p]))
 
   console.log(`Project: ${sa.project_id}  |  dry-run: ${dryRun}`)
 
   for (const campaignConfig of campaignsConfig) {
-    const { slug, title, summary, status } = campaignConfig
+    const { slug, title, summary, lore, globalNote, status } = campaignConfig
     const campaignId = slugify(slug)
 
     console.log(`\n[1/7] Campaign "${slug}" -> ${campaignId}`)
     const campaignPayload = {
       DisplayName: title ?? slug,
       Description: summary ?? '',
-      Status: status ?? 'Recruiting',
+      Lore: lore ?? '',
+      GlobalNote: globalNote ?? '',
+      Status: mapCampaignStatus(status),
       GmId: '',
       CreatedAt: new Date().toISOString(),
       UpdatedAt: new Date().toISOString(),
@@ -289,9 +374,12 @@ async function main() {
       const payload = {
         DisplayName: race.n ?? raceId,
         Description: race.sub ?? '',
+        PictureUrl: race.img ?? '',
         Bonuses: {},
         Traits: {},
         StatConstraints: {},
+        Strengths: race.bon ?? [],
+        Weaknesses: race.mal ?? [],
         CreatedAt: new Date().toISOString(),
         UpdatedAt: new Date().toISOString(),
       }
@@ -305,9 +393,13 @@ async function main() {
       const payload = {
         DisplayName: classEntry.n ?? classId,
         Description: classEntry.sub ?? '',
+        PictureUrl: classEntry.img ?? '',
         Bonuses: {},
-        Traits: {},
+        Traits: buildClassTraits(classEntry.caps),
         StatConstraints: {},
+        HealthNote: classEntry.pv ?? '',
+        ManaNote: classEntry.mana ?? '',
+        ArmorNote: classEntry.arm ?? '',
         CreatedAt: new Date().toISOString(),
         UpdatedAt: new Date().toISOString(),
       }
@@ -329,15 +421,15 @@ async function main() {
     const rosterCharacters = {}
 
     for (const [characterId, raw] of entries) {
-      const ownerUid = resolveOwnerUid(raw, characterId)
+      const participantFixture = participantsByCharacterId.get(characterId)
+      const ownerUid = participantFixture?.uid ?? resolveOwnerUid(raw, characterId)
       const classId = slugify(raw.classe)
       const raceId = slugify(raw.race)
       const now = new Date().toISOString()
       const primary = {
-        Strength: { Base: toInt(raw.phys, 0), Bonus: 0 },
-        Agility: { Base: toInt(raw.social, 0), Bonus: 0 },
-        Intellect: { Base: toInt(raw.mental, 0), Bonus: 0 },
-        Spirit: { Base: 0, Bonus: 0 },
+        Force: { Base: toInt(raw.phys, 0), Bonus: 0 },
+        Social: { Base: toInt(raw.social, 0), Bonus: 0 },
+        Mental: { Base: toInt(raw.mental, 0), Bonus: 0 },
       }
       const secondary = parseSecondaryAttributes(raw.competences)
       const charSheet = {
@@ -353,8 +445,12 @@ async function main() {
         RaceId: raceId,
         Statistics: primary,
         Secondaries: {
-          Power: Number(secondary.puissance ?? 0),
-          Focus: Number(secondary.savoir ?? 0),
+          Puissance: Number(secondary.puissance ?? 0),
+          Finesse: Number(secondary.finesse ?? 0),
+          Aura: Number(secondary.aura ?? 0),
+          Relation: Number(secondary.relation ?? 0),
+          Instinct: Number(secondary.instinct ?? 0),
+          Savoir: Number(secondary.savoir ?? 0),
         },
         Actions: {},
         Skills: Object.fromEntries(
@@ -386,6 +482,8 @@ async function main() {
         MagicalAttack: 0,
         PhysicalDefense: 0,
         MagicalDefense: 0,
+        Posture: participantFixture?.session?.posture ?? 'DEFENSIF',
+        Injuries: participantFixture?.session?.injuries ?? {},
         PlayerId: ownerUid,
         CampaignId: campaignId,
         UpdatedAt: now,
@@ -412,8 +510,8 @@ async function main() {
       }
 
       const equipmentDoc = {
-        Armor: inventory.armor ?? [],
-        Weapons: inventory.weapons ?? [],
+        Armor: (inventory.armor ?? []).map(toGearEntry),
+        Weapons: (inventory.weapons ?? []).map(toGearEntry),
         Currency: Number(inventory.gold ?? 0),
         PlayerId: ownerUid,
         CampaignId: campaignId,
@@ -430,9 +528,6 @@ async function main() {
           const itemId = item.itemId || `item-${Date.now()}-${Math.random().toString(16).slice(2)}`
           await writeDocIfNeeded(db, `Campaigns/${campaignId}/Characters/${characterId}/Items/${itemId}`, {
             DisplayName: item.name,
-            Description: '',
-            BonusRaw: {},
-            BonusConditional: [],
             Quantity: Number(item.quantity ?? 1),
             PlayerId: ownerUid,
             CampaignId: campaignId,

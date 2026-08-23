@@ -38,20 +38,20 @@ function pct(value: number, max: number): number {
 }
 
 const rows = computed<PartyRow[]>(() =>
-  playerStore.party.value.map(({ character, session }) => {
-    const maxHp = Math.max(0, session.maxHp)
-    const maxMana = Math.max(0, session.maxMana)
+  playerStore.party.value.map(({ character, state }) => {
+    const maxHp = Math.max(0, state.Health)
+    const maxMana = Math.max(0, state.Mana)
     return {
       characterId: character.id,
       name: character.name,
-      hp: session.hp,
+      hp: state.HealthCurrent,
       maxHp,
-      mana: session.mana,
+      mana: state.ManaCurrent,
       maxMana,
-      hpPct: pct(session.hp, maxHp),
-      manaPct: pct(session.mana, maxMana),
+      hpPct: pct(state.HealthCurrent, maxHp),
+      manaPct: pct(state.ManaCurrent, maxMana),
       // ≤25% of max PV gets the red-tinted low-PV warning treatment.
-      lowHp: maxHp > 0 && session.hp / maxHp <= 0.25,
+      lowHp: maxHp > 0 && state.HealthCurrent / maxHp <= 0.25,
       highlighted: props.highlightCharacterId === character.id,
     }
   }),

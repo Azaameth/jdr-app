@@ -5,7 +5,24 @@ import CampaignShell from '../components/layout/CampaignShell.vue'
 import { useAuthStore } from '../controllers/useAuthStore'
 import { useCampaignStore } from '../controllers/useCampaignStore'
 import { useCampaignRulesStore } from '../controllers/useCampaignRulesStore'
+import { DEFAULT_CAMPAIGN_RULES } from '../models/repositories/CampaignRulesRepository'
+import type {
+  CampaignRulesDocument,
+  DiceRoundingMode,
+  DiceSuccessDirection,
+} from '../models/types/RpgDataModel'
 import { CAMPAIGN_STATUS_LABELS, type CampaignStatus } from '../models/types/Campaign'
+
+const ROUNDING_MODE_LABELS: Record<DiceRoundingMode, string> = {
+  RoundNearest: 'Au plus proche',
+  RoundDown: 'Vers le bas',
+  RoundUp: 'Vers le haut',
+}
+
+const SUCCESS_DIRECTION_LABELS: Record<DiceSuccessDirection, string> = {
+  AboveOrEqual: 'Réussite si ≥ cible',
+  BelowOrEqual: 'Réussite si ≤ cible',
+}
 
 const route = useRoute()
 const router = useRouter()
@@ -46,20 +63,48 @@ watch(
 const editing = ref(false)
 const saving = ref(false)
 const form = reactive({
-  title: '',
-  summary: '',
-  lore: '',
-  globalNote: '',
-  status: 'recrutement' as CampaignStatus,
+  DisplayName: '',
+  Description: '',
+  Lore: '',
+  GlobalNote: '',
+  Status: 'Recruiting' as CampaignStatus,
 })
+
+const rulesForm = reactive({
+  CurrencyName: '',
+  AdvantageDiceCount: 0,
+  DisadvantageDiceCount: 0,
+  MaxItems: 0,
+  MaxArmorSlots: 0,
+  MaxWeaponSlots: 0,
+  DiceNotation: '',
+  RoundingMode: 'RoundNearest' as DiceRoundingMode,
+  SuccessDirection: 'AboveOrEqual' as DiceSuccessDirection,
+  CriticalThreshold: 0,
+})
+
+const diceNotationValid = computed(() => /^d\d+$/.test(rulesForm.DiceNotation))
 
 function startEdit() {
   if (!campaign.value) return
-  form.title = campaign.value.title
-  form.summary = campaign.value.summary
-  form.lore = campaign.value.lore
-  form.globalNote = campaign.value.globalNote
-  form.status = campaign.value.status
+  form.DisplayName = campaign.value.DisplayName
+  form.Description = campaign.value.Description
+  form.Lore = campaign.value.Lore
+  form.GlobalNote = campaign.value.GlobalNote
+  form.Status = campaign.value.Status
+
+  const currentRules = campaignRules.value ?? DEFAULT_CAMPAIGN_RULES
+  rulesForm.CurrencyName = currentRules.CurrencyName
+  rulesForm.AdvantageDiceCount = currentRules.AdvantageDiceCount
+  rulesForm.DisadvantageDiceCount = currentRules.DisadvantageDiceCount
+  rulesForm.MaxItems = currentRules.MaxItems
+  rulesForm.MaxArmorSlots = currentRules.MaxArmorSlots
+  rulesForm.MaxWeaponSlots = currentRules.MaxWeaponSlots
+  rulesForm.DiceNotation = currentRules.Dice.DiceNotation
+  rulesForm.RoundingMode = currentRules.Dice.RoundingMode
+  rulesForm.SuccessDirection = currentRules.Dice.SuccessDirection
+  rulesForm.CriticalThreshold = currentRules.Dice.CriticalThreshold
+
   editing.value = true
 }
 
@@ -68,14 +113,38 @@ function cancelEdit() {
 }
 
 async function saveEdit() {
+  if (!diceNotationValid.value) return
+
   saving.value = true
-  await campaignStore.editCampaign(campaignId.value, { ...form })
+  const rulesPatch: Partial<CampaignRulesDocument> = {
+    CurrencyName: rulesForm.CurrencyName,
+    AdvantageDiceCount: rulesForm.AdvantageDiceCount,
+    DisadvantageDiceCount: rulesForm.DisadvantageDiceCount,
+    MaxItems: rulesForm.MaxItems,
+    MaxArmorSlots: rulesForm.MaxArmorSlots,
+    MaxWeaponSlots: rulesForm.MaxWeaponSlots,
+    Dice: {
+      DiceNotation: rulesForm.DiceNotation,
+      RoundingMode: rulesForm.RoundingMode,
+      SuccessDirection: rulesForm.SuccessDirection,
+      CriticalThreshold: rulesForm.CriticalThreshold,
+    },
+  }
+
+  await Promise.all([
+    campaignStore.editCampaign(campaignId.value, { ...form }),
+    rulesStore.updateCampaignRules(campaignId.value, rulesPatch),
+  ])
   saving.value = false
   editing.value = false
 }
 
 async function confirmDelete() {
-  if (!confirm(`Supprimer la campagne "${campaign.value?.title}" ? Cette action est irréversible.`))
+  if (
+    !confirm(
+      `Supprimer la campagne "${campaign.value?.DisplayName}" ? Cette action est irréversible.`,
+    )
+  )
     return
   await campaignStore.removeCampaign(campaignId.value)
   router.push({ name: 'campaign-list' })
@@ -91,38 +160,45 @@ async function confirmDelete() {
 
       <template v-else-if="!editing">
         <div class="header-row">
-          <h1>{{ campaign.title }}</h1>
-          <span class="status-badge">{{ CAMPAIGN_STATUS_LABELS[campaign.status] }}</span>
+          <h1>{{ campaign.DisplayName }}</h1>
+          <span class="status-badge">{{ CAMPAIGN_STATUS_LABELS[campaign.Status] }}</span>
           <div class="actions" v-if="canEdit">
             <button class="btn" @click="startEdit">Modifier</button>
             <button class="btn danger" @click="confirmDelete">Supprimer</button>
           </div>
         </div>
 
-        <section class="card" v-if="campaign.summary">
+        <section class="card" v-if="campaign.Description">
           <h2>Résumé</h2>
-          <p class="body-text">{{ campaign.summary }}</p>
+          <p class="body-text">{{ campaign.Description }}</p>
         </section>
 
-        <section class="card" v-if="campaign.lore">
+        <section class="card" v-if="campaign.Lore">
           <h2>Lore</h2>
-          <p class="body-text lore">{{ campaign.lore }}</p>
+          <p class="body-text lore">{{ campaign.Lore }}</p>
         </section>
 
-        <section class="card" v-if="campaign.globalNote">
+        <section class="card" v-if="campaign.GlobalNote">
           <h2>Note globale</h2>
-          <p class="body-text">{{ campaign.globalNote }}</p>
+          <p class="body-text">{{ campaign.GlobalNote }}</p>
         </section>
 
         <section class="card rules-card" v-if="campaignRules">
           <h2>Règles de campagne</h2>
           <div class="rules-grid">
-            <div><b>Dé :</b> {{ campaignRules.Dice.DiceNotation }}</div>
+            <div>
+              <b>Dé :</b> {{ campaignRules.Dice.DiceNotation }}
+              ({{ SUCCESS_DIRECTION_LABELS[campaignRules.Dice.SuccessDirection] }},
+              critique ±{{ campaignRules.Dice.CriticalThreshold }},
+              arrondi {{ ROUNDING_MODE_LABELS[campaignRules.Dice.RoundingMode] }})
+            </div>
             <div><b>Devise :</b> {{ campaignRules.CurrencyName }}</div>
             <div><b>Stats :</b> {{ primaryStats.length }}</div>
-            <div><b>Bonus :</b> {{ campaignRules.AdvantageDiceCount }}</div>
-            <div v-if="campaignRules.Inventory">
-              <b>Inventaire :</b> {{ campaignRules.Inventory.nbSlotWeapon }} armes / {{ campaignRules.Inventory.nbSlotArmor }} armures / {{ campaignRules.Inventory.currencyName }}
+            <div>
+              <b>Bonus / Malus :</b> {{ campaignRules.AdvantageDiceCount }} / {{ campaignRules.DisadvantageDiceCount }}
+            </div>
+            <div>
+              <b>Inventaire :</b> {{ campaignRules.MaxWeaponSlots }} armes / {{ campaignRules.MaxArmorSlots }} armures / {{ campaignRules.MaxItems }} objets
             </div>
           </div>
           <ul v-if="primaryStats.length" class="stats-list">
@@ -131,8 +207,8 @@ async function confirmDelete() {
         </section>
 
         <section class="card meta">
-          <div><b>MJ :</b> {{ campaign.gmId || 'Non assigné' }}</div>
-          <div><b>Créée le :</b> {{ campaign.createdAt.toDate().toLocaleDateString('fr-FR') }}</div>
+          <div><b>MJ :</b> {{ campaign.GmId || 'Non assigné' }}</div>
+          <div><b>Créée le :</b> {{ campaign.CreatedAt.toDate().toLocaleDateString('fr-FR') }}</div>
         </section>
       </template>
 
@@ -145,30 +221,83 @@ async function confirmDelete() {
         <section class="card form">
           <label>
             Titre
-            <input v-model="form.title" type="text" />
+            <input v-model="form.DisplayName" type="text" />
           </label>
           <label>
             Statut
-            <select v-model="form.status">
-              <option value="recrutement">Recrutement</option>
-              <option value="active">Active</option>
-              <option value="terminee">Terminée</option>
+            <select v-model="form.Status">
+              <option value="Recruiting">Recrutement</option>
+              <option value="Active">Active</option>
+              <option value="Closed">Terminée</option>
             </select>
           </label>
           <label>
             Résumé
-            <textarea v-model="form.summary" rows="3" />
+            <textarea v-model="form.Description" rows="3" />
           </label>
           <label>
             Lore
-            <textarea v-model="form.lore" rows="6" />
+            <textarea v-model="form.Lore" rows="6" />
           </label>
           <label>
             Note globale
-            <textarea v-model="form.globalNote" rows="3" />
+            <textarea v-model="form.GlobalNote" rows="3" />
           </label>
+        </section>
+
+        <section class="card form">
+          <h2>Règles de campagne</h2>
+          <label>
+            Devise
+            <input v-model="rulesForm.CurrencyName" type="text" />
+          </label>
+          <label>
+            Dé (ex. d20)
+            <input v-model="rulesForm.DiceNotation" type="text" :class="{ invalid: !diceNotationValid }" />
+          </label>
+          <label>
+            Arrondi
+            <select v-model="rulesForm.RoundingMode">
+              <option v-for="(label, mode) in ROUNDING_MODE_LABELS" :key="mode" :value="mode">
+                {{ label }}
+              </option>
+            </select>
+          </label>
+          <label>
+            Sens de réussite
+            <select v-model="rulesForm.SuccessDirection">
+              <option v-for="(label, direction) in SUCCESS_DIRECTION_LABELS" :key="direction" :value="direction">
+                {{ label }}
+              </option>
+            </select>
+          </label>
+          <label>
+            Seuil critique
+            <input v-model.number="rulesForm.CriticalThreshold" type="number" min="0" />
+          </label>
+          <label>
+            Dés de bonus (avantage)
+            <input v-model.number="rulesForm.AdvantageDiceCount" type="number" min="0" />
+          </label>
+          <label>
+            Dés de malus (désavantage)
+            <input v-model.number="rulesForm.DisadvantageDiceCount" type="number" min="0" />
+          </label>
+          <label>
+            Max. objets
+            <input v-model.number="rulesForm.MaxItems" type="number" min="0" />
+          </label>
+          <label>
+            Max. armures
+            <input v-model.number="rulesForm.MaxArmorSlots" type="number" min="0" />
+          </label>
+          <label>
+            Max. armes
+            <input v-model.number="rulesForm.MaxWeaponSlots" type="number" min="0" />
+          </label>
+
           <div class="form-actions">
-            <button class="btn" :disabled="saving" @click="saveEdit">
+            <button class="btn" :disabled="saving || !diceNotationValid" @click="saveEdit">
               {{ saving ? 'Enregistrement…' : 'Enregistrer' }}
             </button>
             <button class="btn secondary" @click="cancelEdit">Annuler</button>
@@ -281,6 +410,9 @@ textarea {
   font-size: 0.9rem;
   font-family: inherit;
   resize: vertical;
+}
+input.invalid {
+  border-color: rgba(192, 57, 43, 0.7);
 }
 .form-actions {
   display: flex;

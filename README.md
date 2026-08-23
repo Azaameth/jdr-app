@@ -56,6 +56,7 @@ npm run build         # type-check + production build
 npm run preview       # serve the production build locally
 
 npm run test:unit      # Vitest
+npm run test:unit:coverage   # Vitest with a coverage report (text + html in coverage/)
 npm run test:e2e       # Playwright (npx playwright install first run)
 npm run test:e2e -- --project=chromium   # single browser
 npm run test:e2e -- e2e/castes.spec.ts   # single file
@@ -68,17 +69,6 @@ CI (`.github/workflows/ci.yml`) runs type-check/lint/unit/e2e on every PR and
 on pushes to `main` (the sole trunk — see CLAUDE.md). `.github/workflows/deploy.yml`
 separately builds and deploys to GitHub Pages on push to `main`, and deploys
 `firestore.rules` when that file changes.
-
-## Known follow-ups
-
-Not migration gaps (see MIGRATION_BACKLOG.md for those). All items flagged
-during a 2026-07-12 best-practices pass have since been resolved:
-`firestore.rules` is deployed to production (`.github/workflows/deploy.yml`
-redeploys it automatically whenever the file changes), `src/firebase/testConnection.ts`
-has been removed, and `participant.personalNote` now lives in its own
-`participantNotes` collection (one doc per participant, keyed by the
-participant's own doc id) restricted to its owner/mj/admin — see
-`firestore.rules`.
 
 ## Recommended editor setup
 

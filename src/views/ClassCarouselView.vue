@@ -19,7 +19,7 @@ const currentCampaign = computed(() =>
   campaignStore.campaigns.value.find((campaign) => campaign.id === campaignId.value),
 )
 
-const campaignTitle = computed(() => currentCampaign.value?.title || 'Campagne')
+const campaignTitle = computed(() => currentCampaign.value?.DisplayName || 'Campagne')
 
 const emptyMessage = computed(() => {
   if (loading.value) {
@@ -56,9 +56,7 @@ function nextPage() {
 async function loadClasses() {
   try {
     await campaignStore.fetchCampaigns()
-    const campaign = currentCampaign.value
-
-    const tagsToTry = [campaign?.slug, campaignId.value].filter(
+    const tagsToTry = [campaignId.value].filter(
       (tag, index, arr): tag is string => Boolean(tag) && arr.indexOf(tag) === index,
     )
 
@@ -73,7 +71,7 @@ async function loadClasses() {
     cards.value = results
     currentIndex.value = 0
 
-    if (!campaign && campaignStore.error.value) {
+    if (!currentCampaign.value && campaignStore.error.value) {
       error.value = campaignStore.error.value
     }
   } catch (err) {
@@ -134,9 +132,9 @@ onMounted(loadClasses)
               <article v-for="card in visibleCards" :key="card.id" class="card">
                 <div class="card-image">
                   <img
-                    v-if="card.img"
-                    :src="imageUrl(card.img)"
-                    :alt="card.n"
+                    v-if="card.PictureUrl"
+                    :src="imageUrl(card.PictureUrl)"
+                    :alt="card.DisplayName"
                     @error="handleImageError"
                   />
                   <div v-else class="card-image-placeholder">
@@ -144,17 +142,21 @@ onMounted(loadClasses)
                   </div>
                 </div>
                 <div class="card-body">
-                  <strong class="card-title">{{ card.n }}</strong>
-                  <span class="card-subtitle">{{ card.sub }}</span>
+                  <strong class="card-title">{{ card.DisplayName }}</strong>
+                  <span class="card-subtitle">{{ card.Description }}</span>
                   <div class="card-meta">
-                    <span>PV {{ card.pv }}</span>
-                    <span>Mana {{ card.mana }}</span>
-                    <span>Arm {{ card.arm }}</span>
+                    <span>PV {{ card.HealthNote }}</span>
+                    <span>Mana {{ card.ManaNote }}</span>
+                    <span>Arm {{ card.ArmorNote }}</span>
                   </div>
                   <div class="detail-group">
                     <h3>Capacités</h3>
                     <ul>
-                      <li v-for="(item, index) in card.caps" :key="index">{{ item }}</li>
+                      <li v-for="(trait, key) in card.Traits" :key="key">
+                        <strong v-if="trait.Description">{{ trait.Description }}</strong
+                        ><template v-if="trait.Description && trait.Value"> : </template
+                        >{{ trait.Value }}
+                      </li>
                     </ul>
                   </div>
                 </div>

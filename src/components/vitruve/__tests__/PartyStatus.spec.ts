@@ -2,13 +2,13 @@ import { describe, it, expect, vi } from 'vitest'
 import { computed } from 'vue'
 import { mount } from '@vue/test-utils'
 import type { CharacterProfile } from '../../../models/types/Character'
-import type { CharacterSessionState } from '../../../models/types/Participant'
+import type { CharacterStateDocument } from '../../../models/repositories/CharacterStateRepository'
 
 // PartyStatus consumes usePlayerStore().party directly (singleton composable
 // — no data props). Mock the store module the same way PlayerView.spec.ts
-// mocks useAuthStore/useInventoryStore.
+// mocks useAuthStore/useEquipmentStore.
 const mockParty =
-  vi.fn<() => Array<{ character: CharacterProfile; session: CharacterSessionState }>>()
+  vi.fn<() => Array<{ character: CharacterProfile; state: CharacterStateDocument }>>()
 vi.mock('../../../controllers/usePlayerStore', () => ({
   usePlayerStore: () => ({
     party: computed(() => mockParty()),
@@ -41,13 +41,15 @@ function makeCharacter(overrides: Partial<CharacterProfile> = {}): CharacterProf
   }
 }
 
-function makeSession(overrides: Partial<CharacterSessionState> = {}): CharacterSessionState {
+function makeState(overrides: Partial<CharacterStateDocument> = {}): CharacterStateDocument {
   return {
-    hp: 40,
-    maxHp: 50,
-    mana: 10,
-    maxMana: 20,
-    posture: 'OFFENSIF',
+    Health: 50,
+    HealthCurrent: 40,
+    Mana: 20,
+    ManaCurrent: 10,
+    Posture: 'OFFENSIF',
+    PlayerId: 'uid-1',
+    CampaignId: 'camp-1',
     ...overrides,
   }
 }
@@ -55,8 +57,8 @@ function makeSession(overrides: Partial<CharacterSessionState> = {}): CharacterS
 describe('PartyStatus', () => {
   it('renders one row per entry provided by party, in order', () => {
     mockParty.mockReturnValue([
-      { character: makeCharacter({ id: 'char-1', name: 'Azarius' }), session: makeSession() },
-      { character: makeCharacter({ id: 'char-2', name: 'Nindey' }), session: makeSession({ hp: 5, maxHp: 50 }) },
+      { character: makeCharacter({ id: 'char-1', name: 'Azarius' }), state: makeState() },
+      { character: makeCharacter({ id: 'char-2', name: 'Nindey' }), state: makeState({ HealthCurrent: 5, Health: 50 }) },
     ])
 
     const wrapper = mount(PartyStatus)
@@ -71,7 +73,7 @@ describe('PartyStatus', () => {
     // The store already excludes children/non-approved (I-C2/FR-017);
     // PartyStatus must not re-filter — it renders every entry it's given.
     mockParty.mockReturnValue([
-      { character: makeCharacter({ id: 'furmiaou', name: 'Furmiaou', parentCharacterId: 'firm' }), session: makeSession() },
+      { character: makeCharacter({ id: 'furmiaou', name: 'Furmiaou', parentCharacterId: 'firm' }), state: makeState() },
     ])
 
     const wrapper = mount(PartyStatus)
@@ -82,7 +84,7 @@ describe('PartyStatus', () => {
 
   it('shows PV and mana as current/max text', () => {
     mockParty.mockReturnValue([
-      { character: makeCharacter(), session: makeSession({ hp: 12, maxHp: 50, mana: 3, maxMana: 20 }) },
+      { character: makeCharacter(), state: makeState({ HealthCurrent: 12, Health: 50, ManaCurrent: 3, Mana: 20 }) },
     ])
 
     const wrapper = mount(PartyStatus)
@@ -93,8 +95,8 @@ describe('PartyStatus', () => {
 
   it('applies the low-PV warning class when hp is at or below 25% of maxHp', () => {
     mockParty.mockReturnValue([
-      { character: makeCharacter({ id: 'low' }), session: makeSession({ hp: 12, maxHp: 50 }) }, // 24% ≤ 25%
-      { character: makeCharacter({ id: 'ok' }), session: makeSession({ hp: 13, maxHp: 50 }) }, // 26% > 25%
+      { character: makeCharacter({ id: 'low' }), state: makeState({ HealthCurrent: 12, Health: 50 }) }, // 24% ≤ 25%
+      { character: makeCharacter({ id: 'ok' }), state: makeState({ HealthCurrent: 13, Health: 50 }) }, // 26% > 25%
     ])
 
     const wrapper = mount(PartyStatus)
@@ -107,8 +109,8 @@ describe('PartyStatus', () => {
 
   it('marks the row matching highlightCharacterId as highlighted', () => {
     mockParty.mockReturnValue([
-      { character: makeCharacter({ id: 'char-1' }), session: makeSession() },
-      { character: makeCharacter({ id: 'char-2' }), session: makeSession() },
+      { character: makeCharacter({ id: 'char-1' }), state: makeState() },
+      { character: makeCharacter({ id: 'char-2' }), state: makeState() },
     ])
 
     const wrapper = mount(PartyStatus, { props: { highlightCharacterId: 'char-2' } })

@@ -1,24 +1,18 @@
 import { computed, ref } from 'vue'
-import { listCharactersByCampaign } from '../models/repositories/CharacterRepository'
+import { getCharacterByCampaign, listCharactersByCampaign } from '../models/repositories/CharacterRepository'
 import {
-  getParticipant,
-  getParticipantByCharacterId,
-  setParticipantSessionByCharacterId,
-  subscribeParticipantsByCampaign,
-  updateChildSession,
-  updateSessionFields,
-} from '../models/repositories/ParticipantRepository'
+  getCharacterState,
+  subscribeCharacterState,
+  updateCharacterState,
+  type CharacterStateDocument,
+} from '../models/repositories/CharacterStateRepository'
+import { getParticipant, subscribeParticipantsByCampaign } from '../models/repositories/ParticipantRepository'
 import {
   getParticipantNote,
   setParticipantNote,
 } from '../models/repositories/ParticipantNoteRepository'
 import type { CharacterProfile } from '../models/types/Character'
-import type {
-  CharacterSessionState,
-  Participant,
-  Posture,
-  SecondaryAttributeName,
-} from '../models/types/Participant'
+import type { Participant, Posture, SecondaryAttributeName } from '../models/types/Participant'
 
 // Cache: campaignId → characterId for the current user
 const cache = ref<Record<string, string>>({})
@@ -28,7 +22,20 @@ const error = ref<string | null>(null)
 const partyCampaignId = ref<string | null>(null)
 const partyParticipants = ref<Participant[]>([])
 const partyCharacters = ref<CharacterProfile[]>([])
+// One States/Current listener per character in the campaign (base characters
+// AND their transformations — each is its own Character doc with its own
+// live state per docs/rpg-data-model.md §4.8/Cluster 3b), keyed by characterId.
+const partyCharacterStates = ref<Record<string, CharacterStateDocument>>({})
 let unsubscribeParticipants: (() => void) | null = null
+let unsubscribeCharacterStates: Array<() => void> = []
+
+function clampSessionValue(resource: 'hp' | 'mana', value: number, max: number) {
+  const boundedMax = Math.max(0, max)
+  if (resource === 'hp') {
+    return Math.max(-boundedMax, Math.min(Math.trunc(value), boundedMax))
+  }
+  return Math.max(0, Math.min(Math.trunc(value), boundedMax))
+}
 
 export function usePlayerStore() {
   async function setSessionResource(
@@ -36,33 +43,29 @@ export function usePlayerStore() {
     characterId: string,
     resource: 'hp' | 'mana',
     targetValue: number,
-    // Equipment can raise max HP/Mana above the stored raw session value
+    // Equipment can raise max HP/Mana above the stored raw Health/Mana value
     // (equipment-stat-effects). Callers that know the character's effective
     // max (e.g. PlayerView.vue, via computeEffectiveMaxStat) should pass it
     // here so the server-side clamp doesn't silently re-cap the write back
     // down to the raw stored max. Falls back to the raw stored max for any
-    // caller that doesn't have equipment data on hand.
+        // caller that doesn't have equipment data on hand.
     maxOverride?: number,
-  ): Promise<Participant | null> {
+  ): Promise<CharacterStateDocument | null> {
     error.value = null
 
     try {
-      const participant = await getParticipantByCharacterId(characterId, campaignId)
-      if (!participant) {
+      const state = await getCharacterState(campaignId, characterId)
+      if (!state) {
         return null
       }
 
-      const rawMax = resource === 'hp' ? participant.session.maxHp : participant.session.maxMana
+      const rawMax = resource === 'hp' ? state.Health : state.Mana
       const maxValue = maxOverride ?? rawMax
-      const boundedMax = Math.max(0, maxValue)
-      const normalized =
-        resource === 'hp'
-          ? Math.max(-boundedMax, Math.min(Math.trunc(targetValue), boundedMax))
-          : Math.max(0, Math.min(Math.trunc(targetValue), boundedMax))
+      const normalized = clampSessionValue(resource, targetValue, maxValue)
+      const field = resource === 'hp' ? 'HealthCurrent' : 'ManaCurrent'
 
-      return await setParticipantSessionByCharacterId(characterId, campaignId, {
-        [resource]: normalized,
-      })
+      await updateCharacterState(campaignId, characterId, { [field]: normalized })
+      return { ...state, [field]: normalized }
     } catch (err) {
       error.value =
         err instanceof Error ? err.message : 'Erreur lors de la mise à jour de la session.'
@@ -74,13 +77,13 @@ export function usePlayerStore() {
     campaignId: string,
     characterId: string,
     posture: Posture,
-  ): Promise<Participant | null> {
+  ): Promise<CharacterStateDocument | null> {
     error.value = null
 
     try {
-      return await setParticipantSessionByCharacterId(characterId, campaignId, {
-        posture,
-      })
+      await updateCharacterState(campaignId, characterId, { Posture: posture })
+      const state = await getCharacterState(campaignId, characterId)
+      return state ? { ...state, Posture: posture } : null
     } catch (err) {
       error.value =
         err instanceof Error ? err.message : 'Erreur lors de la mise à jour de la posture.'
@@ -95,9 +98,17 @@ export function usePlayerStore() {
     error.value = null
 
     try {
-      const byCharacterId = await getParticipantByCharacterId(participantRef, campaignId)
-      if (byCharacterId) return byCharacterId
-      return await getParticipant(participantRef, campaignId)
+      const direct = await getParticipant(participantRef, campaignId)
+      if (direct) return direct
+      // participantRef may be a characterId instead of a uid (a caller
+      // linking into a character's own notes) — resolve it via the
+      // character's PlayerId/ownerUid, since Players/{uid} carries no
+      // characterId of its own (docs/rpg-data-model.md §4.6).
+      const character = await getCharacterByCampaign(campaignId, participantRef)
+      if (character?.ownerUid) {
+        return await getParticipant(character.ownerUid, campaignId)
+      }
+      return null
     } catch (err) {
       error.value =
         err instanceof Error ? err.message : 'Erreur lors de la résolution du participant.'
@@ -146,6 +157,11 @@ export function usePlayerStore() {
     }
   }
 
+  // setInjury/setAdvantage/setDisadvantage/setSessionResource/setSessionPosture
+  // all take a characterId directly — this works identically whether
+  // characterId is a base (playable) character or one of its transformations,
+  // since each is its own Character doc with its own States/Current (Cluster
+  // 3b's core simplification: a child needs no separate "child vitals" API).
   async function setInjury(
     characterId: string,
     attr: SecondaryAttributeName,
@@ -155,17 +171,17 @@ export function usePlayerStore() {
 
     try {
       if (!partyCampaignId.value) return
-      const participant = await getParticipantByCharacterId(characterId, partyCampaignId.value)
-      if (!participant) return
+      const current = await getCharacterState(partyCampaignId.value, characterId)
+      if (!current) return
 
-      const nextInjuries = { ...participant.session.injuries }
+      const nextInjuries = { ...current.Injuries }
       if (state === null) {
         delete nextInjuries[attr]
       } else {
         nextInjuries[attr] = state
       }
 
-      await updateSessionFields(participant.id, { injuries: nextInjuries })
+      await updateCharacterState(partyCampaignId.value, characterId, { Injuries: nextInjuries })
     } catch (err) {
       error.value =
         err instanceof Error ? err.message : "Impossible de mettre à jour l'état de session."
@@ -177,10 +193,7 @@ export function usePlayerStore() {
 
     try {
       if (!partyCampaignId.value) return
-      const participant = await getParticipantByCharacterId(characterId, partyCampaignId.value)
-      if (!participant) return
-
-      await updateSessionFields(participant.id, { advantage: value })
+      await updateCharacterState(partyCampaignId.value, characterId, { Advantage: value })
     } catch (err) {
       error.value =
         err instanceof Error ? err.message : "Impossible de mettre à jour l'état de session."
@@ -192,32 +205,7 @@ export function usePlayerStore() {
 
     try {
       if (!partyCampaignId.value) return
-      const participant = await getParticipantByCharacterId(characterId, partyCampaignId.value)
-      if (!participant) return
-
-      await updateSessionFields(participant.id, { disadvantage: value })
-    } catch (err) {
-      error.value =
-        err instanceof Error ? err.message : "Impossible de mettre à jour l'état de session."
-    }
-  }
-
-  async function setChildVitals(
-    parentCharacterId: string,
-    childCharacterId: string,
-    fields: Partial<CharacterSessionState>,
-  ): Promise<void> {
-    error.value = null
-
-    try {
-      if (!partyCampaignId.value) return
-      const participant = await getParticipantByCharacterId(
-        parentCharacterId,
-        partyCampaignId.value,
-      )
-      if (!participant) return
-
-      await updateChildSession(participant.id, childCharacterId, fields)
+      await updateCharacterState(partyCampaignId.value, characterId, { Disadvantage: value })
     } catch (err) {
       error.value =
         err instanceof Error ? err.message : "Impossible de mettre à jour l'état de session."
@@ -225,9 +213,10 @@ export function usePlayerStore() {
   }
 
   /**
-   * Idempotent attach to a campaign's live participant roster (état du groupe).
-   * Re-calling with the same campaignId is a no-op; a different campaignId
-   * detaches the previous listener first so subscriptions never stack.
+   * Idempotent attach to a campaign's live participant roster (état du groupe)
+   * AND every one of its characters' live combat state. Re-calling with the
+   * same campaignId is a no-op; a different campaignId detaches every
+   * previous listener first so subscriptions never stack.
    */
   function subscribeParty(campaignId: string): void {
     if (partyCampaignId.value === campaignId && unsubscribeParticipants) {
@@ -238,6 +227,9 @@ export function usePlayerStore() {
       unsubscribeParticipants()
       unsubscribeParticipants = null
     }
+    unsubscribeCharacterStates.forEach((unsub) => unsub())
+    unsubscribeCharacterStates = []
+    partyCharacterStates.value = {}
 
     partyCampaignId.value = campaignId
     error.value = null
@@ -245,6 +237,12 @@ export function usePlayerStore() {
     listCharactersByCampaign(campaignId)
       .then((list) => {
         partyCharacters.value = list
+        unsubscribeCharacterStates = list.map((character) =>
+          subscribeCharacterState(campaignId, character.id, (state) => {
+            if (!state) return
+            partyCharacterStates.value = { ...partyCharacterStates.value, [character.id]: state }
+          }),
+        )
       })
       .catch((err) => {
         error.value =
@@ -261,21 +259,25 @@ export function usePlayerStore() {
       unsubscribeParticipants()
       unsubscribeParticipants = null
     }
+    unsubscribeCharacterStates.forEach((unsub) => unsub())
+    unsubscribeCharacterStates = []
     partyCampaignId.value = null
     partyParticipants.value = []
     partyCharacters.value = []
+    partyCharacterStates.value = {}
   }
 
   const party = computed(() => {
-    const charactersById = new Map(partyCharacters.value.map((c) => [c.id, c]))
-    const entries: Array<{ character: CharacterProfile; session: CharacterSessionState }> = []
+    const participantsByUid = new Map(partyParticipants.value.map((p) => [p.uid, p]))
+    const entries: Array<{ character: CharacterProfile; state: CharacterStateDocument }> = []
 
-    for (const participant of partyParticipants.value) {
-      if (participant.status !== 'approved') continue
-      const character = charactersById.get(participant.characterId)
-      if (!character) continue
+    for (const character of partyCharacters.value) {
       if (character.parentCharacterId) continue // I-C2: children excluded from rosters
-      entries.push({ character, session: participant.session })
+      const participant = participantsByUid.get(character.ownerUid)
+      if (!participant || participant.status !== 'Approved') continue
+      const state = partyCharacterStates.value[character.id]
+      if (!state) continue
+      entries.push({ character, state })
     }
 
     return entries
@@ -291,14 +293,16 @@ export function usePlayerStore() {
     setInjury,
     setAdvantage,
     setDisadvantage,
-    setChildVitals,
     subscribeParty,
     unsubscribeParty,
     party,
-    // Raw subscribed participant docs (all statuses, children included) so the
-    // character sheet can keep its own displayed participant live from the same
-    // snapshot that feeds `party` — mission-review DRIFT-1 follow-up.
+    // Raw subscribed participant docs (all statuses) so other screens can
+    // check approval status without a second subscription.
     partyParticipants: computed(() => partyParticipants.value),
+    // Live States/Current for every character in the campaign, keyed by
+    // characterId — the character sheet reads its own (and its active
+    // child's) entry from here instead of holding a second subscription.
+    partyCharacterStates: computed(() => partyCharacterStates.value),
     cache: computed(() => cache.value),
     error: computed(() => error.value),
   }
