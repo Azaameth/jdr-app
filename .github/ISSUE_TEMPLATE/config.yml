@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Question de securite
+    url: ../../security/policy
+    about: Consultez la politique de signalement avant de publier une issue.

@@ -7,6 +7,9 @@ Mid-migration from a single-file HTML prototype (`legacy-reference/index.html`)
 to this app — see [MIGRATION_BACKLOG.md](MIGRATION_BACKLOG.md) for what's left
 to port, and [CLAUDE.md](CLAUDE.md) for the conventions this codebase follows.
 
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the contribution workflow and
+[SECURITY.md](SECURITY.md) for responsible vulnerability reporting.
+
 ## Setup
 
 1. **Node version**: pinned via `.node-version`. Install [fnm](https://github.com/Schniz/fnm)

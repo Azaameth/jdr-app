@@ -1,0 +1,46 @@
+name: Rapport de bug
+description: Signaler un comportement incorrect ou une regression.
+title: 'fix: '
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Merci de ne pas inclure de donnees Firebase, de cle de service ni de variable d'environnement dans ce rapport.
+  - type: textarea
+    id: summary
+    attributes:
+      label: Probleme observe
+      description: Decrivez clairement le resultat obtenu et celui attendu.
+      placeholder: 'Quand ..., le joueur voit ... au lieu de ...'
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Etapes de reproduction
+      placeholder: |
+        1. Se connecter en tant que ...
+        2. Ouvrir ...
+        3. ...
+    validations:
+      required: true
+  - type: input
+    id: campaign
+    attributes:
+      label: Campagne concernee
+      description: Indiquez son nom ou "toutes", sans identifiant prive.
+  - type: dropdown
+    id: browser
+    attributes:
+      label: Navigateur
+      options:
+        - Chrome
+        - Firefox
+        - Safari
+        - Autre
+  - type: textarea
+    id: context
+    attributes:
+      label: Contexte supplementaire
+      description: Captures anonymisees, messages d'erreur ou version du navigateur.

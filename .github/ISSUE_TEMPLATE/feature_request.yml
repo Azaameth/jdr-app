@@ -1,0 +1,45 @@
+name: Proposition d'evolution
+description: Proposer une amelioration du gestionnaire de campagne.
+title: 'feat: '
+labels: [enhancement]
+body:
+  - type: textarea
+    id: need
+    attributes:
+      label: Besoin de jeu
+      description: Quel probleme de table ou de preparation cette evolution resout-elle ?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposition
+      description: Decrivez le comportement attendu, pas seulement l'implementation.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Criteres d'acceptation
+      description: Listez les resultats observables qui rendront le sujet termine.
+      placeholder: |
+        - ...
+        - ...
+    validations:
+      required: true
+  - type: dropdown
+    id: scope
+    attributes:
+      label: Surface concernee
+      multiple: true
+      options:
+        - Interface Vue
+        - Firestore / securite
+        - Donnees ou scripts de seed
+        - Tests
+        - Documentation
+  - type: textarea
+    id: reference
+    attributes:
+      label: Reference legacy ou contexte
+      description: Ajoutez un lien ou une section de legacy-reference si elle existe.
