@@ -1,7 +1,0 @@
-id,source,finding,used_in_decision
-E01,legacy-reference/index.html:1157-1342,"8 factions/castes in a tabbed 'classeur' UI, each with title/subtitle/badge/description/2-4 key-facts",D3; spec.md content
-E02,src/views/RaceCarouselView.vue,"Existing reference-data view pattern: onMounted fetches from Firestore into cards/loading/error refs",D1; plan.md Technical Context
-E03,src/models/repositories/CampaignRepository.ts,"Repository convention: if (!db) return fallback, plain async functions, no classes",plan.md Charter Check; WP01 T002
-E04,scripts/uploadStaticDataAdmin.mjs,"Existing admin seed script already uploads races.json/classes.json to Firestore with slugified doc ids",D1; WP01 T003
-E05,src/components/layout/CampaignShell.vue,"Sidebar 'Campagne' group already lists Univers/Races/Classes as RouterLinks",WP01 T005
-E06,.kittify/charter/charter.md,"Testing/Quality Gate and Project Directive requirements this mission must satisfy",plan.md Charter Check

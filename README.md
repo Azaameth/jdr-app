@@ -26,11 +26,10 @@ to port, and [CLAUDE.md](CLAUDE.md) for the conventions this codebase follows.
 
 ## Running things in the background
 
-`./scripts/dev.sh {start|stop|restart|status}` and `./scripts/dashboard.sh
-{start|stop|restart|status}` run the dev server / spec-kitty dashboard as
-tracked background processes instead of tying up a terminal — useful over
-SSH. Both clean up fully on `stop` (no orphaned processes left holding a
-port); `DEV_PORT=`/`DASHBOARD_PORT=` override the defaults (5173 / 4173).
+`./scripts/dev.sh {start|stop|restart|status}` runs the dev server as a
+tracked background process instead of tying up a terminal — useful over SSH.
+It cleans up fully on `stop` (no orphaned processes left holding a port);
+`DEV_PORT=` overrides the default (5173).
 
 ## Commands
 
@@ -52,60 +51,6 @@ CI (`.github/workflows/ci.yml`) runs type-check/lint/unit/e2e on every PR and
 on pushes to `main` (the sole trunk — see CLAUDE.md). `.github/workflows/deploy.yml`
 separately builds and deploys to GitHub Pages on push to `main`, and deploys
 `firestore.rules` when that file changes.
-
-## Working with spec-kitty
-
-This project uses [spec-kitty](https://github.com/Priivacy-ai/spec-kitty) to
-track non-trivial feature work as governed missions instead of ad-hoc
-changes. `.kittify/charter/charter.md` has the project-specific charter
-(testing standards, quality gates, branch strategy); `kitty-specs/<mission>/`
-holds each mission's spec/plan/tasks/analysis once one exists.
-
-Typical flow for a new mission (see `MIGRATION_BACKLOG.md` for candidates):
-
-1. `/spec-kitty.specify` — scaffold `spec.md` for the feature
-2. `/spec-kitty.plan` — scaffold `plan.md` (technical approach, charter compliance)
-3. `/spec-kitty.tasks` — break into work packages (`wps.yaml`, `tasks/WP*.md`)
-4. `/spec-kitty.analyze` — cross-check spec/plan/tasks against the charter
-   before implementation starts; **this gate is enforced** — `spec-kitty agent
-action implement` refuses to start (`analysis_report_required`) without a
-   recorded analysis. Do this for real; it's caught real gaps before (e.g. a
-   charter-mandated e2e test the task list had missed).
-5. `spec-kitty agent action implement WP01 --agent <name>` — claims the work
-   package, gives you a worktree at `.worktrees/<mission>-lane-a` on its own
-   branch, and the full task prompt.
-6. `spec-kitty agent action review WP01 --agent <name>` → `spec-kitty agent
-tasks move-task WP01 --to approved --mission <slug> --note "..."` once
-   implementation passes review.
-7. `spec-kitty accept --mission <slug>` → `spec-kitty merge --mission <slug>`
-   → `spec-kitty review --mission <slug>` to land the mission's branch into
-   `main` and run the post-merge dead-code/issue-matrix checks.
-
-Things that aren't obvious from the CLI's own help text:
-
-- **Git worktrees don't share gitignored files.** `.env.local` and
-  `scripts/keys/serviceAccountKey.json` won't exist in a mission's worktree —
-  copy them over, or point admin scripts at the main checkout's copy via
-  `SERVICE_ACCOUNT=<path> node scripts/...`.
-- **`spec-kitty next` can misbehave when driven ad-hoc** (state appearing to
-  cycle backward through phases) rather than through a full agent session.
-  If that happens, don't panic-fix it — check `kitty-specs/<slug>/status.events.jsonl`
-  directly; the underlying event log is usually fine even when the CLI's
-  reported state looks wrong. Prefer the explicit `spec-kitty agent action
-implement`/`review` commands over `spec-kitty next` for manual driving.
-- **The built-in `software-dev` mission type's path conventions
-  (`tests/`, `contracts/`, `docs/`) don't match this repo's actual layout**
-  (`e2e/` + colocated `src/**/__tests__/`, no contracts/docs folders).
-  `spec-kitty accept` will flag this every time — that's expected; rerun with
-  `--allow-fail` to get past it. Fixing it properly means forking spec-kitty's
-  entire built-in mission-type directory (a versioned state machine + DAG,
-  not just config), which isn't worth the upgrade-drift risk for a cosmetic
-  check.
-- **Interactive interview commands** (`spec-kitty charter interview`, etc.)
-  can't be driven non-interactively. For charter/spec/plan authoring, either
-  drive them for real in an interactive session, or scaffold with `--defaults`
-  and hand-edit — the latter is what produced the current charter and the
-  faction-caste-browser mission's artifacts.
 
 ## Known follow-ups
 
