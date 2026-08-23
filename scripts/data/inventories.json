@@ -3,6 +3,38 @@
     "uid": "azarius",
     "campaignId": "8mEHIVueGKuwUr9DuBH3",
     "characterId": "azarius",
+    "armor": [
+      {
+        "itemId": "inv-2-robe-d-arcaniste-enchantee-rd2",
+        "name": "Robe d'Arcaniste enchantée",
+        "armorRating": 2
+      },
+      {
+        "itemId": "inv-3-anneau-du-dieu-du-feu-rd2-vs-proj-magiques",
+        "name": "Anneau du Dieu du Feu",
+        "armorRating": 2,
+        "statNote": "vs proj. magiques"
+      },
+      {
+        "itemId": "inv-4-robe-d-arcaniste-enchantee-rd2",
+        "name": "Robe d'Arcaniste enchantée",
+        "armorRating": 2
+      },
+      {
+        "itemId": "inv-5-anneau-du-dieu-du-feu-vs-proj-magiques",
+        "name": "Anneau du Dieu du Feu",
+        "statNote": "vs proj. magiques"
+      }
+    ],
+    "weapons": [
+      {
+        "itemId": "inv-1-vieille-epee-d4-1",
+        "name": "Vieille épée",
+        "damageDie": "D4",
+        "damageBonus": -1
+      }
+    ],
+    "createdAt": "2026-07-13T19:51:37.516Z",
     "items": [
       {
         "itemId": "inv-6-rations",
@@ -47,44 +79,23 @@
         "category": "docs"
       }
     ],
-    "weapons": [
-      {
-        "itemId": "inv-1-vieille-epee-d4-1",
-        "name": "Vieille épée",
-        "damageDie": "D4",
-        "damageBonus": -1
-      }
-    ],
-    "armor": [
-      {
-        "itemId": "inv-2-robe-d-arcaniste-enchantee-rd2",
-        "name": "Robe d'Arcaniste enchantée",
-        "armorRating": 2
-      },
-      {
-        "itemId": "inv-3-anneau-du-dieu-du-feu-rd2-vs-proj-magiques",
-        "name": "Anneau du Dieu du Feu",
-        "armorRating": 2,
-        "statNote": "vs proj. magiques"
-      },
-      {
-        "itemId": "inv-4-robe-d-arcaniste-enchantee-rd2",
-        "name": "Robe d'Arcaniste enchantée",
-        "armorRating": 2
-      },
-      {
-        "itemId": "inv-5-anneau-du-dieu-du-feu-vs-proj-magiques",
-        "name": "Anneau du Dieu du Feu",
-        "statNote": "vs proj. magiques"
-      }
-    ],
-    "createdAt": "2026-07-13T19:51:37.516Z",
     "updatedAt": "2026-07-13T19:51:37.516Z"
   },
   {
     "uid": "dy",
     "campaignId": "8mEHIVueGKuwUr9DuBH3",
     "characterId": "dy",
+    "armor": [
+      {
+        "itemId": "inv-3-robe-d-arcaniste-enchantee-rd2",
+        "name": "Robe d'Arcaniste enchantée",
+        "armorRating": 2
+      },
+      {
+        "itemId": "inv-4-anneau-du-dieu-du-vent",
+        "name": "Anneau du Dieu du Vent"
+      }
+    ],
     "items": [
       {
         "itemId": "inv-5-rations",
@@ -131,17 +142,6 @@
         "damageBonus": 1
       }
     ],
-    "armor": [
-      {
-        "itemId": "inv-3-robe-d-arcaniste-enchantee-rd2",
-        "name": "Robe d'Arcaniste enchantée",
-        "armorRating": 2
-      },
-      {
-        "itemId": "inv-4-anneau-du-dieu-du-vent",
-        "name": "Anneau du Dieu du Vent"
-      }
-    ],
     "createdAt": "2026-07-13T19:51:37.518Z",
     "updatedAt": "2026-07-13T19:51:37.518Z"
   },
@@ -149,6 +149,18 @@
     "uid": "firm",
     "campaignId": "8mEHIVueGKuwUr9DuBH3",
     "characterId": "firm",
+    "armor": [
+      {
+        "itemId": "inv-3-armure-enchantee-druidique-rd6",
+        "name": "Armure enchantée druidique",
+        "armorRating": 6
+      },
+      {
+        "itemId": "inv-4-bouclier-de-cuivre-rd2",
+        "name": "Bouclier de cuivre",
+        "armorRating": 2
+      }
+    ],
     "items": [
       {
         "itemId": "inv-5-rations",
@@ -187,18 +199,6 @@
         "name": "Wok",
         "damageDie": "D4",
         "damageBonus": 0
-      }
-    ],
-    "armor": [
-      {
-        "itemId": "inv-3-armure-enchantee-druidique-rd6",
-        "name": "Armure enchantée druidique",
-        "armorRating": 6
-      },
-      {
-        "itemId": "inv-4-bouclier-de-cuivre-rd2",
-        "name": "Bouclier de cuivre",
-        "armorRating": 2
       }
     ],
     "createdAt": "2026-07-13T19:51:37.518Z",
@@ -254,28 +254,26 @@
         "damageBonus": 0
       }
     ],
-    "armor": [
-      {
-        "itemId": "inv-4-armure-impossible-oracle",
-        "name": "(Armure impossible — Oracle)"
-      },
-      {
-        "itemId": "inv-9-anneau-de-mana",
-        "name": "Anneau de Mana",
-        "equipped": true,
-        "statBonus": {
-          "stat": "maxMana",
-          "amount": 4
-        }
-      }
-    ],
     "createdAt": "2026-07-13T19:51:37.518Z",
-    "updatedAt": "2026-07-13T19:51:37.518Z"
+    "armor": [],
+    "updatedAt": "2026-07-21T19:21:55.516Z"
   },
   {
     "uid": "nindey",
     "campaignId": "8mEHIVueGKuwUr9DuBH3",
     "characterId": "nindey",
+    "armor": [
+      {
+        "itemId": "inv-4-armure-runique-rd4",
+        "name": "Armure runique",
+        "armorRating": 4
+      },
+      {
+        "itemId": "inv-5-anneau-anti-magie-rd1",
+        "name": "Anneau anti-magie",
+        "armorRating": 1
+      }
+    ],
     "items": [
       {
         "itemId": "inv-6-rations",
@@ -320,18 +318,6 @@
         "name": "Pioche + Marteau",
         "damageDie": "D4",
         "damageBonus": 3
-      }
-    ],
-    "armor": [
-      {
-        "itemId": "inv-4-armure-runique-rd4",
-        "name": "Armure runique",
-        "armorRating": 4
-      },
-      {
-        "itemId": "inv-5-anneau-anti-magie-rd1",
-        "name": "Anneau anti-magie",
-        "armorRating": 1
       }
     ],
     "createdAt": "2026-07-13T19:51:37.519Z",

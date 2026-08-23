@@ -1,31 +1,10 @@
 [
   {
-    "id": "azarius",
-    "campaignId": "8mEHIVueGKuwUr9DuBH3",
-    "ownerUid": "xxx",
-    "name": "Azarius Desbois",
-    "raceId": "kitsune",
-    "classId": "cogneur",
+    "backstory": "Né dans une tribu vivant au pied d'un volcan, Azarius Desbois fut initié très jeune à la magie du feu, considérée comme une force sacrée et vivante. Il apprit à en canaliser la chaleur, la colère et la beauté sous la guidance des anciens.\nMais un incendie magique incontrôlé ravagea sa forêt natale, réduisant sa tribu en cendres. Depuis ce jour, Azarius a juré de retrouver celui qui a déclenché le brasier et de protéger l'équilibre entre la flamme et la nature.\nPorté par ce serment et avide de réponses, il a rejoint les Téméraires, convaincu que la Prophétie du Lac lui révélera la vérité derrière le feu qui l'habite.",
+    "img": "/images/portraits/azarius.jpg",
     "gender": "Homme",
-    "elements": [
-      "🔥 Feu"
-    ],
+    "languages": ["Commun", "Kitsune", "Démoniaque"],
     "level": 1,
-    "attributes": {
-      "primary": {
-        "force": 85,
-        "social": 45,
-        "mental": 40
-      },
-      "secondary": {
-        "puissance": 6,
-        "finesse": 3,
-        "aura": 3,
-        "relation": 2,
-        "instinct": 2,
-        "savoir": 2
-      }
-    },
     "skills": [
       {
         "id": "skill-1-persuasion",
@@ -49,6 +28,27 @@
         "source": "base"
       }
     ],
+    "elements": ["🔥 Feu"],
+    "name": "Azarius Desbois",
+    "attributes": {
+      "secondary": {
+        "puissance": 6,
+        "instinct": 2,
+        "savoir": 2,
+        "finesse": 3,
+        "aura": 3,
+        "relation": 2
+      },
+      "primary": {
+        "social": 45,
+        "force": 85,
+        "mental": 40
+      }
+    },
+    "id": "azarius",
+    "campaignId": "8mEHIVueGKuwUr9DuBH3",
+    "createdAt": "2026-07-13T19:43:52.848Z",
+    "ownerUid": "xxx",
     "gifts": [
       {
         "id": "gift-1-turbo-fist-2-mana-1d10-2",
@@ -100,43 +100,16 @@
         "damageBonus": 2
       }
     ],
-    "languages": [
-      "Commun",
-      "Kitsune",
-      "Démoniaque"
-    ],
-    "img": "/images/portraits/azarius.jpg",
-    "backstory": "Né dans une tribu vivant au pied d'un volcan, Azarius Desbois fut initié très jeune à la magie du feu, considérée comme une force sacrée et vivante. Il apprit à en canaliser la chaleur, la colère et la beauté sous la guidance des anciens.\nMais un incendie magique incontrôlé ravagea sa forêt natale, réduisant sa tribu en cendres. Depuis ce jour, Azarius a juré de retrouver celui qui a déclenché le brasier et de protéger l'équilibre entre la flamme et la nature.\nPorté par ce serment et avide de réponses, il a rejoint les Téméraires, convaincu que la Prophétie du Lac lui révélera la vérité derrière le feu qui l'habite.",
-    "createdAt": "2026-07-13T19:43:52.848Z",
-    "updatedAt": "2026-07-13T19:43:52.848Z"
+    "updatedAt": "2026-07-13T19:43:52.848Z",
+    "classId": "Cogneur",
+    "raceId": "Kitsune"
   },
   {
-    "id": "dy",
-    "campaignId": "8mEHIVueGKuwUr9DuBH3",
-    "ownerUid": "xxx",
-    "name": "Dy Son",
-    "raceId": "elfe",
-    "classId": "arcaniste",
+    "backstory": "Née au cœur des forêts anciennes d'Akassya, Dy passa son enfance perchée parmi les branches, entourée des siens et bercée par le chant des vents et le bruissement des feuilles. Sa curiosité pour la magie naquit tôt, mais ce fut la rencontre fortuite avec un élémentaire du vent qui éveilla en elle un don exceptionnel : la capacité de comprendre et de manipuler les courants d'air comme un langage secret.\nÉduquée dans une école humaine d'arcanistes, Dy apprit à combiner la discipline humaine et l'instinct elfique, devenant une érudite des arcanes élémentaires. Sa soif de savoir et son désir de liberté l'ont menée à rejoindre les Téméraires, dans l'espoir de percer les secrets de la Prophétie du Lac et de lever la barrière de l'Île du Cœur.\nCependant, malgré son ouverture sur le monde, Dy nourrit un préjugé marqué contre les Kitsuné, qu'elle considère avec méfiance et suspicion, résultat d'expériences passées et de convictions culturelles profondément ancrées.\nPour Dy, chaque souffle de vent, chaque tourbillon et chaque tempête sont autant de leçons à écouter et à maîtriser, un écho des mystères qu'elle cherche à dévoiler à travers sa quête.",
+    "img": "/images/portraits/dy.jpg",
     "gender": "Femme",
-    "elements": [
-      "💨 Air"
-    ],
+    "languages": ["Commun", "Elfique", "Démoniaque"],
     "level": 1,
-    "attributes": {
-      "primary": {
-        "force": 35,
-        "social": 45,
-        "mental": 90
-      },
-      "secondary": {
-        "puissance": 2,
-        "finesse": 2,
-        "aura": 4,
-        "relation": 1,
-        "instinct": 3,
-        "savoir": 6
-      }
-    },
     "skills": [
       {
         "id": "skill-1-beaute-naturelle",
@@ -167,6 +140,27 @@
         "source": "base"
       }
     ],
+    "elements": ["💨 Air"],
+    "name": "Dy Son",
+    "attributes": {
+      "secondary": {
+        "puissance": 2,
+        "instinct": 3,
+        "savoir": 6,
+        "finesse": 2,
+        "aura": 4,
+        "relation": 1
+      },
+      "primary": {
+        "social": 45,
+        "force": 35,
+        "mental": 90
+      }
+    },
+    "id": "dy",
+    "campaignId": "8mEHIVueGKuwUr9DuBH3",
+    "createdAt": "2026-07-13T19:43:52.850Z",
+    "ownerUid": "xxx",
     "gifts": [
       {
         "id": "gift-1-deplacement-d-air-2-mana",
@@ -225,43 +219,16 @@
         "source": "class"
       }
     ],
-    "languages": [
-      "Commun",
-      "Elfique",
-      "Démoniaque"
-    ],
-    "img": "/images/portraits/dy.jpg",
-    "backstory": "Née au cœur des forêts anciennes d'Akassya, Dy passa son enfance perchée parmi les branches, entourée des siens et bercée par le chant des vents et le bruissement des feuilles. Sa curiosité pour la magie naquit tôt, mais ce fut la rencontre fortuite avec un élémentaire du vent qui éveilla en elle un don exceptionnel : la capacité de comprendre et de manipuler les courants d'air comme un langage secret.\nÉduquée dans une école humaine d'arcanistes, Dy apprit à combiner la discipline humaine et l'instinct elfique, devenant une érudite des arcanes élémentaires. Sa soif de savoir et son désir de liberté l'ont menée à rejoindre les Téméraires, dans l'espoir de percer les secrets de la Prophétie du Lac et de lever la barrière de l'Île du Cœur.\nCependant, malgré son ouverture sur le monde, Dy nourrit un préjugé marqué contre les Kitsuné, qu'elle considère avec méfiance et suspicion, résultat d'expériences passées et de convictions culturelles profondément ancrées.\nPour Dy, chaque souffle de vent, chaque tourbillon et chaque tempête sont autant de leçons à écouter et à maîtriser, un écho des mystères qu'elle cherche à dévoiler à travers sa quête.",
-    "createdAt": "2026-07-13T19:43:52.850Z",
-    "updatedAt": "2026-07-13T19:43:52.850Z"
+    "updatedAt": "2026-07-13T19:43:52.850Z",
+    "classId": "Arcaniste",
+    "raceId": "Elfe"
   },
   {
-    "id": "firm",
-    "campaignId": "8mEHIVueGKuwUr9DuBH3",
-    "ownerUid": "xxx",
-    "name": "Firm Bintaggle",
-    "raceId": "swamninyx",
-    "classId": "gardien",
+    "backstory": "Né dans le royaume saint de Zarûn, Firm fut vendu par ses parents à l'âge de 5 ans à des esclavagistes pour une poignée d'or.\nPendant son transport vers les terres du commandant Suba, où il devait passer le restant de ses jours, il réussit à s'échapper lors d'une attaque par des pillards.\nSeul dans un territoire inconnu pendant des jours, il fut trouvé par un druide vagabond nommé Stonks, qui prit Firm sous son aile et décida de lui inculquer la voie du druide.\nFirm avait une grande affinité avec la magie de la nature, mais était très mauvais pour lancer des sorts. Par dépit, après de longues années de formation, Stonks décida de l'envoyer dans la forêt magique de Doulogne, en dehors d'Alésia, afin qu'il suive la voie de la transformation druidesque, où il passa 10 ans à contrôler la transformation de sa bête intérieure.\nUne fois sa formation achevée, il se mit en route pour rentrer à son pays natal, en quête d'ouvrir une école de formation de gardien-druides.",
+    "img": "/images/portraits/firm.jpg",
     "gender": "Homme",
-    "elements": [
-      "🌿 Nature"
-    ],
+    "languages": ["Commun", "Swamninyx", "Léonide"],
     "level": 1,
-    "attributes": {
-      "primary": {
-        "force": 65,
-        "social": 50,
-        "mental": 55
-      },
-      "secondary": {
-        "puissance": 4,
-        "finesse": 3,
-        "aura": 2,
-        "relation": 3,
-        "instinct": 3,
-        "savoir": 3
-      }
-    },
     "skills": [
       {
         "id": "skill-1-bagarre",
@@ -292,6 +259,27 @@
         "source": "base"
       }
     ],
+    "elements": ["🌿 Nature"],
+    "name": "Firm Bintaggle",
+    "attributes": {
+      "secondary": {
+        "puissance": 4,
+        "instinct": 3,
+        "savoir": 3,
+        "finesse": 3,
+        "aura": 2,
+        "relation": 3
+      },
+      "primary": {
+        "social": 50,
+        "force": 65,
+        "mental": 55
+      }
+    },
+    "id": "firm",
+    "campaignId": "8mEHIVueGKuwUr9DuBH3",
+    "createdAt": "2026-07-13T19:43:52.850Z",
+    "ownerUid": "xxx",
     "gifts": [
       {
         "id": "gift-1-transmutation-1-2-mana",
@@ -336,43 +324,16 @@
         "source": "class"
       }
     ],
-    "languages": [
-      "Commun",
-      "Swamninyx",
-      "Léonide"
-    ],
-    "img": "/images/portraits/firm.jpg",
-    "backstory": "Né dans le royaume saint de Zarûn, Firm fut vendu par ses parents à l'âge de 5 ans à des esclavagistes pour une poignée d'or.\nPendant son transport vers les terres du commandant Suba, où il devait passer le restant de ses jours, il réussit à s'échapper lors d'une attaque par des pillards.\nSeul dans un territoire inconnu pendant des jours, il fut trouvé par un druide vagabond nommé Stonks, qui prit Firm sous son aile et décida de lui inculquer la voie du druide.\nFirm avait une grande affinité avec la magie de la nature, mais était très mauvais pour lancer des sorts. Par dépit, après de longues années de formation, Stonks décida de l'envoyer dans la forêt magique de Doulogne, en dehors d'Alésia, afin qu'il suive la voie de la transformation druidesque, où il passa 10 ans à contrôler la transformation de sa bête intérieure.\nUne fois sa formation achevée, il se mit en route pour rentrer à son pays natal, en quête d'ouvrir une école de formation de gardien-druides.",
-    "createdAt": "2026-07-13T19:43:52.850Z",
-    "updatedAt": "2026-07-13T19:43:52.850Z"
+    "updatedAt": "2026-07-13T19:43:52.850Z",
+    "classId": "Gardien",
+    "raceId": "Swamninyx"
   },
   {
-    "id": "mwassa",
-    "campaignId": "8mEHIVueGKuwUr9DuBH3",
-    "ownerUid": "xxx",
-    "name": "Mwassa Mekhsitt",
-    "raceId": "kitsune",
-    "classId": "oracle",
+    "backstory": "Née dans les bas-quartiers d'Auregia, Mwassa grandit dans un bordel où elle apprit très tôt l'art de plaire et d'écouter. Lorsque sa jeunesse fanée perdit de sa valeur, elle fut renvoyée sans un mot. Pour survivre, elle transforma sa voix en arme et son tambourin en bouclier, charmant les tavernes et les passants d'Auregia jusqu'à Ozélis.\nSous ses airs charmeurs, elle garde un passé plus sombre : ancienne novice de Zarûn, enlevée enfant pour être vendue à la maison close. Elle conserve de cette vie une relique, qu'elle porte encore — entre honte et mémoire.\nConnue d'un ancien client devenu compagnon, elle a trouvé dans le groupe des Téméraires une nouvelle raison de chanter.\nCar pour Mwassa, la Prophétie est devenue tel un phare dans la nuit.",
+    "img": "/images/portraits/mwassa.jpg",
     "gender": "Femme",
-    "elements": [
-      "💧 Eaux"
-    ],
+    "languages": ["Commun", "Kitsune", "Nain"],
     "level": 1,
-    "attributes": {
-      "primary": {
-        "force": 35,
-        "social": 65,
-        "mental": 70
-      },
-      "secondary": {
-        "puissance": 1,
-        "finesse": 3,
-        "aura": 3,
-        "relation": 4,
-        "instinct": 4,
-        "savoir": 3
-      }
-    },
     "skills": [
       {
         "id": "skill-1-chance",
@@ -403,6 +364,27 @@
         "source": "base"
       }
     ],
+    "elements": ["💧 Eaux"],
+    "name": "Mwassa Mekhsitt",
+    "id": "mwassa",
+    "campaignId": "8mEHIVueGKuwUr9DuBH3",
+    "attributes": {
+      "secondary": {
+        "savoir": 3,
+        "relation": 4,
+        "aura": 3,
+        "instinct": 4,
+        "puissance": 1,
+        "finesse": 3
+      },
+      "primary": {
+        "mental": 70,
+        "social": 65,
+        "force": 35
+      }
+    },
+    "createdAt": "2026-07-13T19:43:52.850Z",
+    "ownerUid": "xxx",
     "gifts": [
       {
         "id": "gift-1-benediction-du-goupil-3-mana",
@@ -447,43 +429,16 @@
         "manaNote": "?"
       }
     ],
-    "languages": [
-      "Commun",
-      "Kitsune",
-      "Nain"
-    ],
-    "img": "/images/portraits/mwassa.jpg",
-    "backstory": "Née dans les bas-quartiers d'Auregia, Mwassa grandit dans un bordel où elle apprit très tôt l'art de plaire et d'écouter. Lorsque sa jeunesse fanée perdit de sa valeur, elle fut renvoyée sans un mot. Pour survivre, elle transforma sa voix en arme et son tambourin en bouclier, charmant les tavernes et les passants d'Auregia jusqu'à Ozélis.\nSous ses airs charmeurs, elle garde un passé plus sombre : ancienne novice de Zarûn, enlevée enfant pour être vendue à la maison close. Elle conserve de cette vie une relique, qu'elle porte encore — entre honte et mémoire.\nConnue d'un ancien client devenu compagnon, elle a trouvé dans le groupe des Téméraires une nouvelle raison de chanter.\nCar pour Mwassa, la Prophétie est devenue tel un phare dans la nuit.",
-    "createdAt": "2026-07-13T19:43:52.850Z",
-    "updatedAt": "2026-07-13T19:43:52.850Z"
+    "updatedAt": "2026-07-13T19:43:52.850Z",
+    "classId": "Oracle",
+    "raceId": "Kitsune"
   },
   {
-    "id": "nindey",
-    "campaignId": "8mEHIVueGKuwUr9DuBH3",
-    "ownerUid": "xxx",
-    "name": "Nindey Traqué",
-    "raceId": "nain",
-    "classId": "cogneur",
+    "backstory": "Nindey naquit au cœur des mines profondes du royaume du Mont RockDur, là où les marteaux résonnent jour et nuit et où l'odeur de la bière est presque aussi omniprésente que celle du métal chaud. Comme tout bon nain, il grandit entre pierres, trésors, jurons crépitants et pintes bien remplies. Mais son destin prit une tournure aussi improbable qu'un elfe qui apprécierait une bonne bière : il se lia d'amitié avec un jeune dragon nommé Skarlath, être farouche, étincelant comme une tempête et légèrement pyromane doublé d'un certain attrait pour l'alcool.\nUn jour, alors que Nindey s'aventurait dans la forêt au-delà de la mine, il tomba dans une embuscade de créatures hostiles. Juste avant de finir réduit en compote nainesque, Skarlath fondit du ciel, balayant les ennemis dans une explosion d'éclairs et de flammes. Gravement blessé, Nindey fut emporté par le dragon qui le soigna à coups d'houblon et d'orge.\nC'est durant ces années passées avec Skarlath que Nindey développa une fascination profonde pour les runes draconiques. Le dragon lui enseigna les secrets des runes liées à la foudre, lui permettant d'enchanter ses haches. Lorsque la foudre les parcourt, il se sent littéralement invincible… et parfois oublie complètement d'élaborer un plan.\nDe retour au Mont RockDur, Nindey devint un forgeron reconnu pour ses enchantements électriques et une sorte de légende locale. Expert dans le maniement de ses deux haches, il fonce toujours tête la première dans le combat, guidé par l'adrénaline, la foudre… et parfois l'alcool.\nTimide au naturel, il devient étonnamment sociable après quelques pintes et raconte volontiers ses aventures, son dégoût pour les elfes (sans raison particulière — c'est juste qu'il est nain) et sa bière préférée, brassée selon une recette secrète qu'il ne révélerait pour rien au monde.\nAujourd'hui, Nindey parcourt le monde à la recherche de nouveaux matériaux, de runes oubliées, de combats glorieux… et de tavernes. Et si une tempête éclate dans le ciel, il sourit : peut-être que Skarlath veille encore, quelque part.",
+    "img": "/images/portraits/nindey.jpg",
     "gender": "Homme",
-    "elements": [
-      "⚡ Foudre"
-    ],
+    "languages": ["Commun", "Nain", "Draconique"],
     "level": 1,
-    "attributes": {
-      "primary": {
-        "force": 80,
-        "social": 20,
-        "mental": 50
-      },
-      "secondary": {
-        "puissance": 5,
-        "finesse": 3,
-        "aura": 2,
-        "relation": 2,
-        "instinct": 4,
-        "savoir": 1
-      }
-    },
     "skills": [
       {
         "id": "skill-1-artisan",
@@ -514,6 +469,27 @@
         "source": "base"
       }
     ],
+    "elements": ["⚡ Foudre"],
+    "name": "Nindey Traqué",
+    "attributes": {
+      "secondary": {
+        "puissance": 5,
+        "instinct": 4,
+        "savoir": 1,
+        "finesse": 3,
+        "aura": 2,
+        "relation": 2
+      },
+      "primary": {
+        "social": 20,
+        "force": 80,
+        "mental": 50
+      }
+    },
+    "id": "nindey",
+    "campaignId": "8mEHIVueGKuwUr9DuBH3",
+    "createdAt": "2026-07-13T19:43:52.851Z",
+    "ownerUid": "xxx",
     "gifts": [
       {
         "id": "gift-1-armes-foudroyante-3-mana",
@@ -562,46 +538,39 @@
         "damageBonus": 2
       }
     ],
-    "languages": [
-      "Commun",
-      "Nain",
-      "Draconique"
-    ],
-    "img": "/images/portraits/nindey.jpg",
-    "backstory": "Nindey naquit au cœur des mines profondes du royaume du Mont RockDur, là où les marteaux résonnent jour et nuit et où l'odeur de la bière est presque aussi omniprésente que celle du métal chaud. Comme tout bon nain, il grandit entre pierres, trésors, jurons crépitants et pintes bien remplies. Mais son destin prit une tournure aussi improbable qu'un elfe qui apprécierait une bonne bière : il se lia d'amitié avec un jeune dragon nommé Skarlath, être farouche, étincelant comme une tempête et légèrement pyromane doublé d'un certain attrait pour l'alcool.\nUn jour, alors que Nindey s'aventurait dans la forêt au-delà de la mine, il tomba dans une embuscade de créatures hostiles. Juste avant de finir réduit en compote nainesque, Skarlath fondit du ciel, balayant les ennemis dans une explosion d'éclairs et de flammes. Gravement blessé, Nindey fut emporté par le dragon qui le soigna à coups d'houblon et d'orge.\nC'est durant ces années passées avec Skarlath que Nindey développa une fascination profonde pour les runes draconiques. Le dragon lui enseigna les secrets des runes liées à la foudre, lui permettant d'enchanter ses haches. Lorsque la foudre les parcourt, il se sent littéralement invincible… et parfois oublie complètement d'élaborer un plan.\nDe retour au Mont RockDur, Nindey devint un forgeron reconnu pour ses enchantements électriques et une sorte de légende locale. Expert dans le maniement de ses deux haches, il fonce toujours tête la première dans le combat, guidé par l'adrénaline, la foudre… et parfois l'alcool.\nTimide au naturel, il devient étonnamment sociable après quelques pintes et raconte volontiers ses aventures, son dégoût pour les elfes (sans raison particulière — c'est juste qu'il est nain) et sa bière préférée, brassée selon une recette secrète qu'il ne révélerait pour rien au monde.\nAujourd'hui, Nindey parcourt le monde à la recherche de nouveaux matériaux, de runes oubliées, de combats glorieux… et de tavernes. Et si une tempête éclate dans le ciel, il sourit : peut-être que Skarlath veille encore, quelque part.",
-    "createdAt": "2026-07-13T19:43:52.851Z",
-    "updatedAt": "2026-07-13T19:43:52.851Z"
+    "updatedAt": "2026-07-13T19:43:52.851Z",
+    "classId": "Cogneur",
+    "raceId": "Nain"
   },
   {
-    "id": "furmiaou",
-    "campaignId": "8mEHIVueGKuwUr9DuBH3",
-    "ownerUid": "xxx",
+    "backstory": "Forme bestiale de Firm Bintaggle, obtenue par la maîtrise de la transmutation druidesque : les PV maximum doublent et le mana tombe à 0 tant que la transformation dure.",
     "parentCharacterId": "firm",
-    "name": "Furmiaou",
-    "raceId": "swamninyx",
-    "classId": "gardien",
+    "img": "/images/portraits/furmiaou.jpg",
     "gender": "Autre",
-    "elements": [
-      "Nature",
-      "Transmutation"
-    ],
+    "languages": ["Commun", "Swamninyx", "Léonide"],
     "level": 1,
+    "campaignId": "8mEHIVueGKuwUr9DuBH3",
+    "skills": [],
+    "createdAt": "2026-07-18T00:00:00.000Z",
+    "elements": ["Nature", "Transmutation"],
+    "name": "Furmiaou",
     "attributes": {
-      "primary": {
-        "force": 65,
-        "social": 50,
-        "mental": 55
-      },
       "secondary": {
         "puissance": 5,
+        "instinct": 5,
+        "savoir": 1,
         "finesse": 2,
         "aura": 3,
-        "relation": 2,
-        "instinct": 5,
-        "savoir": 1
+        "relation": 2
+      },
+      "primary": {
+        "social": 50,
+        "force": 65,
+        "mental": 55
       }
     },
-    "skills": [],
+    "id": "furmiaou",
+    "ownerUid": "xxx",
     "gifts": [
       {
         "id": "gift-1-morsure",
@@ -658,14 +627,8 @@
         "source": "class"
       }
     ],
-    "languages": [
-      "Commun",
-      "Swamninyx",
-      "Léonide"
-    ],
-    "img": "/images/portraits/furmiaou.jpg",
-    "backstory": "Forme bestiale de Firm Bintaggle, obtenue par la maîtrise de la transmutation druidesque : les PV maximum doublent et le mana tombe à 0 tant que la transformation dure.",
-    "createdAt": "2026-07-18T00:00:00.000Z",
-    "updatedAt": "2026-07-18T00:00:00.000Z"
+    "updatedAt": "2026-07-18T00:00:00.000Z",
+    "classId": "Gardien",
+    "raceId": "Swamninyx"
   }
 ]

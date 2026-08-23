@@ -1,19 +1,20 @@
 [
   {
+    "personalNote": "",
     "uid": "azarius",
     "campaignId": "8mEHIVueGKuwUr9DuBH3",
     "characterId": "azarius",
     "status": "approved",
-    "personalNote": "",
+    "createdAt": "2026-07-13T19:43:52.848Z",
     "session": {
-      "hp": 14,
       "maxHp": 14,
-      "mana": 9,
       "maxMana": 9,
+      "mana": 9,
+      "hp": 14,
+      "injuries": {},
       "posture": "FOCUS",
       "updatedAt": "2026-07-13T19:43:52.848Z"
     },
-    "createdAt": "2026-07-13T19:43:52.848Z",
     "updatedAt": "2026-07-13T19:43:52.848Z"
   },
   {
@@ -22,76 +23,78 @@
     "characterId": "dy",
     "status": "approved",
     "personalNote": "",
+    "createdAt": "2026-07-13T19:43:52.850Z",
     "session": {
-      "hp": 7,
       "maxHp": 7,
-      "mana": 11,
       "maxMana": 11,
+      "mana": 11,
+      "hp": 7,
       "posture": "FOCUS",
       "updatedAt": "2026-07-13T19:43:52.850Z"
     },
-    "createdAt": "2026-07-13T19:43:52.850Z",
     "updatedAt": "2026-07-13T19:43:52.850Z"
   },
   {
+    "personalNote": "",
     "uid": "firm",
     "campaignId": "8mEHIVueGKuwUr9DuBH3",
     "characterId": "firm",
     "status": "approved",
-    "personalNote": "",
+    "createdAt": "2026-07-13T19:43:52.850Z",
     "session": {
-      "hp": 24,
       "maxHp": 24,
       "mana": 7,
-      "maxMana": 7,
       "posture": "FOCUS",
+      "maxMana": 7,
+      "hp": 24,
+      "injuries": {},
       "updatedAt": "2026-07-13T19:43:52.850Z"
     },
     "childSessions": {
       "furmiaou": {
-        "hp": 48,
         "maxHp": 48,
         "mana": 0,
-        "maxMana": 0,
         "posture": "FOCUS",
+        "maxMana": 0,
+        "hp": 48,
         "updatedAt": "2026-07-18T00:00:00.000Z"
       }
     },
-    "createdAt": "2026-07-13T19:43:52.850Z",
     "updatedAt": "2026-07-13T19:43:52.850Z"
   },
   {
+    "personalNote": "",
     "uid": "mwassa",
     "campaignId": "8mEHIVueGKuwUr9DuBH3",
     "characterId": "mwassa",
     "status": "approved",
-    "personalNote": "",
-    "session": {
-      "hp": 10,
-      "maxHp": 10,
-      "mana": 17,
-      "maxMana": 17,
-      "posture": "FOCUS",
-      "updatedAt": "2026-07-13T19:43:52.850Z"
-    },
     "createdAt": "2026-07-13T19:43:52.850Z",
-    "updatedAt": "2026-07-13T19:43:52.850Z"
+    "session": {
+      "maxMana": 13,
+      "maxHp": 10,
+      "injuries": {},
+      "posture": "FOCUS",
+      "mana": 13,
+      "hp": 10,
+      "updatedAt": "2026-07-21T19:21:55.643Z"
+    },
+    "updatedAt": "2026-07-21T19:21:55.643Z"
   },
   {
+    "personalNote": "",
     "uid": "nindey",
     "campaignId": "8mEHIVueGKuwUr9DuBH3",
     "characterId": "nindey",
     "status": "approved",
-    "personalNote": "",
+    "createdAt": "2026-07-13T19:43:52.851Z",
     "session": {
-      "hp": 11,
       "maxHp": 11,
       "mana": 9,
-      "maxMana": 9,
       "posture": "FOCUS",
+      "maxMana": 9,
+      "hp": 11,
       "updatedAt": "2026-07-13T19:43:52.851Z"
     },
-    "createdAt": "2026-07-13T19:43:52.851Z",
     "updatedAt": "2026-07-13T19:43:52.851Z"
   }
 ]
