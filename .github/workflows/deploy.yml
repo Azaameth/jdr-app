@@ -28,7 +28,7 @@ jobs:
       - uses: actions/upload-pages-artifact@v3
         with: { path: ./dist }
       - id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
 
   deploy-firestore-rules:
     runs-on: ubuntu-latest
