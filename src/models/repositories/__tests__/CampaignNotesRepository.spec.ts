@@ -51,7 +51,7 @@ describe('CampaignNotesRepository', () => {
 
   it('subscribes to the fixed bucket document', async () => {
     vi.doMock('../../../firebase/config', () => ({ db: {} }))
-    const unsubscribe = vi.fn()
+    const unsubscribe = vi.fn<() => void>()
     firestoreMocks.onSnapshot.mockImplementation((...args: unknown[]) => {
       const callback = args[1] as (snapshot: {
         exists: () => boolean
@@ -71,7 +71,7 @@ describe('CampaignNotesRepository', () => {
     })
 
     const { subscribeCampaignNotes } = await import('../CampaignNotesRepository')
-    const onChange = vi.fn()
+    const onChange = vi.fn<(value: unknown) => void>()
     const stop = subscribeCampaignNotes('camp-1', 'Gm', onChange)
 
     expect(firestoreMocks.doc).toHaveBeenCalledWith(

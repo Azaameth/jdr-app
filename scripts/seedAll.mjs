@@ -11,7 +11,7 @@
 import fs from 'fs'
 import path from 'path'
 import { cert, initializeApp } from 'firebase-admin/app'
-import { FieldValue, getFirestore } from 'firebase-admin/firestore'
+import { getFirestore } from 'firebase-admin/firestore'
 
 import { migrateInventoryDoc } from './lib/classifyInventory.mjs'
 
@@ -58,12 +58,6 @@ function slugify(text) {
 function toInt(value, fallback = 0) {
   const parsed = Number.parseInt(String(value), 10)
   return Number.isNaN(parsed) ? fallback : parsed
-}
-
-function stripPrefix(value) {
-  return String(value || '')
-    .replace(/^[^a-zA-Z0-9]+\s*/, '')
-    .trim()
 }
 
 function splitLines(text) {
@@ -146,22 +140,6 @@ function parseSkills(competences) {
     }))
 }
 
-function parseGifts(dons) {
-  return splitLines(dons).map((line, index) => {
-    const trimmed = stripPrefix(line)
-    const [namePart, detailPart] = trimmed.split(' - ')
-    const manaMatch = trimmed.match(/(\d+)\s*mana/i)
-    const item = {
-      id: `gift-${index + 1}-${slugify(namePart || trimmed)}`,
-      name: (namePart || trimmed).trim(),
-      description: (detailPart || trimmed).trim(),
-      source: 'class',
-    }
-    if (manaMatch) item.manaCost = Number.parseInt(manaMatch[1], 10)
-    return item
-  })
-}
-
 function parseSessionInventory(raw) {
   const lines = [
     ...splitLines(raw.armes),
@@ -189,10 +167,6 @@ function toGender(value) {
   return 'Autre'
 }
 
-function toCharacterImagePath(characterId) {
-  return `/images/portraits/${characterId}.jpg`
-}
-
 export function resolveOwnerUid(raw, fallbackCharacterId) {
   const emailCandidates = [
     raw?.email,
@@ -217,104 +191,6 @@ export function resolveOwnerUid(raw, fallbackCharacterId) {
   }
 
   return 'unknown-user'
-}
-
-function cleanUndefined(value) {
-  if (Array.isArray(value)) return value.map(cleanUndefined)
-  if (value && typeof value === 'object') {
-    const out = {}
-    for (const [k, v] of Object.entries(value)) {
-      if (v !== undefined) out[k] = cleanUndefined(v)
-    }
-    return out
-  }
-  return value
-}
-
-function mapCharacter(characterId, raw, campaignId, ownerUid = characterId) {
-  const now = new Date().toISOString()
-  const profile = {
-    id: characterId,
-    campaignId,
-    ownerUid,
-    name: raw.name,
-    raceId: slugify(raw.race),
-    classId: slugify(raw.classe),
-    gender: toGender(raw.genre),
-    elements: parseElements(raw.element),
-    level: toInt(raw.niveau, 1),
-    attributes: {
-      primary: {
-        force: toInt(raw.phys, 0),
-        social: toInt(raw.social, 0),
-        mental: toInt(raw.mental, 0),
-      },
-      secondary: parseSecondaryAttributes(raw.competences),
-    },
-    skills: parseSkills(raw.competences),
-    gifts: parseGifts(raw.dons),
-    languages: String(raw.langues || '')
-      .split(',')
-      .map((s) => s.trim())
-      .filter(Boolean),
-    img: toCharacterImagePath(characterId),
-    backstory: raw.notes || '',
-    createdAt: now,
-    updatedAt: now,
-  }
-  const participant = {
-    uid: ownerUid,
-    campaignId,
-    characterId,
-    status: 'approved',
-    session: {
-      hp: toInt(raw.pv, 0),
-      maxHp: toInt(raw.pv_max, 0),
-      mana: toInt(raw.mana, 0),
-      maxMana: toInt(raw.mana_max, 0),
-      posture: 'FOCUS',
-      updatedAt: now,
-    },
-    createdAt: now,
-    updatedAt: now,
-  }
-
-  // parseSessionInventory yields the legacy flat list; split it into the
-  // typed schema (categorized items + weapons/armor) the app reads.
-  const inventory = migrateInventoryDoc(
-    {
-      uid: ownerUid,
-      campaignId,
-      characterId,
-      items: parseSessionInventory(raw),
-      createdAt: now,
-      updatedAt: now,
-    },
-    { warnTag: 'seedAll' },
-  )
-
-  return {
-    profile: cleanUndefined(profile),
-    participant: cleanUndefined(participant),
-    inventory: cleanUndefined(inventory),
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Seed helpers
-// ---------------------------------------------------------------------------
-
-function toDocId(name) {
-  return String(name || '')
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[^a-z0-9]+/g, '_')
-    .replace(/(^_|_$)/g, '')
-}
-
-function toImagePath(img) {
-  if (!img || /^https?:/.test(img)) return img || null
-  return `/images/${img}`
 }
 
 // ---------------------------------------------------------------------------
@@ -390,7 +266,7 @@ async function main() {
   console.log(`Project: ${sa.project_id}  |  dry-run: ${dryRun}`)
 
   for (const campaignConfig of campaignsConfig) {
-    const { slug, title, summary, lore, globalNote, status } = campaignConfig
+    const { slug, title, summary, status } = campaignConfig
     const campaignId = slugify(slug)
 
     console.log(`\n[1/7] Campaign "${slug}" -> ${campaignId}`)

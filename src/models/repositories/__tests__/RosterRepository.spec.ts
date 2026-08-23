@@ -62,7 +62,7 @@ describe('RosterRepository', () => {
 
   it('subscribes to the fixed nested summary document', async () => {
     vi.doMock('../../../firebase/config', () => ({ db: {} }))
-    const unsubscribe = vi.fn()
+    const unsubscribe = vi.fn<() => void>()
     firestoreMocks.onSnapshot.mockImplementation((...args: unknown[]) => {
       const callback = args[1] as (snapshot: {
         exists: () => boolean
@@ -81,7 +81,7 @@ describe('RosterRepository', () => {
     })
 
     const { subscribeRosterSummary } = await import('../RosterRepository')
-    const onChange = vi.fn()
+    const onChange = vi.fn<(value: unknown) => void>()
 
     const unsub = subscribeRosterSummary('camp-1', onChange)
 

@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const rulesMocks = vi.hoisted(() => ({
-  getCampaignRules: vi.fn(),
+  getCampaignRules: vi.fn<() => Promise<unknown>>(),
 }))
 
 vi.mock('../../models/repositories/CampaignRulesRepository', () => rulesMocks)

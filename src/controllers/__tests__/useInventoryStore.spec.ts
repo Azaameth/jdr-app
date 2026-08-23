@@ -11,7 +11,7 @@ const mocks = vi.hoisted(() => ({
       (inventoryId: string, kind: 'weapons' | 'armor', list: WeaponArmorItem[]) => Promise<boolean>
     >(),
   updateInventoryGold: vi.fn<(inventoryId: string, gold: number) => Promise<boolean>>(),
-  campaignRulesInventory: vi.fn(),
+  campaignRulesInventory: vi.fn<() => unknown>(),
 }))
 
 vi.mock('../../models/repositories/InventoryRepository', () => ({

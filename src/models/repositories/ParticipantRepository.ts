@@ -7,8 +7,6 @@ import {
   updateDoc,
   where,
   writeBatch,
-  type DocumentData,
-  type QueryDocumentSnapshot,
   type Unsubscribe,
 } from 'firebase/firestore'
 
