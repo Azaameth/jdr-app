@@ -116,10 +116,9 @@ service cloud.firestore {
 
       // Everything about how this campaign plays (statistics, dice,
       // creation formulas, limits) — single fixed-id doc, per
-      // docs/rpg-data-model.md §4.3/§7. `setCampaignRules` is currently a
-      // deliberate no-op stub (Cluster 6, no editing UI yet) but the rule
-      // matches the documented permission model regardless of what the
-      // client exercises today.
+      // docs/rpg-data-model.md §4.3/§7. `setCampaignRules` has a real
+      // merge-write path since Cluster 6, exercised by CampaignView.vue's
+      // edit form (mj/admin only, matching the rule below).
       match /CampaignRules/Main {
         allow read: if isSignedIn();
         allow write: if isMjOrAdmin();

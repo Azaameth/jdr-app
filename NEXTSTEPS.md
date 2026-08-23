@@ -279,8 +279,8 @@ high-complexity policy.
 5. **`firestore.rules` full coverage — done (2026-08-23).** Added the three
    remaining nested collections per `docs/rpg-data-model.md` §4.3/§4.4/§4.10/
    §7: `CampaignRules/Main` (read: signed-in; write: mj/admin — matches the
-   documented model even though `setCampaignRules` is still a no-op stub,
-   Cluster 6 not done), `Roster/Summary` (read: signed-in; **write: false for
+   documented model ahead of `setCampaignRules` getting a real write path,
+   Cluster 6), `Roster/Summary` (read: signed-in; **write: false for
    every role**, no exceptions — it's Function-maintained and no Functions
    infra exists yet, Cluster 7 not done, so there is no legitimate client
    write path at all), and the three `Notes/{Gm|Shared|Collaborative}` docs
@@ -296,9 +296,50 @@ high-complexity policy.
    `Notes` read, and the SAME joueur gains `Notes/Collaborative` read (but
    not `Notes/Shared` write) the moment their `Players/{uid}.Status` becomes
    `Approved`.
-6. **`CampaignRules` write path — queued.** `CampaignRulesRepository.setCampaignRules`
-   is currently a deliberate no-op stub (read-only). Needs a real write path
-   + an editing UI once a store/view actually needs to mutate it.
+6. **`CampaignRules` write path — done (2026-08-23).** `CampaignRulesRepository.setCampaignRules`
+   was a deliberate no-op stub; replaced with a real `setDoc(ref, input, {
+   merge: true })`. **Explicit scope decision**: a survey of every field in
+   `CampaignRulesDocument` found only `MaxItems`/`MaxArmorSlots`/
+   `MaxWeaponSlots` (equipment caps, Cluster 4), `CurrencyName`,
+   `AdvantageDiceCount`, and the `Dice.*` config are read anywhere in `src/`
+   (all in `CampaignView.vue`'s display card) — `Statistics.Secondary` and
+   the whole `CharacterCreation` formula block are defined but consumed
+   nowhere (no character-creation flow exists yet). Building a structural
+   array/formula editor for fields nothing reads yet would be exactly the
+   speculative work `CLAUDE.md` says not to build; scaled the editing UI down
+   to the scalar fields above and left `Statistics`/`CharacterCreation`
+   read-only for now (`primaryStats` display unchanged) — flagged here for
+   whichever future cluster actually builds character creation, since that's
+   what will need a real stat/formula editor, not this one.
+
+   Added `DEFAULT_CAMPAIGN_RULES` to `CampaignRulesRepository.ts` — a fully-
+   shaped fallback document — so `useCampaignRulesStore`'s new
+   `updateCampaignRules(campaignId, patch)` always merges the patch onto
+   *something* fully-shaped (the loaded `rules.value`, or the default when a
+   campaign has no rules doc yet) before writing, guaranteeing every write is
+   a complete, valid `CampaignRulesDocument` per `isCampaignRulesDocument`
+   rather than a partial that could leave `Statistics`/`CharacterCreation`
+   undefined and crash the existing unguarded `campaignRules.Statistics.Primary`
+   read. Extended `CampaignView.vue`'s existing edit form (previously just
+   campaign metadata) with the scalar rules fields (client-side validates
+   `Dice.DiceNotation` against the same `^d\d+$` the type guard requires,
+   disabling Save on a bad value) and extended the read-only display card to
+   surface the previously-write-only `DisadvantageDiceCount`/`RoundingMode`/
+   `SuccessDirection`/`CriticalThreshold` fields that were being computed but
+   never shown. No `firestore.rules` change needed — Cluster 5 already wrote
+   the correct `CampaignRules/Main` rule (mj/admin write, signed-in read)
+   ahead of this cluster landing; only its stale comment was updated.
+   Verified: type-check/lint/411 unit tests green (5 new: repository write +
+   no-op-when-unconfigured, store's merge-onto-loaded-rules,
+   merge-onto-DEFAULT_CAMPAIGN_RULES-when-no-doc-exists, and write-failure
+   error surfacing). Verified against the real Firestore emulator with two
+   Auth-emulator tokens (an mj and a plain joueur) against a pre-seeded
+   `CampaignRules/Main` doc: joueur's write denied, joueur's read allowed
+   (matches Cluster 5's any-signed-in rule), mj's write succeeds, and the
+   resulting doc shows the merge both applied the patch (`CurrencyName`/
+   `MaxItems`) and preserved untouched fields (`MaxArmorSlots`) — proving
+   `{ merge: true }` behaves as the store's patch-preserving contract
+   requires, not a destructive overwrite.
 7. **`Roster/Summary` materialization — queued.** Currently only ever
    written by the seed script — no live materialization exists. Needs an
    explicit decision: real Cloud Functions (no Functions infra exists in

@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 const firestoreMocks = vi.hoisted(() => ({
   doc: vi.fn<(...args: unknown[]) => unknown>(() => 'doc-ref'),
   getDoc: vi.fn<(...args: unknown[]) => Promise<unknown>>(),
+  setDoc: vi.fn<(...args: unknown[]) => Promise<unknown>>(),
   collection: vi.fn<(...args: unknown[]) => unknown>(() => 'collection-ref'),
   getDocs: vi.fn<(...args: unknown[]) => Promise<unknown>>(),
   query: vi.fn<(...args: unknown[]) => unknown>(() => 'query-ref'),
@@ -56,6 +57,33 @@ describe('CampaignRulesRepository', () => {
 
       expect(firestoreMocks.doc).toHaveBeenCalledWith({}, 'Campaigns', 'camp-1', 'CampaignRules', 'Main')
       expect(result).toMatchObject({ CurrencyName: 'Pièces' })
+    })
+
+    it('writes a merge patch to CampaignRules/Main', async () => {
+      firestoreMocks.setDoc.mockResolvedValue(undefined)
+
+      const repo = await import('../CampaignRulesRepository')
+      await repo.setCampaignRules('camp-1', { CurrencyName: 'Écus' })
+
+      expect(firestoreMocks.doc).toHaveBeenCalledWith({}, 'Campaigns', 'camp-1', 'CampaignRules', 'Main')
+      expect(firestoreMocks.setDoc).toHaveBeenCalledWith(
+        'doc-ref',
+        { CurrencyName: 'Écus' },
+        { merge: true },
+      )
+    })
+  })
+
+  describe('when Firebase is not configured (write path)', () => {
+    beforeEach(() => {
+      vi.doMock('../../../firebase/config', () => ({ db: undefined }))
+    })
+
+    it('setCampaignRules is a no-op', async () => {
+      const repo = await import('../CampaignRulesRepository')
+      await repo.setCampaignRules('camp-1', { CurrencyName: 'Écus' })
+
+      expect(firestoreMocks.setDoc).not.toHaveBeenCalled()
     })
   })
 })

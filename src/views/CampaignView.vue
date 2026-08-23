@@ -5,7 +5,24 @@ import CampaignShell from '../components/layout/CampaignShell.vue'
 import { useAuthStore } from '../controllers/useAuthStore'
 import { useCampaignStore } from '../controllers/useCampaignStore'
 import { useCampaignRulesStore } from '../controllers/useCampaignRulesStore'
+import { DEFAULT_CAMPAIGN_RULES } from '../models/repositories/CampaignRulesRepository'
+import type {
+  CampaignRulesDocument,
+  DiceRoundingMode,
+  DiceSuccessDirection,
+} from '../models/types/RpgDataModel'
 import { CAMPAIGN_STATUS_LABELS, type CampaignStatus } from '../models/types/Campaign'
+
+const ROUNDING_MODE_LABELS: Record<DiceRoundingMode, string> = {
+  RoundNearest: 'Au plus proche',
+  RoundDown: 'Vers le bas',
+  RoundUp: 'Vers le haut',
+}
+
+const SUCCESS_DIRECTION_LABELS: Record<DiceSuccessDirection, string> = {
+  AboveOrEqual: 'Réussite si ≥ cible',
+  BelowOrEqual: 'Réussite si ≤ cible',
+}
 
 const route = useRoute()
 const router = useRouter()
@@ -53,6 +70,21 @@ const form = reactive({
   Status: 'Recruiting' as CampaignStatus,
 })
 
+const rulesForm = reactive({
+  CurrencyName: '',
+  AdvantageDiceCount: 0,
+  DisadvantageDiceCount: 0,
+  MaxItems: 0,
+  MaxArmorSlots: 0,
+  MaxWeaponSlots: 0,
+  DiceNotation: '',
+  RoundingMode: 'RoundNearest' as DiceRoundingMode,
+  SuccessDirection: 'AboveOrEqual' as DiceSuccessDirection,
+  CriticalThreshold: 0,
+})
+
+const diceNotationValid = computed(() => /^d\d+$/.test(rulesForm.DiceNotation))
+
 function startEdit() {
   if (!campaign.value) return
   form.DisplayName = campaign.value.DisplayName
@@ -60,6 +92,19 @@ function startEdit() {
   form.Lore = campaign.value.Lore
   form.GlobalNote = campaign.value.GlobalNote
   form.Status = campaign.value.Status
+
+  const currentRules = campaignRules.value ?? DEFAULT_CAMPAIGN_RULES
+  rulesForm.CurrencyName = currentRules.CurrencyName
+  rulesForm.AdvantageDiceCount = currentRules.AdvantageDiceCount
+  rulesForm.DisadvantageDiceCount = currentRules.DisadvantageDiceCount
+  rulesForm.MaxItems = currentRules.MaxItems
+  rulesForm.MaxArmorSlots = currentRules.MaxArmorSlots
+  rulesForm.MaxWeaponSlots = currentRules.MaxWeaponSlots
+  rulesForm.DiceNotation = currentRules.Dice.DiceNotation
+  rulesForm.RoundingMode = currentRules.Dice.RoundingMode
+  rulesForm.SuccessDirection = currentRules.Dice.SuccessDirection
+  rulesForm.CriticalThreshold = currentRules.Dice.CriticalThreshold
+
   editing.value = true
 }
 
@@ -68,8 +113,28 @@ function cancelEdit() {
 }
 
 async function saveEdit() {
+  if (!diceNotationValid.value) return
+
   saving.value = true
-  await campaignStore.editCampaign(campaignId.value, { ...form })
+  const rulesPatch: Partial<CampaignRulesDocument> = {
+    CurrencyName: rulesForm.CurrencyName,
+    AdvantageDiceCount: rulesForm.AdvantageDiceCount,
+    DisadvantageDiceCount: rulesForm.DisadvantageDiceCount,
+    MaxItems: rulesForm.MaxItems,
+    MaxArmorSlots: rulesForm.MaxArmorSlots,
+    MaxWeaponSlots: rulesForm.MaxWeaponSlots,
+    Dice: {
+      DiceNotation: rulesForm.DiceNotation,
+      RoundingMode: rulesForm.RoundingMode,
+      SuccessDirection: rulesForm.SuccessDirection,
+      CriticalThreshold: rulesForm.CriticalThreshold,
+    },
+  }
+
+  await Promise.all([
+    campaignStore.editCampaign(campaignId.value, { ...form }),
+    rulesStore.updateCampaignRules(campaignId.value, rulesPatch),
+  ])
   saving.value = false
   editing.value = false
 }
@@ -121,10 +186,17 @@ async function confirmDelete() {
         <section class="card rules-card" v-if="campaignRules">
           <h2>Règles de campagne</h2>
           <div class="rules-grid">
-            <div><b>Dé :</b> {{ campaignRules.Dice.DiceNotation }}</div>
+            <div>
+              <b>Dé :</b> {{ campaignRules.Dice.DiceNotation }}
+              ({{ SUCCESS_DIRECTION_LABELS[campaignRules.Dice.SuccessDirection] }},
+              critique ±{{ campaignRules.Dice.CriticalThreshold }},
+              arrondi {{ ROUNDING_MODE_LABELS[campaignRules.Dice.RoundingMode] }})
+            </div>
             <div><b>Devise :</b> {{ campaignRules.CurrencyName }}</div>
             <div><b>Stats :</b> {{ primaryStats.length }}</div>
-            <div><b>Bonus :</b> {{ campaignRules.AdvantageDiceCount }}</div>
+            <div>
+              <b>Bonus / Malus :</b> {{ campaignRules.AdvantageDiceCount }} / {{ campaignRules.DisadvantageDiceCount }}
+            </div>
             <div>
               <b>Inventaire :</b> {{ campaignRules.MaxWeaponSlots }} armes / {{ campaignRules.MaxArmorSlots }} armures / {{ campaignRules.MaxItems }} objets
             </div>
@@ -171,8 +243,61 @@ async function confirmDelete() {
             Note globale
             <textarea v-model="form.GlobalNote" rows="3" />
           </label>
+        </section>
+
+        <section class="card form">
+          <h2>Règles de campagne</h2>
+          <label>
+            Devise
+            <input v-model="rulesForm.CurrencyName" type="text" />
+          </label>
+          <label>
+            Dé (ex. d20)
+            <input v-model="rulesForm.DiceNotation" type="text" :class="{ invalid: !diceNotationValid }" />
+          </label>
+          <label>
+            Arrondi
+            <select v-model="rulesForm.RoundingMode">
+              <option v-for="(label, mode) in ROUNDING_MODE_LABELS" :key="mode" :value="mode">
+                {{ label }}
+              </option>
+            </select>
+          </label>
+          <label>
+            Sens de réussite
+            <select v-model="rulesForm.SuccessDirection">
+              <option v-for="(label, direction) in SUCCESS_DIRECTION_LABELS" :key="direction" :value="direction">
+                {{ label }}
+              </option>
+            </select>
+          </label>
+          <label>
+            Seuil critique
+            <input v-model.number="rulesForm.CriticalThreshold" type="number" min="0" />
+          </label>
+          <label>
+            Dés de bonus (avantage)
+            <input v-model.number="rulesForm.AdvantageDiceCount" type="number" min="0" />
+          </label>
+          <label>
+            Dés de malus (désavantage)
+            <input v-model.number="rulesForm.DisadvantageDiceCount" type="number" min="0" />
+          </label>
+          <label>
+            Max. objets
+            <input v-model.number="rulesForm.MaxItems" type="number" min="0" />
+          </label>
+          <label>
+            Max. armures
+            <input v-model.number="rulesForm.MaxArmorSlots" type="number" min="0" />
+          </label>
+          <label>
+            Max. armes
+            <input v-model.number="rulesForm.MaxWeaponSlots" type="number" min="0" />
+          </label>
+
           <div class="form-actions">
-            <button class="btn" :disabled="saving" @click="saveEdit">
+            <button class="btn" :disabled="saving || !diceNotationValid" @click="saveEdit">
               {{ saving ? 'Enregistrement…' : 'Enregistrer' }}
             </button>
             <button class="btn secondary" @click="cancelEdit">Annuler</button>
@@ -285,6 +410,9 @@ textarea {
   font-size: 0.9rem;
   font-family: inherit;
   resize: vertical;
+}
+input.invalid {
+  border-color: rgba(192, 57, 43, 0.7);
 }
 .form-actions {
   display: flex;

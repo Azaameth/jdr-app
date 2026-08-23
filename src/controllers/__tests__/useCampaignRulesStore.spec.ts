@@ -2,6 +2,28 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const rulesMocks = vi.hoisted(() => ({
   getCampaignRules: vi.fn<() => Promise<unknown>>(),
+  setCampaignRules: vi.fn<(...args: unknown[]) => Promise<unknown>>(),
+  DEFAULT_CAMPAIGN_RULES: {
+    Statistics: { Primary: [], Secondary: [] },
+    Dice: {
+      DiceNotation: 'd20',
+      RoundingMode: 'RoundNearest',
+      SuccessDirection: 'AboveOrEqual',
+      CriticalThreshold: 1,
+    },
+    CharacterCreation: {
+      HealthMaxFormula: '0',
+      ManaMaxFormula: '0',
+      PointBuyBudget: 0,
+      FormulaRounding: 'RoundNearest',
+    },
+    CurrencyName: 'Pièces',
+    AdvantageDiceCount: 0,
+    DisadvantageDiceCount: 0,
+    MaxItems: 0,
+    MaxArmorSlots: 0,
+    MaxWeaponSlots: 0,
+  },
 }))
 
 vi.mock('../../models/repositories/CampaignRulesRepository', () => rulesMocks)
@@ -59,5 +81,55 @@ describe('useCampaignRulesStore', () => {
     await store.fetchCampaignRules('campaign-1')
 
     expect(store.error.value).toBe('Erreur lors du chargement des règles de campagne.')
+  })
+
+  it('updateCampaignRules merges the patch onto the loaded rules and persists it', async () => {
+    rulesMocks.getCampaignRules.mockResolvedValue({
+      ...rulesMocks.DEFAULT_CAMPAIGN_RULES,
+      CurrencyName: 'Pièces',
+      MaxItems: 20,
+    })
+    rulesMocks.setCampaignRules.mockResolvedValue(undefined)
+    const { useCampaignRulesStore } = await import('../useCampaignRulesStore')
+    const store = useCampaignRulesStore()
+    await store.fetchCampaignRules('campaign-1')
+
+    const ok = await store.updateCampaignRules('campaign-1', { CurrencyName: 'Écus' })
+
+    expect(ok).toBe(true)
+    expect(rulesMocks.setCampaignRules).toHaveBeenCalledWith(
+      'campaign-1',
+      expect.objectContaining({ CurrencyName: 'Écus', MaxItems: 20 }),
+    )
+    expect(store.rules.value?.CurrencyName).toBe('Écus')
+    expect(store.maxItems.value).toBe(20)
+  })
+
+  it('updateCampaignRules fills in DEFAULT_CAMPAIGN_RULES when the campaign has no rules doc yet', async () => {
+    rulesMocks.setCampaignRules.mockResolvedValue(undefined)
+    const { useCampaignRulesStore } = await import('../useCampaignRulesStore')
+    const store = useCampaignRulesStore()
+
+    const ok = await store.updateCampaignRules('campaign-1', { CurrencyName: 'Écus' })
+
+    expect(ok).toBe(true)
+    expect(rulesMocks.setCampaignRules).toHaveBeenCalledWith(
+      'campaign-1',
+      expect.objectContaining({
+        CurrencyName: 'Écus',
+        Dice: rulesMocks.DEFAULT_CAMPAIGN_RULES.Dice,
+      }),
+    )
+  })
+
+  it('surfaces the French fallback error when the write fails', async () => {
+    rulesMocks.setCampaignRules.mockRejectedValue('boom')
+    const { useCampaignRulesStore } = await import('../useCampaignRulesStore')
+    const store = useCampaignRulesStore()
+
+    const ok = await store.updateCampaignRules('campaign-1', { CurrencyName: 'Écus' })
+
+    expect(ok).toBe(false)
+    expect(store.error.value).toBe('Erreur lors de la mise à jour des règles de campagne.')
   })
 })
