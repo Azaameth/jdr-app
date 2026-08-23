@@ -204,13 +204,26 @@ high-complexity policy.
    model the already-shipped categorized-backpack/dons feature
    (`BackpackGrid.vue`, `DonList.vue`, `src/utils/inventoryText.ts`) —
    extend the target schema to cover it, or scale back the feature.
-5. **`firestore.rules` full coverage — mostly done.** `Campaigns` root
-   (Cluster 1), nested `Classes`/`Races` (Cluster 2), and nested `Players`/
-   `Characters`/`States/Current`/`Equipment/Main`/`Items` (Cluster 3a) are
-   covered. Still falling through to the default-deny rule: `CampaignRules`
-   (write path is a stub anyway, see Cluster 6), `Roster` (mj/admin-or-none,
-   trivial once Cluster 7 lands), `Notes`. Land the rest once those
-   collections are stable.
+5. **`firestore.rules` full coverage — done (2026-08-23).** Added the three
+   remaining nested collections per `docs/rpg-data-model.md` §4.3/§4.4/§4.10/
+   §7: `CampaignRules/Main` (read: signed-in; write: mj/admin — matches the
+   documented model even though `setCampaignRules` is still a no-op stub,
+   Cluster 6 not done), `Roster/Summary` (read: signed-in; **write: false for
+   every role**, no exceptions — it's Function-maintained and no Functions
+   infra exists yet, Cluster 7 not done, so there is no legitimate client
+   write path at all), and the three `Notes/{Gm|Shared|Collaborative}` docs
+   split by permission (`Gm`: mj/admin only; `Shared`: mj/admin write,
+   mj/admin-or-approved-player read; `Collaborative`: mj/admin or approved
+   player, both read and write) via a new local `isApprovedPlayer()` helper
+   checking `Players/{uid}.Status == 'Approved'` — tighter than §7's
+   abbreviated any-signed-in-user example, matching §4.10's actual
+   permission table instead. Verified against the emulator with two real
+   Auth-emulator tokens (an mj and a plain joueur): mj reads/writes
+   `CampaignRules/Main`, mj's write to `Roster/Summary` is denied, a
+   non-approved joueur is denied both `CampaignRules/Main` writes and any
+   `Notes` read, and the SAME joueur gains `Notes/Collaborative` read (but
+   not `Notes/Shared` write) the moment their `Players/{uid}.Status` becomes
+   `Approved`.
 6. **`CampaignRules` write path — queued.** `CampaignRulesRepository.setCampaignRules`
    is currently a deliberate no-op stub (read-only). Needs a real write path
    + an editing UI once a store/view actually needs to mutate it.

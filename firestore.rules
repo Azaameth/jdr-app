@@ -47,6 +47,14 @@ service cloud.firestore {
       allow read: if isSignedIn();
       allow create, update, delete: if isMjOrAdmin();
 
+      // Used by Notes/Shared and Notes/Collaborative below — an approved
+      // player per Players/{uid}.Status (docs/rpg-data-model.md §4.10), not
+      // merely "any signed-in member" (mj/admin always pass regardless).
+      function isApprovedPlayer() {
+        return isSignedIn()
+          && get(/databases/$(database)/documents/Campaigns/$(campaignId)/Players/$(request.auth.uid)).data.Status == 'Approved';
+      }
+
       // Campaign-scoped reference lore. Seeded only via the Admin SDK
       // (scripts/seedAll.mjs), which bypasses these rules entirely —
       // clients get read-only access, no legitimate write path. Mirrors
@@ -104,6 +112,38 @@ service cloud.firestore {
           allow read: if isSignedIn();
           allow write: if isMjOrAdmin() || ownsThisCharacter();
         }
+      }
+
+      // Everything about how this campaign plays (statistics, dice,
+      // creation formulas, limits) — single fixed-id doc, per
+      // docs/rpg-data-model.md §4.3/§7. `setCampaignRules` is currently a
+      // deliberate no-op stub (Cluster 6, no editing UI yet) but the rule
+      // matches the documented permission model regardless of what the
+      // client exercises today.
+      match /CampaignRules/Main {
+        allow read: if isSignedIn();
+        allow write: if isMjOrAdmin();
+      }
+
+      // Materialized GM dashboard — Function-maintained (sole writer) per
+      // §4.4/§7. No Cloud Functions infra exists in this repo yet (Cluster 7),
+      // so this is currently write:false for every role, not just non-mj —
+      // there is no legitimate client write path at all.
+      match /Roster/Summary {
+        allow read: if isSignedIn();
+        allow write: if false;
+      }
+
+      // Three fixed-id docs split by permission per §4.10.
+      match /Notes/Gm {
+        allow read, write: if isMjOrAdmin();
+      }
+      match /Notes/Shared {
+        allow read: if isMjOrAdmin() || isApprovedPlayer();
+        allow write: if isMjOrAdmin();
+      }
+      match /Notes/Collaborative {
+        allow read, write: if isMjOrAdmin() || isApprovedPlayer();
       }
     }
 
