@@ -3,7 +3,8 @@ import { mount } from '@vue/test-utils'
 import CaracTab from '../CaracTab.vue'
 import { useTickState } from '../tickState'
 import type { CharacterProfile, CharacterSkill } from '../../../models/types/Character'
-import type { CharacterSessionState, Posture } from '../../../models/types/Participant'
+import type { CharacterStateDocument } from '../../../models/repositories/CharacterStateRepository'
+import type { Posture } from '../../../models/types/Participant'
 import type { Race } from '../../../models/types/Race'
 
 function makeSkill(overrides: Partial<CharacterSkill> = {}): CharacterSkill {
@@ -44,13 +45,15 @@ function makeCharacter(overrides: Partial<CharacterProfile> = {}): CharacterProf
   }
 }
 
-function makeSession(overrides: Partial<CharacterSessionState> = {}): CharacterSessionState {
+function makeState(overrides: Partial<CharacterStateDocument> = {}): CharacterStateDocument {
   return {
-    hp: 11,
-    maxHp: 11,
-    mana: 9,
-    maxMana: 9,
-    posture: 'OFFENSIF',
+    Health: 11,
+    HealthCurrent: 11,
+    Mana: 9,
+    ManaCurrent: 9,
+    Posture: 'OFFENSIF',
+    PlayerId: 'owner-uid',
+    CampaignId: 'campaign-1',
     ...overrides,
   }
 }
@@ -70,7 +73,7 @@ describe('CaracTab', () => {
     const wrapper = mount(CaracTab, {
       props: {
         character: makeCharacter(),
-        session: makeSession(),
+        state: makeState(),
         canEdit: false,
         postureOptions,
       },
@@ -87,7 +90,7 @@ describe('CaracTab', () => {
     const wrapper = mount(CaracTab, {
       props: {
         character: makeCharacter(),
-        session: makeSession(),
+        state: makeState(),
         canEdit: true,
         postureOptions,
       },
@@ -103,7 +106,7 @@ describe('CaracTab', () => {
     const wrapper = mount(CaracTab, {
       props: {
         character: makeCharacter(),
-        session: makeSession({ injuries: { puissance: 'jaune' } }),
+        state: makeState({ Injuries: { puissance: 'jaune' } }),
         canEdit: true,
         postureOptions,
       },
@@ -117,7 +120,7 @@ describe('CaracTab', () => {
     const wrapper = mount(CaracTab, {
       props: {
         character: makeCharacter(),
-        session: makeSession({ injuries: { puissance: 'rouge' } }),
+        state: makeState({ Injuries: { puissance: 'rouge' } }),
         canEdit: true,
         postureOptions,
       },
@@ -131,7 +134,7 @@ describe('CaracTab', () => {
     const wrapper = mount(CaracTab, {
       props: {
         character: makeCharacter(),
-        session: makeSession({ injuries: { puissance: 'rouge', finesse: 'rouge' } }),
+        state: makeState({ Injuries: { puissance: 'rouge', finesse: 'rouge' } }),
         canEdit: false,
         postureOptions,
       },
@@ -146,7 +149,7 @@ describe('CaracTab', () => {
     const wrapper = mount(CaracTab, {
       props: {
         character: makeCharacter(),
-        session: makeSession(),
+        state: makeState(),
         canEdit: false,
         postureOptions,
       },
@@ -163,7 +166,7 @@ describe('CaracTab', () => {
     const wrapper = mount(CaracTab, {
       props: {
         character: makeCharacter(),
-        session: makeSession(),
+        state: makeState(),
         canEdit: false,
         postureOptions,
       },
@@ -181,7 +184,7 @@ describe('CaracTab', () => {
         character: makeCharacter({
           skills: [makeSkill({ id: 's-puissance', name: 'Puissance', rank: 5 })],
         }),
-        session: makeSession(),
+        state: makeState(),
         canEdit: false,
         postureOptions,
       },
@@ -205,7 +208,7 @@ describe('CaracTab', () => {
     const wrapper = mount(CaracTab, {
       props: {
         character: makeCharacter(),
-        session: makeSession(),
+        state: makeState(),
         canEdit: false,
         race,
         postureOptions,
@@ -221,7 +224,7 @@ describe('CaracTab', () => {
     const wrapper = mount(CaracTab, {
       props: {
         character: makeCharacter(),
-        session: makeSession(),
+        state: makeState(),
         canEdit: false,
         postureOptions,
       },
@@ -234,7 +237,7 @@ describe('CaracTab', () => {
     const wrapper = mount(CaracTab, {
       props: {
         character: makeCharacter(),
-        session: makeSession({ posture: 'FOCUS' }),
+        state: makeState({ Posture: 'FOCUS' }),
         canEdit: true,
         postureOptions,
       },
@@ -251,7 +254,7 @@ describe('CaracTab', () => {
     const wrapper = mount(CaracTab, {
       props: {
         character: makeCharacter({ level: 4 }),
-        session: makeSession({ hp: 8, maxHp: 14, mana: 3, maxMana: 9 }),
+        state: makeState({ HealthCurrent: 8, Health: 14, ManaCurrent: 3, Mana: 9 }),
         canEdit: false,
         postureOptions,
       },

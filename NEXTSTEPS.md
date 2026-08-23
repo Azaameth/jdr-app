@@ -81,9 +81,9 @@ high-complexity policy.
    `pullLiveDataAdmin.mjs`, which still read/write them) now have zero
    remaining app consumers — candidates for deletion in a later cleanup
    pass, out of scope here.
-3. **Players / character live state — split into 3a (done) and 3b (queued)
-   given the size and gameplay stakes (real, actively-played HP/mana/posture/
-   injuries — see CLAUDE.md's high-complexity policy).**
+3. **Players / character live state — done, split into 3a and 3b given the
+   size and gameplay stakes (real, actively-played HP/mana/posture/injuries —
+   see CLAUDE.md's high-complexity policy).**
 
    **3a — bug fixes + doc-keying + rules, done (2026-08-23).** Found and
    fixed a live, currently-shipping bug: `setInjury`/`setAdvantage`/
@@ -134,31 +134,67 @@ high-complexity policy.
    `States/Current` instead.
 
    **3b — retire `session`/`childSessions` onto per-character `States/
-   Current`, queued.** The actual architecture change: move live combat
-   state off `Participant.session`/`childSessions` and onto
+   Current` — done (2026-08-23).** Live combat state moved off
+   `Participant.session`/`childSessions` onto
    `Campaigns/{id}/Characters/{characterId}/States/Current` — one doc per
    character, including each transformation (already its own `Characters`
-   doc via `parentCharacterId`), via the already-built but still-orphaned
-   `useCharacterStateStore`/`CharacterStateRepository`. Real design
-   decision this needs, decided in principle already (extend, don't drop,
-   matching the Cluster 1/2 precedent) but not yet implemented: `posture`
-   (`OFFENSIF`/`DEFENSIF`/`FOCUS`), `injuries` (per-secondary-attribute
-   jaune/rouge), and `advantage`/`disadvantage` have **no equivalent
-   anywhere in the target docs** — `CharacterStateDocument`/`States/Current`
-   only has Health/Mana/Armor/Attack/Defense pools. Plan is to add them as
-   extension fields on `CharacterStateDocument` (English/PascalCase casing
-   to match the rest of the target model — e.g. `Posture: 'Offensive'|
-   'Defensive'|'Focus'`, `Injuries`, `Advantage`, `Disadvantage`), fully
-   preserving current behavior. Touches a lot of surface once started:
-   `usePlayerStore.ts` (`party` assembly needs to join `Characters` +
-   per-character `States/Current` instead of `Players`+`characterId`),
-   `PlayerView.vue`, `ChildSheetTab.vue`, `PartyStatus.vue`, `TeamView.vue`,
-   `AdvantageToggles.vue`, and the test files that lock in the current
-   `session.*`/`childSessions.<id>.*` shape (`usePlayerStore.spec.ts`,
-   `ParticipantRepository.spec.ts`, `PlayerView.spec.ts`,
-   `ChildSheetTab.spec.ts`, `PartyStatus.spec.ts`, `AdvantageToggles.spec.ts`,
-   `TeamView.spec.ts`) — do this as its own session, not bundled with
-   anything else.
+   doc via `ParentCharacterId`), which the core architectural
+   simplification this cluster hinged on: **a child needs no separate
+   "child vitals" API at all** — it's just another `characterId` passed to
+   the exact same `setSessionResource`/`setInjury`/`setAdvantage`/
+   `setDisadvantage` functions used for the base character.
+   `Posture`/`Injuries`/`Advantage`/`Disadvantage` have no equivalent in the
+   documented `States/Current` contract (§4.8 only has Health/Mana/Armor/
+   Attack/Defense pools) — added as extension fields on
+   `CharacterStateDocument`, French posture/injury values kept as-is
+   (`OFFENSIF`/`DEFENSIF`/`FOCUS`, `jaune`/`rouge` — no functional benefit to
+   recasing to English, just churn). Per docs/rpg-data-model.md §4.6,
+   `Players/{uid}` carries no `characterId` either — `Participant.ts`
+   dropped that field too (the reverse link is `Character.PlayerId`/
+   `ownerUid`, which `usePlayerStore.resolveCharacterId`/`resolveParticipant`
+   already used/now uses for the character↔uid join).
+
+   `usePlayerStore.ts`'s `subscribeParty` now attaches one
+   `subscribeCharacterState` listener per character in the campaign (base +
+   children) alongside the existing `Players` collection listener, exposed
+   as `partyCharacterStates` (keyed by characterId); `party` joins
+   `Characters` + that map + `Players` (matched by `character.ownerUid ===
+   participant.uid`, not a `characterId` field). `ParticipantRepository.ts`
+   shrank to just the admission-workflow reads (`listParticipantsByCampaign`,
+   `subscribeParticipantsByCampaign`, `getParticipant`) —
+   `getParticipantByCharacterId`/`setParticipantSessionByCharacterId`/
+   `updateSessionFields`/`updateChildSession`/`resetTeamSessionToMax` are
+   gone; `CharacterStateRepository.ts` gained `resetTeamStatesToMax` (batches
+   `HealthCurrent`/`ManaCurrent` back to `Health`/`Mana` across the given
+   character ids — `TeamView.vue`'s "Faire reposer l'équipe" button, same
+   non-child scope as before).
+
+   `PlayerView.vue` now holds `characterState`/`childState` refs (optimistic-
+   patch + revert-on-error, same shape as the old `participant` ref) fed by
+   `playerStore.partyCharacterStates` with a one-shot `getCharacterState`
+   fallback for both the main character AND the active child — the child
+   fallback was added specifically because `subscribeParty`'s per-character
+   subscription is idempotent per campaignId, so a child that starts existing
+   after the initial subscription wouldn't otherwise get a listener attached.
+   `VitruveSheet.vue`/`CaracTab.vue`/`ChildSheetTab.vue`/`AdvantageToggles.vue`
+   take a `state: CharacterStateDocument | null` prop instead of
+   `session`/`childSession`; `PartyStatus.vue`/`TeamView.vue` read
+   `state.Health/.HealthCurrent/.Mana/.ManaCurrent/.Posture` instead of
+   `session.maxHp/.hp/.maxMana/.mana/.posture`. `scripts/seedAll.mjs`'s
+   `playerDoc` dropped the `characterId`/`session` bridge fields entirely
+   (`Players/{uid}` is now exactly `{Status, Email, Notes, CreatedAt,
+   UpdatedAt}`); `stateDoc` gained `Posture`/`Injuries` sourced from
+   `participants.json`'s fixture. No `firestore.rules` change needed —
+   `States/Current`'s existing owner-or-mj/admin, whole-doc write rule
+   (Cluster 3a) already covers the new fields.
+
+   Verified: type-check/lint/473 unit tests green; re-seeded the emulator
+   from a fully cleared Firestore (merge-write semantics would otherwise
+   have left the old `session`/`characterId` fields dangling on `Players`
+   docs from the pre-3b seed) and confirmed via direct REST calls with a
+   real Auth-emulator token that an owner can write `Posture`/`Injuries` on
+   their own character's `States/Current` doc, and that `Players/{uid}`
+   comes back in the exact documented shape.
 4. **Equipment / inventory unification — queued.** `Equipment/Main` is
    currently written by two incompatible schemas: legacy `InventoryRepository`/
    `useInventoryStore` (camelCase, actively used by `PlayerView.vue`/

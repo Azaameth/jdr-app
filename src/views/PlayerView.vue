@@ -29,20 +29,17 @@ import {
   listChildrenOf,
   updateCharacter,
 } from '../models/repositories/CharacterRepository'
+import {
+  getCharacterState,
+  type CharacterStateDocument,
+} from '../models/repositories/CharacterStateRepository'
 import { listClassesByCampaign } from '../models/repositories/ClassRepository'
-import { getParticipantByCharacterId } from '../models/repositories/ParticipantRepository'
 import { listRacesByCampaign } from '../models/repositories/RaceRepository'
 import { computeEffectiveMaxStat } from '../utils/effectiveStats'
 import type { CharacterAttributes, CharacterGift, CharacterProfile } from '../models/types/Character'
 import type { Class } from '../models/types/Class'
 import type { InventoryCategory, InventoryItem, WeaponArmorItem } from '../models/types/Inventory'
-import type {
-  CharacterSessionState,
-  InjuryState,
-  Participant,
-  Posture,
-  SecondaryAttributeName,
-} from '../models/types/Participant'
+import type { InjuryState, Posture, SecondaryAttributeName } from '../models/types/Participant'
 import type { Race } from '../models/types/Race'
 
 const props = withDefaults(
@@ -65,17 +62,25 @@ const campaignId = computed(() => props.campaignId ?? (route.params.id as string
 const characterId = computed(() => props.characterId ?? (route.params.characterId as string))
 
 const character = ref<CharacterProfile | null>(null)
-const participant = ref<Participant | null>(null)
+// Live combat state for the displayed character, keyed off its own
+// Campaigns/{id}/Characters/{id}/States/Current doc (NEXTSTEPS.md Cluster
+// 3b) — optimistically patched on write, kept in sync with the shared
+// party-wide live listener below (same shape as the old `participant` ref).
+const characterState = ref<CharacterStateDocument | null>(null)
+// Live state for whichever child (transformation) tab is active, if any —
+// each child is its own Character doc with its own States/Current, so this
+// is populated the same way as `characterState`, just for a different id.
+const childState = ref<CharacterStateDocument | null>(null)
 const inventory = computed(() => inventoryStore.inventory.value)
 const weapons = computed(() => inventory.value?.weapons ?? [])
 const armor = computed(() => inventory.value?.armor ?? [])
 const backpackItems = computed(() => inventory.value?.items ?? [])
 const equippedItems = computed(() => [...weapons.value, ...armor.value])
 const effectiveMaxHp = computed(() =>
-  computeEffectiveMaxStat(participant.value?.session.maxHp ?? 0, equippedItems.value, 'maxHp'),
+  computeEffectiveMaxStat(characterState.value?.Health ?? 0, equippedItems.value, 'maxHp'),
 )
 const effectiveMaxMana = computed(() =>
-  computeEffectiveMaxStat(participant.value?.session.maxMana ?? 0, equippedItems.value, 'maxMana'),
+  computeEffectiveMaxStat(characterState.value?.Mana ?? 0, equippedItems.value, 'maxMana'),
 )
 const races = ref<Race[]>([])
 const classes = ref<Class[]>([])
@@ -102,7 +107,7 @@ const canEditInventory = computed(() => {
 // canEditSession mirrors that: true exactly when the session box would have
 // rendered before this restructure, so VitruveSheet's steppers keep the
 // same visibility as pre-WP02 — no permission regression.
-const canEditSession = computed(() => Boolean(participant.value?.session))
+const canEditSession = computed(() => Boolean(characterState.value))
 
 // Owner or mj/admin may edit the Fiche's histoire and cycle Caractéristiques
 // injury squares — same predicate shape as canEditInventory above, mirrored
@@ -169,8 +174,8 @@ const activeChildEquipment = computed<WeaponArmorItem[]>(() => {
 const activeChildEffectiveMaxHp = computed(() => {
   const child = activeChild.value
   if (!child) return null
-  const base = participant.value?.childSessions?.[child.id] ?? EMPTY_CHILD_SESSION
-  return computeEffectiveMaxStat(base.maxHp, activeChildEquipment.value, 'maxHp')
+  const base = childState.value ?? EMPTY_CHILD_STATE
+  return computeEffectiveMaxStat(base.Health, activeChildEquipment.value, 'maxHp')
 })
 
 const EMPTY_ATTRIBUTES: CharacterAttributes = {
@@ -185,13 +190,13 @@ const activeContext = computed(() => {
   if (child) {
     return {
       attributes: child.attributes,
-      injuries: participant.value?.childSessions?.[child.id]?.injuries,
+      injuries: childState.value?.Injuries,
       contextKey: child.id,
     }
   }
   return {
     attributes: character.value?.attributes ?? EMPTY_ATTRIBUTES,
-    injuries: participant.value?.session.injuries,
+    injuries: characterState.value?.Injuries,
     contextKey: characterId.value,
   }
 })
@@ -329,23 +334,17 @@ function clampSessionValue(resource: 'hp' | 'mana', value: number, max: number) 
 }
 
 async function changeSessionResource(resource: 'hp' | 'mana', delta: number) {
-  if (!participant.value || !campaignId.value || !characterId.value) return
+  if (!characterState.value || !campaignId.value || !characterId.value) return
   if (sessionLoading.value) return
 
-  const session = participant.value.session
-  const current = resource === 'hp' ? session.hp : session.mana
+  const current = resource === 'hp' ? characterState.value.HealthCurrent : characterState.value.ManaCurrent
   const max = resource === 'hp' ? effectiveMaxHp.value : effectiveMaxMana.value
   const next = clampSessionValue(resource, current + delta, max)
   if (next === current) return
 
-  const previous = participant.value
-  participant.value = {
-    ...previous,
-    session: {
-      ...previous.session,
-      [resource]: next,
-    },
-  }
+  const previous = characterState.value
+  const field = resource === 'hp' ? 'HealthCurrent' : 'ManaCurrent'
+  characterState.value = { ...previous, [field]: next }
 
   sessionLoading.value = resource
   sessionError.value = ''
@@ -359,11 +358,11 @@ async function changeSessionResource(resource: 'hp' | 'mana', delta: number) {
       max,
     )
     if (!updated) {
-      throw new Error('Impossible de mettre a jour la session du participant.')
+      throw new Error('Impossible de mettre a jour la session du personnage.')
     }
-    participant.value = updated
+    characterState.value = updated
   } catch (err) {
-    participant.value = previous
+    characterState.value = previous
     sessionError.value =
       err instanceof Error ? err.message : 'Erreur lors de la mise a jour de la session.'
   } finally {
@@ -378,30 +377,24 @@ async function changeSessionResource(resource: 'hp' | 'mana', delta: number) {
 // an explicit + click, same as before this watcher existed.
 watch(effectiveMaxHp, (newMax, oldMax) => {
   if (newMax >= oldMax) return
-  const session = participant.value?.session
-  if (!session || session.hp <= newMax) return
-  void changeSessionResource('hp', newMax - session.hp)
+  const state = characterState.value
+  if (!state || state.HealthCurrent <= newMax) return
+  void changeSessionResource('hp', newMax - state.HealthCurrent)
 })
 watch(effectiveMaxMana, (newMax, oldMax) => {
   if (newMax >= oldMax) return
-  const session = participant.value?.session
-  if (!session || session.mana <= newMax) return
-  void changeSessionResource('mana', newMax - session.mana)
+  const state = characterState.value
+  if (!state || state.ManaCurrent <= newMax) return
+  void changeSessionResource('mana', newMax - state.ManaCurrent)
 })
 
 async function changePosture(posture: Posture) {
-  if (!participant.value || !campaignId.value || !characterId.value) return
+  if (!characterState.value || !campaignId.value || !characterId.value) return
   if (sessionLoading.value) return
-  if (participant.value.session.posture === posture) return
+  if (characterState.value.Posture === posture) return
 
-  const previous = participant.value
-  participant.value = {
-    ...previous,
-    session: {
-      ...previous.session,
-      posture,
-    },
-  }
+  const previous = characterState.value
+  characterState.value = { ...previous, Posture: posture }
 
   sessionLoading.value = 'posture'
   sessionError.value = ''
@@ -413,11 +406,11 @@ async function changePosture(posture: Posture) {
       posture,
     )
     if (!updated) {
-      throw new Error('Impossible de mettre a jour la posture du participant.')
+      throw new Error('Impossible de mettre a jour la posture du personnage.')
     }
-    participant.value = updated
+    characterState.value = updated
   } catch (err) {
-    participant.value = previous
+    characterState.value = previous
     sessionError.value =
       err instanceof Error ? err.message : 'Erreur lors de la mise a jour de la posture.'
   } finally {
@@ -432,65 +425,61 @@ async function changePosture(posture: Posture) {
 // see usePlayerStore.spec.ts's "does nothing when subscribeParty has not
 // been called" case) — loadCharacter below calls it for that reason.
 async function handleSetInjury(attr: SecondaryAttributeName, state: InjuryState | null) {
-  if (!participant.value || !campaignId.value || !characterId.value) return
+  if (!characterState.value || !campaignId.value || !characterId.value) return
 
-  const previous = participant.value
-  const nextInjuries = { ...previous.session.injuries }
+  const previous = characterState.value
+  const nextInjuries = { ...previous.Injuries }
   if (state === null) {
     delete nextInjuries[attr]
   } else {
     nextInjuries[attr] = state
   }
-  participant.value = {
-    ...previous,
-    session: { ...previous.session, injuries: nextInjuries },
-  }
+  characterState.value = { ...previous, Injuries: nextInjuries }
   caracError.value = ''
 
   await playerStore.setInjury(characterId.value, attr, state)
   if (playerStore.error.value) {
-    participant.value = previous
+    characterState.value = previous
     caracError.value = playerStore.error.value ?? ''
   }
 }
 
-// A child with no childSessions entry yet has no vitals to read (CharacterProfile
-// itself carries none — see ChildSheetTab.vue's FALLBACK_SESSION comment for why).
-// This all-zero base is what the FIRST ± bootstraps from, so `base.hp + delta` is
-// always a real number, never NaN.
-const EMPTY_CHILD_SESSION: CharacterSessionState = {
-  hp: 0,
-  maxHp: 0,
-  mana: 0,
-  maxMana: 0,
-  posture: 'FOCUS',
+// A child with no States/Current doc yet has no vitals to read (see
+// ChildSheetTab.vue's FALLBACK_STATE comment for why). This all-zero base is
+// what the FIRST ± bootstraps from, so `base.HealthCurrent + delta` is always
+// a real number, never NaN.
+const EMPTY_CHILD_STATE: CharacterStateDocument = {
+  Health: 0,
+  HealthCurrent: 0,
+  Mana: 0,
+  ManaCurrent: 0,
+  Posture: 'FOCUS',
+  PlayerId: '',
+  CampaignId: '',
 }
 
 // PV ± on a child tab (FR-015): same optimistic-update + revert-on-error shape
-// as changeSessionResource, but writes to the PARENT participant's
-// childSessions.<childId>.* (setChildVitals), never a participant doc of its
-// own (children have none — I-C2).
+// as changeSessionResource, but writes to the CHILD'S OWN States/Current doc
+// (Cluster 3b) via the same generic setSessionResource used for the main
+// character — a child needs no dedicated write path, since it's just another
+// Character with its own live state.
 async function adjustChildHp(childId: string, delta: number) {
-  if (!participant.value || !characterId.value) return
+  if (!campaignId.value) return
 
-  const previous = participant.value
-  const base = previous.childSessions?.[childId] ?? EMPTY_CHILD_SESSION
+  const previous = childState.value ?? EMPTY_CHILD_STATE
   const childInv = inventoryStore.childInventories.value[childId]
   const childEquipment = childInv ? [...childInv.weapons, ...childInv.armor] : []
-  const maxHp = computeEffectiveMaxStat(base.maxHp, childEquipment, 'maxHp')
-  const next = clampSessionValue('hp', base.hp + delta, maxHp)
-  if (next === base.hp && previous.childSessions?.[childId]) return
+  const maxHp = computeEffectiveMaxStat(previous.Health, childEquipment, 'maxHp')
+  const next = clampSessionValue('hp', previous.HealthCurrent + delta, maxHp)
+  if (next === previous.HealthCurrent && childState.value) return
 
-  participant.value = {
-    ...previous,
-    childSessions: { ...previous.childSessions, [childId]: { ...base, hp: next } },
-  }
+  childState.value = { ...previous, HealthCurrent: next }
   childError.value = ''
 
-  await playerStore.setChildVitals(characterId.value, childId, { hp: next })
-  if (playerStore.error.value) {
-    participant.value = previous
-    childError.value = playerStore.error.value ?? ''
+  const updated = await playerStore.setSessionResource(campaignId.value, childId, 'hp', next, maxHp)
+  if (!updated || playerStore.error.value) {
+    childState.value = previous
+    childError.value = playerStore.error.value ?? 'Erreur lors de la mise a jour du personnage.'
   }
 }
 
@@ -499,42 +488,33 @@ async function adjustChildHp(childId: string, delta: number) {
 watch(activeChildEffectiveMaxHp, (newMax, oldMax) => {
   const child = activeChild.value
   if (!child || newMax === null || oldMax === null || newMax >= oldMax) return
-  const base = participant.value?.childSessions?.[child.id]
-  if (!base || base.hp <= newMax) return
-  void adjustChildHp(child.id, newMax - base.hp)
+  const base = childState.value
+  if (!base || base.HealthCurrent <= newMax) return
+  void adjustChildHp(child.id, newMax - base.HealthCurrent)
 })
 
 // Cycles a child's Caractéristiques injury square — same replace-map
-// semantics (whole `injuries` object rewritten) as handleSetInjury, but
-// scoped to childSessions.<childId>.injuries.
+// semantics (whole `Injuries` object rewritten) as handleSetInjury, but
+// against the child's own States/Current doc via the same generic setInjury.
 async function handleSetChildInjury(
   childId: string,
   attr: SecondaryAttributeName,
   state: InjuryState | null,
 ) {
-  if (!participant.value || !characterId.value) return
-
-  const previous = participant.value
-  const base = previous.childSessions?.[childId] ?? EMPTY_CHILD_SESSION
-  const nextInjuries = { ...base.injuries }
+  const previous = childState.value ?? EMPTY_CHILD_STATE
+  const nextInjuries = { ...previous.Injuries }
   if (state === null) {
     delete nextInjuries[attr]
   } else {
     nextInjuries[attr] = state
   }
 
-  participant.value = {
-    ...previous,
-    childSessions: {
-      ...previous.childSessions,
-      [childId]: { ...base, injuries: nextInjuries },
-    },
-  }
+  childState.value = { ...previous, Injuries: nextInjuries }
   childError.value = ''
 
-  await playerStore.setChildVitals(characterId.value, childId, { injuries: nextInjuries })
+  await playerStore.setInjury(childId, attr, state)
   if (playerStore.error.value) {
-    participant.value = previous
+    childState.value = previous
     childError.value = playerStore.error.value ?? ''
   }
 }
@@ -558,41 +538,35 @@ function handleChildSetInjury(attr: SecondaryAttributeName, state: InjuryState |
 
 // Avantage/Désavantage toggles (FR-008): same optimistic-update + revert
 // shape as handleSetInjury above — advantage/disadvantage live on the same
-// CharacterSessionState, so they're gated by canEditSession (the predicate
+// CharacterStateDocument, so they're gated by canEditSession (the predicate
 // already governing every other field of that state, e.g. the PV/Mana
 // steppers) rather than a new predicate. Out-of-map edit, sanctioned by
 // WP04: AdvantageToggles/JetCalculator mount from VitruveSheet's `widgets`
 // slot, wired here since PlayerView already owns the session mutation flow.
 async function handleSetAdvantage(value: boolean) {
-  if (!participant.value || !characterId.value) return
+  if (!characterState.value || !characterId.value) return
 
-  const previous = participant.value
-  participant.value = {
-    ...previous,
-    session: { ...previous.session, advantage: value },
-  }
+  const previous = characterState.value
+  characterState.value = { ...previous, Advantage: value }
   advDisError.value = ''
 
   await playerStore.setAdvantage(characterId.value, value)
   if (playerStore.error.value) {
-    participant.value = previous
+    characterState.value = previous
     advDisError.value = playerStore.error.value ?? ''
   }
 }
 
 async function handleSetDisadvantage(value: boolean) {
-  if (!participant.value || !characterId.value) return
+  if (!characterState.value || !characterId.value) return
 
-  const previous = participant.value
-  participant.value = {
-    ...previous,
-    session: { ...previous.session, disadvantage: value },
-  }
+  const previous = characterState.value
+  characterState.value = { ...previous, Disadvantage: value }
   advDisError.value = ''
 
   await playerStore.setDisadvantage(characterId.value, value)
   if (playerStore.error.value) {
-    participant.value = previous
+    characterState.value = previous
     advDisError.value = playerStore.error.value ?? ''
   }
 }
@@ -618,7 +592,8 @@ async function handleSaveHistoire(text: string) {
 async function loadCharacter() {
   if (!campaignId.value || !characterId.value) {
     character.value = null
-    participant.value = null
+    characterState.value = null
+    childState.value = null
     races.value = []
     classes.value = []
     children.value = []
@@ -648,9 +623,9 @@ async function loadCharacter() {
   campaignSessionStore.subscribe(campaignId.value)
 
   try {
-    const [char, participantRow, , raceList, classList, childList] = await Promise.all([
+    const [char, stateRow, , raceList, classList, childList] = await Promise.all([
       getCharacterByCampaign(campaignId.value, characterId.value),
-      getParticipantByCharacterId(characterId.value, campaignId.value),
+      getCharacterState(campaignId.value, characterId.value),
       inventoryStore.loadInventory(characterId.value, campaignId.value),
       listRacesByCampaign(campaignId.value),
       listClassesByCampaign(campaignId.value),
@@ -659,9 +634,7 @@ async function loadCharacter() {
     character.value = char
     // Prefer the live snapshot row if the party subscription already delivered
     // one — the one-shot fetch may resolve after a fresher snapshot.
-    participant.value =
-      playerStore.partyParticipants.value.find((p) => p.characterId === characterId.value) ??
-      participantRow
+    characterState.value = playerStore.partyCharacterStates.value[characterId.value] ?? stateRow
     races.value = raceList
     classes.value = classList
     children.value = childList
@@ -688,16 +661,42 @@ watch([campaignId, characterId, () => authStore.user.value?.uid], loadCharacter,
 })
 
 // The displayed sheet (vitals pills, injuries, avantage/désavantage, child
-// sessions) must stay live for remote viewers too, not just État du groupe:
-// feed `participant` from the party subscription snapshot already attached by
-// loadCharacter — no extra listener involved.
+// state) must stay live for remote viewers too, not just État du groupe: feed
+// `characterState`/`childState` from the party-wide live listener that
+// subscribeParty already attached (one per character in the campaign) — no
+// extra listener involved.
 watch(
-  () => playerStore.partyParticipants.value,
-  (list) => {
+  () => playerStore.partyCharacterStates.value,
+  (map) => {
     if (forbidden.value) return
-    const live = list.find((p) => p.characterId === characterId.value)
-    if (live) participant.value = live
+    const live = map[characterId.value]
+    if (live) characterState.value = live
+    const child = activeChild.value
+    if (child) {
+      const liveChild = map[child.id]
+      if (liveChild) childState.value = liveChild
+    }
   },
+)
+
+// Populate/refresh the active child's live state whenever the active tab
+// switches to a different child — mirrors loadCharacter's own "prefer the
+// live snapshot, fall back to a one-shot fetch" pattern exactly, rather than
+// depending solely on subscribeParty's per-character listener already having
+// delivered a snapshot for this specific child (its subscribe call is
+// idempotent per campaignId, so a child added after the initial subscription
+// wouldn't otherwise get a listener attached at all).
+watch(
+  activeChild,
+  async (child) => {
+    if (!child || !campaignId.value) {
+      childState.value = null
+      return
+    }
+    const live = playerStore.partyCharacterStates.value[child.id]
+    childState.value = live ?? (await getCharacterState(campaignId.value, child.id))
+  },
+  { immediate: true },
 )
 
 // MJ/admin raw-data editor (FR-004): trigger lives in VitruveSheet's widgets
@@ -736,7 +735,7 @@ onBeforeUnmount(() => {
     <div v-else-if="character" class="vitruve-layout">
       <VitruveSheet
         :character="character"
-        :participant="participant"
+        :state="characterState"
         :race-name="raceDisplayName"
         :class-name="classDisplayName"
         :can-edit-session="canEditSession"
@@ -754,7 +753,7 @@ onBeforeUnmount(() => {
           />
           <p v-if="advDisError" class="error">{{ advDisError }}</p>
           <AdvantageToggles
-            :session="participant?.session ?? null"
+            :state="characterState"
             :can-edit="canEditSession"
             @set-advantage="handleSetAdvantage"
             @set-disadvantage="handleSetDisadvantage"
@@ -803,7 +802,7 @@ onBeforeUnmount(() => {
             <p v-if="caracError" class="error">{{ caracError }}</p>
             <CaracTab
               :character="character"
-              :session="participant?.session ?? null"
+              :state="characterState"
               :can-edit="canEditCharacter"
               :race="selectedRace"
               :posture-options="postureOptions"
@@ -851,7 +850,7 @@ onBeforeUnmount(() => {
             <p v-if="childError" class="error">{{ childError }}</p>
             <ChildSheetTab
               :child="activeChild"
-              :child-session="participant?.childSessions?.[activeChild.id] ?? null"
+              :state="childState"
               :can-edit="canEditCharacter"
               :equipment="activeChildEquipment"
               @adjust-hp="handleChildAdjustHp"

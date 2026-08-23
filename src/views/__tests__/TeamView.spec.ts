@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from 'vitest'
 import { computed } from 'vue'
 import { flushPromises, mount } from '@vue/test-utils'
 import type { CharacterProfile } from '../../models/types/Character'
-import type { Participant } from '../../models/types/Participant'
+import type { CharacterStateDocument } from '../../models/repositories/CharacterStateRepository'
 import type { CharacterInventory, WeaponArmorItem } from '../../models/types/Inventory'
 
 vi.mock('vue-router', async () => {
@@ -62,14 +62,15 @@ function makeCharacter(overrides: Partial<CharacterProfile> = {}): CharacterProf
   }
 }
 
-function makeParticipant(overrides: Partial<Participant> = {}): Participant {
+function makeState(overrides: Partial<CharacterStateDocument> = {}): CharacterStateDocument {
   return {
-    id: 'part-1',
-    uid: 'uid-1',
-    campaignId: 'campaign-1',
-    characterId: 'char-1',
-    status: 'Approved',
-    session: { hp: 10, maxHp: 10, mana: 4, maxMana: 4, posture: 'FOCUS' },
+    Health: 10,
+    HealthCurrent: 10,
+    Mana: 4,
+    ManaCurrent: 4,
+    Posture: 'FOCUS',
+    PlayerId: 'uid-1',
+    CampaignId: 'campaign-1',
     ...overrides,
   }
 }
@@ -91,16 +92,16 @@ function makeInventory(
 }
 
 const listCharactersByCampaign = vi.fn<() => Promise<CharacterProfile[]>>()
-const listParticipantsByCampaign = vi.fn<() => Promise<Participant[]>>()
+const getCharacterState = vi.fn<() => Promise<CharacterStateDocument | null>>()
 const listInventoriesByCampaign = vi.fn<() => Promise<CharacterInventory[]>>()
 
 vi.mock('../../models/repositories/CharacterRepository', () => ({
   listCharactersByCampaign: (...args: unknown[]) => listCharactersByCampaign(...(args as [])),
 }))
 
-vi.mock('../../models/repositories/ParticipantRepository', () => ({
-  listParticipantsByCampaign: (...args: unknown[]) => listParticipantsByCampaign(...(args as [])),
-  resetTeamSessionToMax: vi.fn<() => Promise<void>>(),
+vi.mock('../../models/repositories/CharacterStateRepository', () => ({
+  getCharacterState: (...args: unknown[]) => getCharacterState(...(args as [])),
+  resetTeamStatesToMax: vi.fn<() => Promise<number>>(),
 }))
 
 vi.mock('../../models/repositories/InventoryRepository', () => ({
@@ -112,7 +113,7 @@ import TeamView from '../TeamView.vue'
 describe('TeamView', () => {
   it('shows a combined armor total with an AM/AP breakdown for an equipped character', async () => {
     listCharactersByCampaign.mockResolvedValue([makeCharacter()])
-    listParticipantsByCampaign.mockResolvedValue([makeParticipant()])
+    getCharacterState.mockResolvedValue(makeState())
     listInventoriesByCampaign.mockResolvedValue([
       makeInventory(
         [],
@@ -143,7 +144,7 @@ describe('TeamView', () => {
 
   it('shows a zero armor total for a character with no equipped bonuses', async () => {
     listCharactersByCampaign.mockResolvedValue([makeCharacter()])
-    listParticipantsByCampaign.mockResolvedValue([makeParticipant()])
+    getCharacterState.mockResolvedValue(makeState())
     listInventoriesByCampaign.mockResolvedValue([])
 
     const wrapper = mount(TeamView)
@@ -155,9 +156,7 @@ describe('TeamView', () => {
 
   it('displays effective max PV/Mana (raw stored max plus equipped bonuses), not the raw stored max', async () => {
     listCharactersByCampaign.mockResolvedValue([makeCharacter()])
-    listParticipantsByCampaign.mockResolvedValue([
-      makeParticipant({ session: { hp: 10, maxHp: 10, mana: 4, maxMana: 4, posture: 'FOCUS' } }),
-    ])
+    getCharacterState.mockResolvedValue(makeState({ Health: 10, HealthCurrent: 10, Mana: 4, ManaCurrent: 4 }))
     listInventoriesByCampaign.mockResolvedValue([
       makeInventory([], [
         {

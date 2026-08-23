@@ -1,14 +1,14 @@
 <script setup lang="ts">
-import type { CharacterSessionState } from '../../models/types/Participant'
+import type { CharacterStateDocument } from '../../models/repositories/CharacterStateRepository'
 
 // Avantage/Désavantage toggles (FR-008). Both persist via
 // usePlayerStore().setAdvantage/setDisadvantage (wired by the view) and are
-// live session values — this component holds NO local optimistic state that
-// could shadow them; the checkbox `checked` is bound straight to
-// `session.advantage`/`session.disadvantage` so remote changes (another
-// viewer, MJ) are always reflected.
+// live States/Current values — this component holds NO local optimistic
+// state that could shadow them; the checkbox `checked` is bound straight to
+// `state.Advantage`/`state.Disadvantage` so remote changes (another viewer,
+// MJ) are always reflected.
 const props = defineProps<{
-  session: CharacterSessionState | null
+  state: CharacterStateDocument | null
   canEdit: boolean
 }>()
 
@@ -36,7 +36,7 @@ function handleDisadvantageChange(event: Event) {
       <span class="avdis-label">Avantage</span>
       <input
         type="checkbox"
-        :checked="props.session?.advantage ?? false"
+        :checked="props.state?.Advantage ?? false"
         :disabled="!props.canEdit"
         aria-label="Avantage"
         @change="handleAdvantageChange"
@@ -47,7 +47,7 @@ function handleDisadvantageChange(event: Event) {
       <span class="avdis-label">Désavantage</span>
       <input
         type="checkbox"
-        :checked="props.session?.disadvantage ?? false"
+        :checked="props.state?.Disadvantage ?? false"
         :disabled="!props.canEdit"
         aria-label="Désavantage"
         @change="handleDisadvantageChange"

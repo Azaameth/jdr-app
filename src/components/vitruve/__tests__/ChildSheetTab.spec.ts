@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { mount } from '@vue/test-utils'
 import ChildSheetTab from '../ChildSheetTab.vue'
 import type { CharacterProfile } from '../../../models/types/Character'
-import type { CharacterSessionState } from '../../../models/types/Participant'
+import type { CharacterStateDocument } from '../../../models/repositories/CharacterStateRepository'
 
 function makeChild(overrides: Partial<CharacterProfile> = {}): CharacterProfile {
   return {
@@ -29,13 +29,15 @@ function makeChild(overrides: Partial<CharacterProfile> = {}): CharacterProfile 
   }
 }
 
-function makeSession(overrides: Partial<CharacterSessionState> = {}): CharacterSessionState {
+function makeState(overrides: Partial<CharacterStateDocument> = {}): CharacterStateDocument {
   return {
-    hp: 48,
-    maxHp: 48,
-    mana: 0,
-    maxMana: 0,
-    posture: 'FOCUS',
+    Health: 48,
+    HealthCurrent: 48,
+    Mana: 0,
+    ManaCurrent: 0,
+    Posture: 'FOCUS',
+    PlayerId: 'owner-uid',
+    CampaignId: 'campaign-1',
     ...overrides,
   }
 }
@@ -43,17 +45,17 @@ function makeSession(overrides: Partial<CharacterSessionState> = {}): CharacterS
 describe('ChildSheetTab', () => {
   it('renders the "«name» — Forme" header', () => {
     const wrapper = mount(ChildSheetTab, {
-      props: { child: makeChild(), childSession: makeSession(), canEdit: false },
+      props: { child: makeChild(), state: makeState(), canEdit: false },
     })
 
     expect(wrapper.find('.child-head').text()).toBe('Furmiaou — Forme')
   })
 
-  it('renders PV/max and Mana/max from the childSession prop', () => {
+  it('renders PV/max and Mana/max from the state prop', () => {
     const wrapper = mount(ChildSheetTab, {
       props: {
         child: makeChild(),
-        childSession: makeSession({ hp: 40, maxHp: 48, mana: 0, maxMana: 0 }),
+        state: makeState({ HealthCurrent: 40, Health: 48, ManaCurrent: 0, Mana: 0 }),
         canEdit: false,
       },
     })
@@ -66,7 +68,7 @@ describe('ChildSheetTab', () => {
 
   it('shows the "Aucune magie" italic note when maxMana is 0', () => {
     const wrapper = mount(ChildSheetTab, {
-      props: { child: makeChild(), childSession: makeSession({ maxMana: 0 }), canEdit: false },
+      props: { child: makeChild(), state: makeState({ Mana: 0 }), canEdit: false },
     })
 
     expect(wrapper.find('.no-mana-note').exists()).toBe(true)
@@ -77,7 +79,7 @@ describe('ChildSheetTab', () => {
     const wrapper = mount(ChildSheetTab, {
       props: {
         child: makeChild(),
-        childSession: makeSession({ mana: 3, maxMana: 6 }),
+        state: makeState({ ManaCurrent: 3, Mana: 6 }),
         canEdit: false,
       },
     })
@@ -85,9 +87,9 @@ describe('ChildSheetTab', () => {
     expect(wrapper.find('.no-mana-note').exists()).toBe(false)
   })
 
-  it('falls back to an all-zero session (never NaN) when childSession is null', () => {
+  it('falls back to an all-zero state (never NaN) when state is null', () => {
     const wrapper = mount(ChildSheetTab, {
-      props: { child: makeChild(), childSession: null, canEdit: true },
+      props: { child: makeChild(), state: null, canEdit: true },
     })
 
     expect(wrapper.text()).toContain('PV / 0')
@@ -103,7 +105,7 @@ describe('ChildSheetTab', () => {
 
   it('renders element badges from child.elements', () => {
     const wrapper = mount(ChildSheetTab, {
-      props: { child: makeChild(), childSession: makeSession(), canEdit: false },
+      props: { child: makeChild(), state: makeState(), canEdit: false },
     })
 
     const badges = wrapper.findAll('.element-badge').map((el) => el.text())
@@ -112,7 +114,7 @@ describe('ChildSheetTab', () => {
 
   it('omits the element-badges row entirely when the child has no elements', () => {
     const wrapper = mount(ChildSheetTab, {
-      props: { child: makeChild({ elements: [] }), childSession: makeSession(), canEdit: false },
+      props: { child: makeChild({ elements: [] }), state: makeState(), canEdit: false },
     })
 
     expect(wrapper.find('.element-badges').exists()).toBe(false)
@@ -120,7 +122,7 @@ describe('ChildSheetTab', () => {
 
   it('renders the three carac categories (Physique/Social/Mental) with the CHILD attributes', () => {
     const wrapper = mount(ChildSheetTab, {
-      props: { child: makeChild(), childSession: makeSession(), canEdit: false },
+      props: { child: makeChild(), state: makeState(), canEdit: false },
     })
 
     const labels = wrapper.findAll('.cat-label').map((el) => el.text())
@@ -132,7 +134,7 @@ describe('ChildSheetTab', () => {
 
   it('emits adjust-hp(1)/(-1) when the PV steppers are clicked', async () => {
     const wrapper = mount(ChildSheetTab, {
-      props: { child: makeChild(), childSession: makeSession({ hp: 20, maxHp: 48 }), canEdit: true },
+      props: { child: makeChild(), state: makeState({ HealthCurrent: 20, Health: 48 }), canEdit: true },
     })
 
     await wrapper.find('[aria-label="Augmenter les PV"]').trigger('click')
@@ -143,7 +145,7 @@ describe('ChildSheetTab', () => {
 
   it('disables the PV steppers when canEdit is false', () => {
     const wrapper = mount(ChildSheetTab, {
-      props: { child: makeChild(), childSession: makeSession({ hp: 20, maxHp: 48 }), canEdit: false },
+      props: { child: makeChild(), state: makeState({ HealthCurrent: 20, Health: 48 }), canEdit: false },
     })
 
     expect(wrapper.find('.child-hp-btns').exists()).toBe(false)
@@ -151,7 +153,7 @@ describe('ChildSheetTab', () => {
 
   it('emits set-injury with the next state through the full cycle (saine → jaune → rouge → saine)', async () => {
     const wrapperSaine = mount(ChildSheetTab, {
-      props: { child: makeChild(), childSession: makeSession(), canEdit: true },
+      props: { child: makeChild(), state: makeState(), canEdit: true },
     })
     await wrapperSaine.findAll('.injury-square')[0]?.trigger('click')
     expect(wrapperSaine.emitted('set-injury')).toEqual([['puissance', 'jaune']])
@@ -159,7 +161,7 @@ describe('ChildSheetTab', () => {
     const wrapperJaune = mount(ChildSheetTab, {
       props: {
         child: makeChild(),
-        childSession: makeSession({ injuries: { puissance: 'jaune' } }),
+        state: makeState({ Injuries: { puissance: 'jaune' } }),
         canEdit: true,
       },
     })
@@ -169,7 +171,7 @@ describe('ChildSheetTab', () => {
     const wrapperRouge = mount(ChildSheetTab, {
       props: {
         child: makeChild(),
-        childSession: makeSession({ injuries: { puissance: 'rouge' } }),
+        state: makeState({ Injuries: { puissance: 'rouge' } }),
         canEdit: true,
       },
     })
@@ -181,7 +183,7 @@ describe('ChildSheetTab', () => {
     const wrapper = mount(ChildSheetTab, {
       props: {
         child: makeChild(),
-        childSession: makeSession({ injuries: { puissance: 'rouge', finesse: 'rouge' } }),
+        state: makeState({ Injuries: { puissance: 'rouge', finesse: 'rouge' } }),
         canEdit: false,
       },
     })
@@ -191,7 +193,7 @@ describe('ChildSheetTab', () => {
 
   it('injury squares are disabled and clicking does not emit when canEdit is false', async () => {
     const wrapper = mount(ChildSheetTab, {
-      props: { child: makeChild(), childSession: makeSession(), canEdit: false },
+      props: { child: makeChild(), state: makeState(), canEdit: false },
     })
 
     const squares = wrapper.findAll('.injury-square')
@@ -205,7 +207,7 @@ describe('ChildSheetTab', () => {
     const wrapper = mount(ChildSheetTab, {
       props: {
         child: makeChild(),
-        childSession: makeSession(),
+        state: makeState(),
         canEdit: false,
         equipment: [
           {
@@ -230,7 +232,7 @@ describe('ChildSheetTab', () => {
 
   it('shows an all-zero armor total when the child has no equipment prop', () => {
     const wrapper = mount(ChildSheetTab, {
-      props: { child: makeChild(), childSession: makeSession(), canEdit: false },
+      props: { child: makeChild(), state: makeState(), canEdit: false },
     })
 
     expect(wrapper.find('.armor-total').text()).toBe('0')

@@ -62,10 +62,10 @@ service cloud.firestore {
 
       // Approval status per player. Coarse (owner-or-mj, whole-doc) on
       // purpose, matching the flat legacy `participants` rule below during
-      // the migration — session/injuries/posture fields still live on this
-      // doc too (Cluster 3a; moving them to Characters/{id}/States/Current
-      // is Cluster 3b, not done yet), and players need to freely adjust
-      // their own hp/mana/posture/injuries/advantage.
+      // the migration. Live combat state (hp/mana/posture/injuries/advantage)
+      // moved off this doc onto Characters/{id}/States/Current in Cluster 3b —
+      // see that match block's rule below for why players can freely adjust
+      // their own.
       match /Players/{uid} {
         allow read: if isSignedIn();
         allow create, update: if isMjOrAdmin() || request.auth.uid == uid;

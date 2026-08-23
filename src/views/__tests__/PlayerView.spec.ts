@@ -1,11 +1,11 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { afterEach, describe, it, expect, vi, beforeEach } from 'vitest'
 import { computed, ref } from 'vue'
 import { flushPromises, mount } from '@vue/test-utils'
 import type { CharacterProfile } from '../../models/types/Character'
 import type { CharacterInventory, WeaponArmorItem } from '../../models/types/Inventory'
 import type { Participant } from '../../models/types/Participant'
+import type { CharacterStateDocument } from '../../models/repositories/CharacterStateRepository'
 import type { User } from '../../models/types/User'
-import { setParticipantSessionByCharacterId } from '../../models/repositories/ParticipantRepository'
 
 vi.mock('vue-router', async () => {
   const actual = await vi.importActual<typeof import('vue-router')>('vue-router')
@@ -28,38 +28,57 @@ vi.mock('../../controllers/useInventoryStore', () => ({
 vi.mock('../../models/repositories/CharacterRepository', () => ({
   getCharacterByCampaign: vi.fn<() => Promise<CharacterProfile | null>>(async () => currentCharacter),
   updateCharacter: vi.fn<() => Promise<void>>(async () => {}),
-  // WP03: usePlayerStore().subscribeParty (needed for setInjury to have a
-  // campaign context) calls listCharactersByCampaign internally.
-  listCharactersByCampaign: vi.fn<() => Promise<CharacterProfile[]>>(async () => []),
+  // usePlayerStore().subscribeParty (needed for a live campaign context) calls
+  // listCharactersByCampaign internally to attach one States/Current listener
+  // per character — return the displayed character AND its children, mirroring
+  // what the real nested Characters collection would contain.
+  listCharactersByCampaign: vi.fn<() => Promise<CharacterProfile[]>>(async () =>
+    [currentCharacter, ...currentChildren].filter((c): c is CharacterProfile => c !== null),
+  ),
   // WP06: loadCharacter() now also fetches the displayed character's children
   // (Furmiaou-style transformations) alongside it — default to none so every
   // pre-existing test in this file (none of which are about children) keeps
   // seeing exactly the four base tabs.
   listChildrenOf: vi.fn<() => Promise<CharacterProfile[]>>(async () => currentChildren),
 }))
-// WP06: updateChildSession backs usePlayerStore().setChildVitals — hoisted
-// (vi.mock factories run before top-level const declarations, per Vitest's
-// hoisting rules — see usePlayerStore.spec.ts for the same pattern) so
-// child-tab tests can assert the childId/fields it was called with.
-const { mockUpdateChildSession, partySnapshot } = vi.hoisted(() => ({
-  mockUpdateChildSession: vi.fn<() => Promise<void>>(async () => {}),
-  // DRIFT-1 fix (mission review): capture the live-subscription callback so
-  // tests can push participant snapshots the way Firestore would.
-  partySnapshot: { deliver: undefined as ((list: Participant[]) => void) | undefined },
+// Hoisted (vi.mock factories run before top-level const declarations, per
+// Vitest's hoisting rules) so tests can assert the exact characterId/fields
+// updateCharacterState was called with, and push a live state update the way
+// Firestore's onSnapshot would (captured per characterId, never auto-invoked
+// except when a test explicitly does so — mirroring how the pre-3b file kept
+// the participants-snapshot capture from leaking stale data across tests).
+const { stateCallbacks, mockUpdateCharacterState } = vi.hoisted(() => ({
+  stateCallbacks: {} as Record<string, ((state: CharacterStateDocument | null) => void) | undefined>,
+  mockUpdateCharacterState: vi.fn<() => Promise<void>>(async () => {}),
+}))
+vi.mock('../../models/repositories/CharacterStateRepository', () => ({
+  getCharacterState: vi.fn<
+    (campaignId: string, characterId: string) => Promise<CharacterStateDocument | null>
+  >(async (_campaignId, characterId) => currentStates[characterId] ?? null),
+  subscribeCharacterState: vi.fn<
+    (
+      campaignId: string,
+      characterId: string,
+      onChange: (state: CharacterStateDocument | null) => void,
+    ) => () => void
+  >((_campaignId, characterId, onChange) => {
+    stateCallbacks[characterId] = onChange
+    return () => {
+      stateCallbacks[characterId] = undefined
+    }
+  }),
+  updateCharacterState: mockUpdateCharacterState,
 }))
 vi.mock('../../models/repositories/ParticipantRepository', () => ({
-  getParticipantByCharacterId: vi.fn<() => Promise<Participant | null>>(
-    async () => currentParticipant,
-  ),
-  setParticipantSessionByCharacterId: vi.fn<() => Promise<null>>(async () => null),
-  // WP03: usePlayerStore().subscribeParty attaches this live listener too.
+  // usePlayerStore().subscribeParty attaches this live listener too (it feeds
+  // PartyStatus, mounted for real inside VitruveSheet's widgets slot) — no
+  // test in this file needs it to deliver anything beyond an empty roster.
   subscribeParticipantsByCampaign: vi.fn<
     (campaignId: string, onChange: (list: Participant[]) => void) => () => void
   >((_campaignId, onChange) => {
-    partySnapshot.deliver = onChange
+    onChange([])
     return () => {}
   }),
-  updateChildSession: mockUpdateChildSession,
 }))
 vi.mock('../../models/repositories/ClassRepository', () => ({
   listClassesByCampaign: vi.fn<() => Promise<unknown[]>>(async () => []),
@@ -69,6 +88,7 @@ vi.mock('../../models/repositories/RaceRepository', () => ({
 }))
 
 import PlayerView from '../PlayerView.vue'
+import { usePlayerStore } from '../../controllers/usePlayerStore'
 import CaracTab from '../../components/vitruve/CaracTab.vue'
 import ChildSheetTab from '../../components/vitruve/ChildSheetTab.vue'
 import FicheTab from '../../components/vitruve/FicheTab.vue'
@@ -168,26 +188,27 @@ function makeInventory(overrides: Partial<CharacterInventory> = {}): CharacterIn
   }
 }
 
+function makeState(overrides: Partial<CharacterStateDocument> = {}): CharacterStateDocument {
+  return {
+    Health: 10,
+    HealthCurrent: 10,
+    Mana: 5,
+    ManaCurrent: 5,
+    Posture: 'FOCUS',
+    PlayerId: 'owner-uid',
+    CampaignId: 'campaign-1',
+    ...overrides,
+  }
+}
+
 // The mocked CharacterRepository reads this module-level fixture.
 let currentCharacter: CharacterProfile | null = null
 // WP06: children of `currentCharacter`, read by the mocked listChildrenOf.
 let currentChildren: CharacterProfile[] = []
-// WP06: the parent participant doc, read by the mocked getParticipantByCharacterId
-// — carries `childSessions` for the child-tab tests. Defaults to null, same as
-// the hardcoded stub every pre-WP06 test in this file already relied on.
-let currentParticipant: Participant | null = null
-
-function makeParticipant(overrides: Partial<Participant> = {}): Participant {
-  return {
-    id: 'participant-1',
-    uid: 'owner-uid',
-    campaignId: 'campaign-1',
-    characterId: 'char-1',
-    status: 'Approved',
-    session: { hp: 10, maxHp: 10, mana: 5, maxMana: 5, posture: 'FOCUS' },
-    ...overrides,
-  }
-}
+// Live combat state per characterId (base character AND any children), read
+// by the mocked getCharacterState/subscribeCharacterState — mirrors each
+// character's own Campaigns/{id}/Characters/{id}/States/Current doc.
+let currentStates: Record<string, CharacterStateDocument | undefined> = {}
 
 // Dons/Inventaire now live behind the vitruve tab host (WP02) instead of
 // always-rendered sections — tests that assert on their content must select
@@ -199,12 +220,23 @@ async function selectTab(wrapper: ReturnType<typeof mount>, label: string) {
   await flushPromises()
 }
 
+// usePlayerStore's party subscription is a real singleton (module-scope
+// state), idempotent per campaignId — every test in this file mounts
+// PlayerView with the same 'campaign-1', so without an explicit reset the
+// FIRST test to establish the subscription would "win" for every later test,
+// and `partyCharacterStates` (preferred over the one-shot fetch in
+// PlayerView's loadCharacter) would keep serving stale data. Mirrors what
+// PlayerView's own onBeforeUnmount already does on a real unmount.
+afterEach(() => {
+  usePlayerStore().unsubscribeParty()
+})
+
 describe('PlayerView — inventory slot editing permissions (T015/T017)', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     currentCharacter = makeCharacter()
     currentChildren = []
-    currentParticipant = null
+    currentStates = {}
   })
 
   it('grants edit affordances to the inventory owner (joueur, own character)', async () => {
@@ -307,7 +339,7 @@ describe('PlayerView — inventory slot save/delete store integration (T016, rev
     vi.clearAllMocks()
     currentCharacter = makeCharacter()
     currentChildren = []
-    currentParticipant = null
+    currentStates = {}
   })
 
   function mountAsOwner() {
@@ -513,7 +545,7 @@ describe('PlayerView — vitruve tab host (T010/T013)', () => {
     vi.clearAllMocks()
     currentCharacter = makeCharacter()
     currentChildren = []
-    currentParticipant = null
+    currentStates = {}
   })
 
   function mountAsOwner() {
@@ -523,40 +555,28 @@ describe('PlayerView — vitruve tab host (T010/T013)', () => {
     mockInventoryState.mockReturnValue(makeInventoryStore(makeInventory({ uid: 'owner-uid' })))
   }
 
-  it('met à jour la fiche affichée quand la souscription du groupe livre une nouvelle session (DRIFT-1)', async () => {
-    currentParticipant = makeParticipant()
+  it('met à jour la fiche affichée quand la souscription de son état de personnage livre un nouvel état (DRIFT-1)', async () => {
+    currentStates['char-1'] = makeState({ HealthCurrent: 10 })
     mountAsOwner()
 
     const wrapper = mount(PlayerView, { props: { campaignId: 'campaign-1', characterId: 'char-1' } })
     await flushPromises()
 
-    expect(wrapper.findComponent(VitruveSheet).props('participant')?.session.hp).toBe(10)
+    expect(wrapper.findComponent(VitruveSheet).props('state')?.HealthCurrent).toBe(10)
 
-    // A remote viewer's change arrives through the snapshot listener: the
-    // displayed sheet (pills, injuries) must follow without a reload.
-    partySnapshot.deliver?.([
-      makeParticipant({
-        session: {
-          hp: 3,
-          maxHp: 10,
-          mana: 5,
-          maxMana: 5,
-          posture: 'FOCUS',
-          injuries: { puissance: 'rouge' },
-        },
-      }),
-    ])
+    // A remote viewer's change arrives through the live States/Current
+    // listener: the displayed sheet (pills, injuries) must follow without a
+    // reload.
+    stateCallbacks['char-1']?.(
+      makeState({ HealthCurrent: 3, Injuries: { puissance: 'rouge' } }),
+    )
     await flushPromises()
 
-    expect(wrapper.findComponent(VitruveSheet).props('participant')?.session.hp).toBe(3)
+    expect(wrapper.findComponent(VitruveSheet).props('state')?.HealthCurrent).toBe(3)
     await selectTab(wrapper, 'Caractéristiques')
-    expect(wrapper.findComponent(CaracTab).props('session')?.injuries).toEqual({
+    expect(wrapper.findComponent(CaracTab).props('state')?.Injuries).toEqual({
       puissance: 'rouge',
     })
-
-    // Reset the singleton store's snapshot so later tests fall back to their
-    // own one-shot fixtures.
-    partySnapshot.deliver?.([])
   })
 
   it('renders VitruveSheet in the left column and defaults to the Fiche tab', async () => {
@@ -673,7 +693,7 @@ describe('PlayerView — child character tabs & raw editor (WP06)', () => {
     vi.clearAllMocks()
     currentCharacter = makeCharacter()
     currentChildren = []
-    currentParticipant = null
+    currentStates = {}
   })
 
   function mountAsOwner() {
@@ -707,14 +727,10 @@ describe('PlayerView — child character tabs & raw editor (WP06)', () => {
     ])
   })
 
-  it('switching to a child tab renders ChildSheetTab with the child and its childSessions entry', async () => {
+  it('switching to a child tab renders ChildSheetTab with the child and its own live state', async () => {
     mountAsOwner()
     currentChildren = [furmiaou]
-    currentParticipant = makeParticipant({
-      childSessions: {
-        furmiaou: { hp: 40, maxHp: 48, mana: 0, maxMana: 0, posture: 'FOCUS' },
-      },
-    })
+    currentStates['furmiaou'] = makeState({ HealthCurrent: 40, Health: 48 })
 
     const wrapper = mount(PlayerView, { props: { campaignId: 'campaign-1', characterId: 'char-1' } })
     await flushPromises()
@@ -723,35 +739,30 @@ describe('PlayerView — child character tabs & raw editor (WP06)', () => {
     const childTab = wrapper.findComponent(ChildSheetTab)
     expect(childTab.exists()).toBe(true)
     expect(childTab.props('child').id).toBe('furmiaou')
-    expect(childTab.props('childSession')).toEqual({
-      hp: 40,
-      maxHp: 48,
-      mana: 0,
-      maxMana: 0,
-      posture: 'FOCUS',
-    })
+    expect(childTab.props('state')).toEqual(
+      expect.objectContaining({ HealthCurrent: 40, Health: 48 }),
+    )
     expect(wrapper.findComponent(FicheTab).exists()).toBe(false)
   })
 
-  it('falls back to a zeroed session when the child has no childSessions entry yet, and PV + persists via setChildVitals', async () => {
+  it('falls back to a zeroed state when the child has no States/Current doc yet, and PV + persists via setSessionResource', async () => {
     mountAsOwner()
     currentChildren = [furmiaou]
-    currentParticipant = makeParticipant() // no childSessions.furmiaou entry yet
+    // no currentStates['furmiaou'] entry
 
     const wrapper = mount(PlayerView, { props: { campaignId: 'campaign-1', characterId: 'char-1' } })
     await flushPromises()
     await selectTab(wrapper, 'Furmiaou')
 
-    expect(wrapper.findComponent(ChildSheetTab).props('childSession')).toBeNull()
-    // Fallback session is all-zero (PV / 0), never NaN.
+    expect(wrapper.findComponent(ChildSheetTab).props('state')).toBeNull()
+    // Fallback state is all-zero (PV / 0), never NaN.
     expect(wrapper.text()).toContain('PV / 0')
 
-    // PlayerView.vue's clampSessionValue clamps hp to [-maxHp, maxHp]; with
-    // maxHp 0 the '+' stepper is disabled by ChildSheetTab's hpPlusDisabled
-    // (session.hp >= session.maxHp, 0 >= 0) — this documents that a child
-    // with no bootstrapped session has no usable PV stepper until an MJ
-    // raw-edits a real childSessions entry (or seed data provides one, as
-    // it does for the real Furmiaou fixture).
+    // PlayerView.vue's clampSessionValue clamps hp to [-Health, Health]; with
+    // Health 0 the '+' stepper is disabled by ChildSheetTab's hpPlusDisabled
+    // (state.HealthCurrent >= state.Health, 0 >= 0) — this documents that a
+    // child with no bootstrapped state has no usable PV stepper until an MJ
+    // raw-edits a real States/Current doc (or seed data provides one).
     // Scoped to ChildSheetTab: VitruveSheet's own PV+ button carries the
     // exact same aria-label for the PARENT's vitals, so an unscoped query
     // would silently match the wrong button.
@@ -759,14 +770,10 @@ describe('PlayerView — child character tabs & raw editor (WP06)', () => {
     expect(plusButton.attributes('disabled')).toBeDefined()
   })
 
-  it('adjusting a bootstrapped child PV calls setChildVitals (updateChildSession) with the parent participant id', async () => {
+  it('adjusting a bootstrapped child PV calls setSessionResource against the child’s own characterId', async () => {
     mountAsOwner()
     currentChildren = [furmiaou]
-    currentParticipant = makeParticipant({
-      childSessions: {
-        furmiaou: { hp: 40, maxHp: 48, mana: 0, maxMana: 0, posture: 'FOCUS' },
-      },
-    })
+    currentStates['furmiaou'] = makeState({ HealthCurrent: 40, Health: 48 })
 
     const wrapper = mount(PlayerView, { props: { campaignId: 'campaign-1', characterId: 'char-1' } })
     await flushPromises()
@@ -779,12 +786,9 @@ describe('PlayerView — child character tabs & raw editor (WP06)', () => {
       .trigger('click')
     await flushPromises()
 
-    expect(mockUpdateChildSession).toHaveBeenCalledWith(
-      'campaign-1',
-      'participant-1',
-      'furmiaou',
-      { hp: 41 },
-    )
+    expect(mockUpdateCharacterState).toHaveBeenCalledWith('campaign-1', 'furmiaou', {
+      HealthCurrent: 41,
+    })
   })
 
   it('falls back to the Fiche tab when the active child tab disappears on the SAME character (spec edge case)', async () => {
@@ -853,12 +857,8 @@ describe('PlayerView — child character tabs & raw editor (WP06)', () => {
     const parentInjuries = { puissance: 'jaune' as const }
     const childInjuries = { finesse: 'rouge' as const }
     currentChildren = [furmiaou]
-    currentParticipant = makeParticipant({
-      session: { hp: 10, maxHp: 10, mana: 5, maxMana: 5, posture: 'FOCUS', injuries: parentInjuries },
-      childSessions: {
-        furmiaou: { hp: 40, maxHp: 48, mana: 0, maxMana: 0, posture: 'FOCUS', injuries: childInjuries },
-      },
-    })
+    currentStates['char-1'] = makeState({ Injuries: parentInjuries })
+    currentStates['furmiaou'] = makeState({ HealthCurrent: 40, Health: 48, Injuries: childInjuries })
 
     const wrapper = mount(PlayerView, { props: { campaignId: 'campaign-1', characterId: 'char-1' } })
     await flushPromises()
@@ -958,7 +958,7 @@ describe('PlayerView — max-stat clamp uses the equipment-adjusted effective ma
     vi.clearAllMocks()
     currentCharacter = makeCharacter()
     currentChildren = []
-    currentParticipant = null
+    currentStates = {}
   })
 
   function mountAsOwner(inventory: CharacterInventory) {
@@ -970,10 +970,8 @@ describe('PlayerView — max-stat clamp uses the equipment-adjusted effective ma
     return store
   }
 
-  it('lets mana rise above the raw stored maxMana once an equipped item grants a bonus', async () => {
-    currentParticipant = makeParticipant({
-      session: { hp: 10, maxHp: 10, mana: 4, maxMana: 4, posture: 'FOCUS' },
-    })
+  it('lets mana rise above the raw stored Mana once an equipped item grants a bonus', async () => {
+    currentStates['char-1'] = makeState({ Health: 10, HealthCurrent: 10, Mana: 4, ManaCurrent: 4 })
     mountAsOwner(
       makeInventory({
         uid: 'owner-uid',
@@ -987,29 +985,24 @@ describe('PlayerView — max-stat clamp uses the equipment-adjusted effective ma
         ],
       }),
     )
-    vi.mocked(setParticipantSessionByCharacterId).mockResolvedValue(
-      makeParticipant({ session: { hp: 10, maxHp: 10, mana: 5, maxMana: 4, posture: 'FOCUS' } }),
-    )
 
     const wrapper = mount(PlayerView, { props: { campaignId: 'campaign-1', characterId: 'char-1' } })
     await flushPromises()
 
-    // Already at the raw maxMana (4/4) — before the fix this button click was
-    // a silent no-op (next === current inside clampSessionValue) because the
-    // clamp ceiling was the raw maxMana, not the effective one (4 + 4 = 8).
+    // Already at the raw Mana (4/4) — before the fix this button click was a
+    // silent no-op (next === current inside clampSessionValue) because the
+    // clamp ceiling was the raw Mana, not the effective one (4 + 4 = 8).
     const manaPlusButton = wrapper.find('.mana-pill .vbtn:last-child')
     await manaPlusButton.trigger('click')
     await flushPromises()
 
-    expect(setParticipantSessionByCharacterId).toHaveBeenCalledWith('char-1', 'campaign-1', {
-      mana: 5,
+    expect(mockUpdateCharacterState).toHaveBeenCalledWith('campaign-1', 'char-1', {
+      ManaCurrent: 5,
     })
   })
 
   it('pulls current mana DOWN to the new effective max when a bonus item is unequipped', async () => {
-    currentParticipant = makeParticipant({
-      session: { hp: 10, maxHp: 10, mana: 8, maxMana: 4, posture: 'FOCUS' },
-    })
+    currentStates['char-1'] = makeState({ Health: 10, HealthCurrent: 10, Mana: 4, ManaCurrent: 8 })
     const store = mountAsOwner(
       makeInventory({
         uid: 'owner-uid',
@@ -1023,9 +1016,6 @@ describe('PlayerView — max-stat clamp uses the equipment-adjusted effective ma
         ],
       }),
     )
-    vi.mocked(setParticipantSessionByCharacterId).mockResolvedValue(
-      makeParticipant({ session: { hp: 10, maxHp: 10, mana: 4, maxMana: 4, posture: 'FOCUS' } }),
-    )
 
     mount(PlayerView, { props: { campaignId: 'campaign-1', characterId: 'char-1' } })
     await flushPromises()
@@ -1036,15 +1026,13 @@ describe('PlayerView — max-stat clamp uses the equipment-adjusted effective ma
     store.setInventory(makeInventory({ uid: 'owner-uid', armor: [] }))
     await flushPromises()
 
-    expect(setParticipantSessionByCharacterId).toHaveBeenCalledWith('char-1', 'campaign-1', {
-      mana: 4,
+    expect(mockUpdateCharacterState).toHaveBeenCalledWith('campaign-1', 'char-1', {
+      ManaCurrent: 4,
     })
   })
 
   it('does NOT bump current mana up on its own when the effective max increases (re-equip)', async () => {
-    currentParticipant = makeParticipant({
-      session: { hp: 10, maxHp: 10, mana: 2, maxMana: 4, posture: 'FOCUS' },
-    })
+    currentStates['char-1'] = makeState({ Health: 10, HealthCurrent: 10, Mana: 4, ManaCurrent: 2 })
     const store = mountAsOwner(makeInventory({ uid: 'owner-uid', armor: [] }))
 
     const wrapper = mount(PlayerView, { props: { campaignId: 'campaign-1', characterId: 'char-1' } })
@@ -1067,7 +1055,7 @@ describe('PlayerView — max-stat clamp uses the equipment-adjusted effective ma
     )
     await flushPromises()
 
-    expect(setParticipantSessionByCharacterId).not.toHaveBeenCalled()
+    expect(mockUpdateCharacterState).not.toHaveBeenCalled()
     expect(wrapper.find('.mana-pill .vbig').text()).toBe('2')
   })
 })

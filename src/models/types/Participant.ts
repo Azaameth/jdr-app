@@ -1,6 +1,14 @@
-// Matches /Campaigns/{campaignId}/Players/{uid}.Status per docs/rpg-data-model.md §4.6
-// ('Denied' replaces legacy's 'rejected' to match the documented enum).
+// Matches /Campaigns/{campaignId}/Players/{uid} per docs/rpg-data-model.md §4.6
+// ('Denied' replaces legacy's 'rejected' to match the documented enum). Live
+// combat state (hp/mana/posture/injuries/advantage/disadvantage) has moved to
+// Campaigns/{id}/Characters/{id}/States/Current — see CharacterStateRepository.ts
+// (NEXTSTEPS.md migration ledger, Cluster 3b) — Players/{uid} carries no
+// characterId either (per §4.6): the reverse link is Character.PlayerId.
 export type ParticipantStatus = 'Pending' | 'Approved' | 'Denied'
+
+// Posture/injury vocabulary stays French-valued by design (no functional
+// benefit to recasing, just churn) even though the rest of the target model
+// is English/PascalCase — see NEXTSTEPS.md Cluster 3b.
 export type Posture = 'OFFENSIF' | 'DEFENSIF' | 'FOCUS'
 
 // Absence of an entry in `injuries` means the sub-caractéristique is saine
@@ -14,30 +22,11 @@ export type SecondaryAttributeName =
   | 'instinct'
   | 'savoir'
 
-export interface CharacterSessionState {
-  hp: number
-  maxHp: number
-  mana: number
-  maxMana: number
-  posture: Posture
-  updatedAt?: string
-  // Key present ⇔ that sub-caractéristique is jaune/rouge; absent = saine.
-  injuries?: Partial<Record<SecondaryAttributeName, InjuryState>>
-  // Both may be true simultaneously (spec FR-008). Absent = false.
-  advantage?: boolean
-  disadvantage?: boolean
-}
-
 export interface Participant {
   id: string
   uid: string
   campaignId: string
-  characterId: string
   status: ParticipantStatus
-  session: CharacterSessionState
   createdAt?: string
   updatedAt?: string
-  // Session state for the owner's child characters (transformations),
-  // keyed by child characterId. Children get no participant doc of their own.
-  childSessions?: Record<string, CharacterSessionState>
 }

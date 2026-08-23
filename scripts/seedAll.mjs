@@ -297,17 +297,14 @@ async function main() {
   const racesData = readJson(path.join(base, 'races.json'))
   const classesData = readJson(path.join(base, 'classes.json'))
   const defaultChars = readJson(path.join(base, 'defaultChars.json'))
-  // Legacy dev fixture: defaultChars.json carries no owner/session data at
-  // all, so every character used to collapse onto one shared 'unknown-user'
-  // Player doc (each write clobbering the last). participants.json still has
-  // real distinct per-character uid + session values — use it to give each
-  // seeded character its own owner and a believable starting hp/mana/posture.
-  // NOTE: `characterId`/`session` on the Player doc are a temporary bridge —
-  // the target model (docs/rpg-data-model.md §4.6) keeps Players/{uid} to
-  // just Status/Notes and moves live state to Characters/{id}/States/Current,
-  // but ParticipantRepository/usePlayerStore haven't been migrated to read
-  // from there yet (NEXTSTEPS.md Cluster 3b). Remove these two fields once
-  // 3b ships.
+  // Legacy dev fixture: defaultChars.json carries no owner data at all, so
+  // every character used to collapse onto one shared 'unknown-user' Player
+  // doc (each write clobbering the last). participants.json still has real
+  // distinct per-character uid + session values — use it to give each seeded
+  // character its own owner and a believable starting posture/injuries (its
+  // hp/mana/posture live on Characters/{id}/States/Current per
+  // docs/rpg-data-model.md §4.8, NEXTSTEPS.md Cluster 3b — Players/{uid}
+  // itself carries no characterId/session, per §4.6).
   const participantsData = readJson(path.join(base, 'participants.json'))
   const participantsByCharacterId = new Map(participantsData.map((p) => [p.characterId, p]))
 
@@ -444,6 +441,8 @@ async function main() {
         MagicalAttack: 0,
         PhysicalDefense: 0,
         MagicalDefense: 0,
+        Posture: participantFixture?.session?.posture ?? 'DEFENSIF',
+        Injuries: participantFixture?.session?.injuries ?? {},
         PlayerId: ownerUid,
         CampaignId: campaignId,
         UpdatedAt: now,
@@ -467,15 +466,6 @@ async function main() {
         Notes: {},
         CreatedAt: now,
         UpdatedAt: now,
-        // Bridge fields, see the participantsByCharacterId comment above.
-        characterId,
-        session: participantFixture?.session ?? {
-          hp: toInt(raw.pv, 0),
-          maxHp: toInt(raw.pv_max, 0),
-          mana: toInt(raw.mana, 0),
-          maxMana: toInt(raw.mana_max, 0),
-          posture: 'DEFENSIF',
-        },
       }
 
       const equipmentDoc = {
